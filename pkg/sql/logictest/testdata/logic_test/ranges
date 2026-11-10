@@ -277,8 +277,8 @@ SELECT  start_key, start_pretty, end_key, end_pretty, database_name, table_name,
 start_key                          start_pretty                   end_key                            end_pretty                     database_name  table_name                       index_name  replicas  crdb_internal.lease_holder
 ·                                  /Min                            liveness-                        /System/NodeLiveness           ·              ·                                ·           {1}       1
  liveness-                        /System/NodeLiveness            liveness.                        /System/NodeLivenessMax        ·              ·                                ·           {1}       1
- liveness.                        /System/NodeLivenessMax        tsd                               /System/tsd                    ·              ·                                ·           {1}       1
-tsd                               /System/tsd                    tse                               /System/"tse"                  ·              ·                                ·           {1}       1
+ liveness.                        /System/NodeLivenessMax        tsd                               /System/tsd/""                 ·              ·                                ·           {1}       1
+tsd                               /System/tsd/""                 tse                               /System/"tse"                  ·              ·                                ·           {1}       1
 tse                               /System/"tse"                  [136]                              /Table/SystemConfigSpan/Start  ·              ·                                ·           {1}       1
 [136]                              /Table/SystemConfigSpan/Start  [147]                              /Table/11                      ·              ·                                ·           {1}       1
 [147]                              /Table/11                      [148]                              /Table/12                      system         lease                            ·           {1}       1
@@ -294,11 +294,7 @@ start_key                          start_pretty                   end_key       
 [157]                              /Table/21                      [158]                              /Table/22                      system         locations                        ·           {1}       1
 [158]                              /Table/22                      [159]                              /Table/23                      ·              ·                                ·           {1}       1
 [159]                              /Table/23                      [160]                              /Table/24                      system         role_members                     ·           {1}       1
-[160]                              /Table/24                      [161]                              /Table/25                      system         comments                         ·           {1}       1
-[161]                              /Table/25                      [162]                              /Table/26                      system         replication_constraint_stats     ·           {1}       1
-[162]                              /Table/26                      [163]                              /Table/27                      system         replication_critical_localities  ·           {1}       1
-[163]                              /Table/27                      [164]                              /Table/28                      system         replication_stats                ·           {1}       1
-[164]                              /Table/28                      [189 137]                          /Table/53/1                    system         reports_meta                     ·           {1}       1
+[160]                              /Table/24                      [189 137]                          /Table/53/1                    system         comments                         ·           {1}       1
 [189 137]                          /Table/53/1                    [189 137 137]                      /Table/53/1/1                  test           t                                ·           {1}       1
 [189 137 137]                      /Table/53/1/1                  [189 137 141 137]                  /Table/53/1/5/1                test           t                                ·           {3,4}     3
 [189 137 141 137]                  /Table/53/1/5/1                [189 137 141 138]                  /Table/53/1/5/2                test           t                                ·           {1,2,3}   1
@@ -324,8 +320,8 @@ SELECT start_key, start_pretty, end_key, end_pretty, database_name, table_name, 
 start_key                          start_pretty                   end_key                            end_pretty                     database_name  table_name                       index_name  replicas  lease_holder
 ·                                  /Min                            liveness-                        /System/NodeLiveness           ·              ·                                ·           {1}       1
  liveness-                        /System/NodeLiveness            liveness.                        /System/NodeLivenessMax        ·              ·                                ·           {1}       1
- liveness.                        /System/NodeLivenessMax        tsd                               /System/tsd                    ·              ·                                ·           {1}       1
-tsd                               /System/tsd                    tse                               /System/"tse"                  ·              ·                                ·           {1}       1
+ liveness.                        /System/NodeLivenessMax        tsd                               /System/tsd/""                 ·              ·                                ·           {1}       1
+tsd                               /System/tsd/""                 tse                               /System/"tse"                  ·              ·                                ·           {1}       1
 tse                               /System/"tse"                  [136]                              /Table/SystemConfigSpan/Start  ·              ·                                ·           {1}       1
 [136]                              /Table/SystemConfigSpan/Start  [147]                              /Table/11                      ·              ·                                ·           {1}       1
 [147]                              /Table/11                      [148]                              /Table/12                      system         lease                            ·           {1}       1
@@ -341,11 +337,7 @@ start_key                          start_pretty                   end_key       
 [157]                              /Table/21                      [158]                              /Table/22                      system         locations                        ·           {1}       1
 [158]                              /Table/22                      [159]                              /Table/23                      ·              ·                                ·           {1}       1
 [159]                              /Table/23                      [160]                              /Table/24                      system         role_members                     ·           {1}       1
-[160]                              /Table/24                      [161]                              /Table/25                      system         comments                         ·           {1}       1
-[161]                              /Table/25                      [162]                              /Table/26                      system         replication_constraint_stats     ·           {1}       1
-[162]                              /Table/26                      [163]                              /Table/27                      system         replication_critical_localities  ·           {1}       1
-[163]                              /Table/27                      [164]                              /Table/28                      system         replication_stats                ·           {1}       1
-[164]                              /Table/28                      [189 137]                          /Table/53/1                    system         reports_meta                     ·           {1}       1
+[160]                              /Table/24                      [189 137]                          /Table/53/1                    system         comments                         ·           {1}       1
 [189 137]                          /Table/53/1                    [189 137 137]                      /Table/53/1/1                  test           t                                ·           {1}       1
 [189 137 137]                      /Table/53/1/1                  [189 137 141 137]                  /Table/53/1/5/1                test           t                                ·           {3,4}     3
 [189 137 141 137]                  /Table/53/1/5/1                [189 137 141 138]                  /Table/53/1/5/2                test           t                                ·           {1,2,3}   1
@@ -408,11 +400,6 @@ query TT
 SELECT start_key, end_key FROM [SHOW RANGES FROM INDEX """".t@primary]
 ----
 NULL NULL
-
-query T
-SELECT feature_name FROM crdb_internal.feature_usage WHERE feature_name='sql.show.ranges' AND usage_count > 0
-----
-sql.show.ranges
 
 subtest range_for_row
 

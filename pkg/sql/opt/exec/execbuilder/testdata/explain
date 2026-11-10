@@ -21,7 +21,7 @@ EXPLAIN (PLAN) SELECT 1 FROM system.jobs WHERE TRUE
 ----
 tree       field        description
 ·          distributed  false
-·          vectorized   true
+·          vectorized   false
 render     ·            ·
  └── scan  ·            ·
 ·          table        jobs@jobs_status_created_idx
@@ -359,7 +359,7 @@ query TTT
 EXPLAIN SHOW USERS
 ----
 ·          distributed  false
-·          vectorized   true
+·          vectorized   false
 render     ·            ·
  └── scan  ·            ·
 ·          table        users@primary
@@ -418,7 +418,7 @@ query TTT
 EXPLAIN SELECT * FROM t
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        t@primary
 ·     spans        ALL
@@ -427,7 +427,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM t
 ----
 ·     distributed  false      ·       ·
-·     vectorized   true       ·       ·
+·     vectorized   false      ·       ·
 scan  ·            ·          (k, v)  ·
 ·     table        t@primary  ·       ·
 ·     spans        ALL        ·       ·
@@ -436,7 +436,7 @@ query TTT
 EXPLAIN SELECT * FROM t WHERE k = 1 OR k = 3
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        t@primary
 ·     spans        /1-/1/# /3-/3/#
@@ -449,7 +449,7 @@ query TTT
 EXPLAIN (PLAN) SELECT * FROM t INNER LOOKUP JOIN t2 ON t.k = t2.x
 ----
 ·            distributed            false
-·            vectorized             true
+·            vectorized             false
 lookup-join  ·                      ·
  │           table                  t2@primary
  │           type                   inner
@@ -490,7 +490,7 @@ query TTT
 SELECT tree, field, description FROM [EXPLAIN (VERBOSE) SELECT * FROM t WITH ORDINALITY LIMIT 1 OFFSET 1]
 ----
 ·                     distributed  false
-·                     vectorized   true
+·                     vectorized   false
 limit                 ·            ·
  │                    offset       1
  └── limit            ·            ·
@@ -571,7 +571,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM t
 ----
 ·     distributed  false      ·               ·
-·     vectorized   true       ·               ·
+·     vectorized   false      ·               ·
 scan  ·            ·          (k int, v int)  ·
 ·     table        t@primary  ·               ·
 ·     spans        ALL        ·               ·
@@ -580,7 +580,7 @@ query TTTTT
 EXPLAIN (TYPES,SYMVARS) SELECT k FROM t
 ----
 ·     distributed  false      ·        ·
-·     vectorized   true       ·        ·
+·     vectorized   false      ·        ·
 scan  ·            ·          (k int)  ·
 ·     table        t@primary  ·        ·
 ·     spans        ALL        ·        ·
@@ -589,7 +589,7 @@ query TTTTT
 EXPLAIN (TYPES,VERBOSE) SELECT k FROM t
 ----
 ·     distributed  false      ·        ·
-·     vectorized   true       ·        ·
+·     vectorized   false      ·        ·
 scan  ·            ·          (k int)  ·
 ·     table        t@primary  ·        ·
 ·     spans        ALL        ·        ·
@@ -598,7 +598,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM t WHERE v > 123
 ----
 ·     distributed  false                          ·               ·
-·     vectorized   true                           ·               ·
+·     vectorized   false                          ·               ·
 scan  ·            ·                              (k int, v int)  ·
 ·     table        t@primary                      ·               ·
 ·     spans        ALL                            ·               ·
@@ -680,7 +680,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT DISTINCT k FROM t
 ----
 ·     distributed  false      ·        ·
-·     vectorized   true       ·        ·
+·     vectorized   false      ·        ·
 scan  ·            ·          (k int)  ·
 ·     table        t@primary  ·        ·
 ·     spans        ALL        ·        ·
@@ -700,7 +700,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT v FROM t LIMIT 1
 ----
 ·     distributed  false      ·        ·
-·     vectorized   true       ·        ·
+·     vectorized   false      ·        ·
 scan  ·            ·          (v int)  ·
 ·     table        t@primary  ·        ·
 ·     spans        ALL        ·        ·
@@ -713,7 +713,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM tt WHERE x < 10 AND y > 10
 ----
 ·     distributed  false                                                                      ·               ·
-·     vectorized   true                                                                       ·               ·
+·     vectorized   false                                                                      ·               ·
 scan  ·            ·                                                                          (x int, y int)  ·
 ·     table        tt@primary                                                                 ·               ·
 ·     spans        ALL                                                                        ·               ·
@@ -883,16 +883,14 @@ inner-join (hash)
  │    ├── columns: a:1 b:2
  │    ├── stats: [rows=1000, distinct(1)=100, null(1)=10]
  │    ├── cost: 1100.02
- │    ├── prune: (1,2)
- │    └── interesting orderings: (+1)
+ │    └── prune: (1,2)
  ├── scan t
  │    ├── columns: k:4 v:5
  │    ├── stats: [rows=1000, distinct(4)=1000, null(4)=0]
  │    ├── cost: 1080.02
  │    ├── key: (4)
  │    ├── fd: (4)-->(5)
- │    ├── prune: (4,5)
- │    └── interesting orderings: (+4)
+ │    └── prune: (4,5)
  └── filters
       └── k = a [outer=(1,4), constraints=(/1: (/NULL - ]; /4: (/NULL - ]), fd=(1)==(4), (4)==(1)]
 

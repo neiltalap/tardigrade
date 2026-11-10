@@ -23,7 +23,7 @@ query TTT
 EXPLAIN SELECT v FROM uniontest UNION ALL SELECT k FROM uniontest
 ----
 ·          distributed  false
-·          vectorized   true
+·          vectorized   false
 append     ·            ·
  ├── scan  ·            ·
  │         table        uniontest@primary

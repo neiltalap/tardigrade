@@ -95,7 +95,7 @@ statement error aggregate functions are not allowed in CHECK
 CREATE TABLE bad (a INT CHECK(sum(a) > 1))
 
 # Window function calls in CHECK are not ok.
-statement error window functions are not allowed in CHECK
+statement error at or near "over": syntax error
 CREATE TABLE bad (a INT CHECK(sum(a) OVER () > 1))
 
 # fail on bad check types

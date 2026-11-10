@@ -33,24 +33,23 @@ FROM
 WHERE
   t.z IS NULL
 ----
-tree                  field               description
-·                     distributed         false
-·                     vectorized          false
-render                ·                   ·
- └── filter           ·                   ·
-      │               filter              z IS NULL
-      └── merge-join  ·                   ·
-           │          type                left outer
-           │          equality            (a_z, a_y, a_x) = (z, y, x)
-           │          right cols are key  ·
-           │          mergeJoinOrder      +"(a_z=z)",+"(a_y=y)",+"(a_x=x)"
-           ├── scan   ·                   ·
-           │          table               b@idx
-           │          spans               /!NULL-
-           │          filter              (a_y IS NOT NULL) AND (a_x IS NOT NULL)
-           └── scan   ·                   ·
-·                     table               a@primary
-·                     spans               ALL
+tree                 field              description
+·                    distributed        false
+·                    vectorized         false
+render               ·                  ·
+ └── filter          ·                  ·
+      │              filter             z IS NULL
+      └── hash-join  ·                  ·
+           │         type               right outer
+           │         equality           (z, y, x) = (a_z, a_y, a_x)
+           │         left cols are key  ·
+           ├── scan  ·                  ·
+           │         table              a@primary
+           │         spans              ALL
+           └── scan  ·                  ·
+·                    table              b@idx
+·                    spans              /!NULL-
+·                    filter             (a_y IS NOT NULL) AND (a_x IS NOT NULL)
 
 statement ok
 ALTER TABLE b VALIDATE CONSTRAINT fk_ref

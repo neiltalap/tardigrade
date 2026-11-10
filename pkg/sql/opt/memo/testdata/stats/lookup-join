@@ -199,26 +199,23 @@ inner-join (lookup def)
 opt
 SELECT a, b, c, d, e, f FROM abc JOIN def ON a = e
 ----
-inner-join (merge)
+inner-join (hash)
  ├── columns: a:1(int!null) b:2(int) c:3(int!null) d:4(int) e:5(int!null) f:6(int!null)
- ├── left ordering: +1
- ├── right ordering: +5
  ├── stats: [rows=10000, distinct(1)=100, null(1)=0, distinct(5)=100, null(5)=0]
  ├── key: (3,5,6)
  ├── fd: (1,3)-->(2), (5,6)-->(4), (1)==(5), (5)==(1)
- ├── scan abc
- │    ├── columns: a:1(int!null) b:2(int) c:3(int!null)
- │    ├── stats: [rows=100, distinct(1)=100, null(1)=0, distinct(3)=10, null(3)=0]
- │    ├── key: (1,3)
- │    ├── fd: (1,3)-->(2)
- │    └── ordering: +1
  ├── scan def@e_idx
  │    ├── columns: d:4(int) e:5(int!null) f:6(int!null)
  │    ├── stats: [rows=10000, distinct(5)=100, null(5)=0, distinct(6)=10000, null(6)=0]
  │    ├── key: (5,6)
- │    ├── fd: (5,6)-->(4)
- │    └── ordering: +5
- └── filters (true)
+ │    └── fd: (5,6)-->(4)
+ ├── scan abc
+ │    ├── columns: a:1(int!null) b:2(int) c:3(int!null)
+ │    ├── stats: [rows=100, distinct(1)=100, null(1)=0, distinct(3)=10, null(3)=0]
+ │    ├── key: (1,3)
+ │    └── fd: (1,3)-->(2)
+ └── filters
+      └── a = e [type=bool, outer=(1,5), constraints=(/1: (/NULL - ]; /5: (/NULL - ]), fd=(1)==(5), (5)==(1)]
 
 # Check column statistics for lookup join.
 opt colstat=1 colstat=2 colstat=3 colstat=4 colstat=5 colstat=6 colstat=(2,5,6)

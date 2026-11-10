@@ -729,16 +729,6 @@ values
  └── (false,) [type=tuple{bool}]
 
 opt expect=FoldComparison
-SELECT '[1, 2]'::JSONB <@ '[1, 2, 3]'::JSONB
-----
-values
- ├── columns: "?column?":1(bool!null)
- ├── cardinality: [1 - 1]
- ├── key: ()
- ├── fd: ()-->(1)
- └── (true,) [type=tuple{bool}]
-
-opt expect=FoldComparison
 SELECT ('a', 'b', 'c') = ('d', 'e', 'f')
 ----
 values

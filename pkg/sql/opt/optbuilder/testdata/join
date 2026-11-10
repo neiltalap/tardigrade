@@ -3026,19 +3026,7 @@ error (42803): aggregate functions are not allowed in JOIN conditions
 build
 SELECT * FROM onecolumn AS a(x) INNER MERGE JOIN onecolumn AS b(y) ON a.x = b.y
 ----
-project
- ├── columns: x:1(int!null) y:3(int!null)
- └── inner-join (hash)
-      ├── columns: x:1(int!null) a.rowid:2(int!null) y:3(int!null) b.rowid:4(int!null)
-      ├── flags: no-lookup-join;no-hash-join
-      ├── scan a
-      │    └── columns: x:1(int) a.rowid:2(int!null)
-      ├── scan b
-      │    └── columns: y:3(int) b.rowid:4(int!null)
-      └── filters
-           └── eq [type=bool]
-                ├── variable: x [type=int]
-                └── variable: y [type=int]
+error (0A000): MERGE join hint is not supported: the merge join executor has been removed
 
 build
 SELECT * FROM onecolumn AS a NATURAL LEFT LOOKUP JOIN onecolumn as b USING(x)

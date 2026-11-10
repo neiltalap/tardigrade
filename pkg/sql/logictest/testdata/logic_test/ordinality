@@ -74,12 +74,6 @@ SELECT * FROM (SELECT * FROM foo WHERE x > 'a') WITH ORDINALITY
 b 1
 c 2
 
-query B
-SELECT ordinality = row_number() OVER () FROM foo WITH ORDINALITY
-----
-true
-true
-true
 
 # Regression test for #33659
 statement ok

@@ -2188,26 +2188,26 @@ scalar-group-by
  ├── columns: count:19(int)
  ├── cardinality: [1 - 1]
  ├── stats: [rows=1]
- ├── cost: 2280.984
+ ├── cost: 2281.084
  ├── key: ()
  ├── fd: ()-->(19)
  ├── prune: (19)
  ├── select
  │    ├── columns: o_id:1(int) o_d_id:2(int) o_w_id:3(int) ol_o_id:9(int) ol_d_id:10(int) ol_w_id:11(int)
  │    ├── stats: [rows=6.62853719]
- │    ├── cost: 2280.89771
- │    ├── full-join (merge)
+ │    ├── cost: 2280.99771
+ │    ├── interesting orderings: (+3,+2,-1) (+11,+10,-9)
+ │    ├── full-join (hash)
  │    │    ├── columns: o_id:1(int) o_d_id:2(int) o_w_id:3(int) ol_o_id:9(int) ol_d_id:10(int) ol_w_id:11(int)
- │    │    ├── left ordering: +3,+2,-1
- │    │    ├── right ordering: +11,+10,-9
  │    │    ├── stats: [rows=19.8856116]
- │    │    ├── cost: 2280.68886
+ │    │    ├── cost: 2280.78886
+ │    │    ├── reject-nulls: (1-3,9-11)
+ │    │    ├── interesting orderings: (+3,+2,-1) (+11,+10,-9)
  │    │    ├── project
  │    │    │    ├── columns: o_id:1(int!null) o_d_id:2(int!null) o_w_id:3(int!null)
  │    │    │    ├── stats: [rows=10, distinct(1)=9.5617925, null(1)=0, distinct(2)=9.5617925, null(2)=0, distinct(3)=9.5617925, null(3)=0]
  │    │    │    ├── cost: 1130.14
  │    │    │    ├── key: (1-3)
- │    │    │    ├── ordering: +3,+2,-1
  │    │    │    ├── prune: (1-3)
  │    │    │    ├── interesting orderings: (+3,+2,-1)
  │    │    │    └── select
@@ -2216,7 +2216,6 @@ scalar-group-by
  │    │    │         ├── cost: 1130.03
  │    │    │         ├── key: (1-3)
  │    │    │         ├── fd: ()-->(6)
- │    │    │         ├── ordering: +3,+2,-1 opt(6) [actual: +3,+2,-1]
  │    │    │         ├── prune: (1-3)
  │    │    │         ├── interesting orderings: (+3,+2,-1)
  │    │    │         ├── scan "order"
@@ -2225,7 +2224,6 @@ scalar-group-by
  │    │    │         │    ├── cost: 1120.02
  │    │    │         │    ├── key: (1-3)
  │    │    │         │    ├── fd: (1-3)-->(6)
- │    │    │         │    ├── ordering: +3,+2,-1 opt(6) [actual: +3,+2,-1]
  │    │    │         │    ├── prune: (1-3,6)
  │    │    │         │    └── interesting orderings: (+3,+2,-1)
  │    │    │         └── filters
@@ -2236,7 +2234,6 @@ scalar-group-by
  │    │    │    ├── columns: ol_o_id:9(int!null) ol_d_id:10(int!null) ol_w_id:11(int!null)
  │    │    │    ├── stats: [rows=10, distinct(9)=9.5617925, null(9)=0, distinct(10)=9.5617925, null(10)=0, distinct(11)=9.5617925, null(11)=0]
  │    │    │    ├── cost: 1150.14
- │    │    │    ├── ordering: +11,+10,-9
  │    │    │    ├── prune: (9-11)
  │    │    │    ├── interesting orderings: (+11,+10,-9)
  │    │    │    └── select
@@ -2244,21 +2241,28 @@ scalar-group-by
  │    │    │         ├── stats: [rows=10, distinct(9)=9.5617925, null(9)=0, distinct(10)=9.5617925, null(10)=0, distinct(11)=9.5617925, null(11)=0, distinct(15)=1, null(15)=10]
  │    │    │         ├── cost: 1150.03
  │    │    │         ├── fd: ()-->(15)
- │    │    │         ├── ordering: +11,+10,-9 opt(15) [actual: +11,+10,-9]
  │    │    │         ├── prune: (9-11)
  │    │    │         ├── interesting orderings: (+11,+10,-9)
  │    │    │         ├── scan order_line
  │    │    │         │    ├── columns: ol_o_id:9(int!null) ol_d_id:10(int!null) ol_w_id:11(int!null) ol_delivery_d:15(timestamp)
  │    │    │         │    ├── stats: [rows=1000, distinct(9)=100, null(9)=0, distinct(10)=100, null(10)=0, distinct(11)=100, null(11)=0, distinct(15)=100, null(15)=10]
  │    │    │         │    ├── cost: 1140.02
- │    │    │         │    ├── ordering: +11,+10,-9 opt(15) [actual: +11,+10,-9]
  │    │    │         │    ├── prune: (9-11,15)
  │    │    │         │    └── interesting orderings: (+11,+10,-9)
  │    │    │         └── filters
  │    │    │              └── is [type=bool, outer=(15), constraints=(/15: [/NULL - /NULL]; tight), fd=()-->(15)]
  │    │    │                   ├── variable: ol_delivery_d [type=timestamp]
  │    │    │                   └── null [type=unknown]
- │    │    └── filters (true)
+ │    │    └── filters
+ │    │         ├── eq [type=bool, outer=(3,11), constraints=(/3: (/NULL - ]; /11: (/NULL - ]), fd=(3)==(11), (11)==(3)]
+ │    │         │    ├── variable: ol_w_id [type=int]
+ │    │         │    └── variable: o_w_id [type=int]
+ │    │         ├── eq [type=bool, outer=(2,10), constraints=(/2: (/NULL - ]; /10: (/NULL - ]), fd=(2)==(10), (10)==(2)]
+ │    │         │    ├── variable: ol_d_id [type=int]
+ │    │         │    └── variable: o_d_id [type=int]
+ │    │         └── eq [type=bool, outer=(1,9), constraints=(/1: (/NULL - ]; /9: (/NULL - ]), fd=(1)==(9), (9)==(1)]
+ │    │              ├── variable: ol_o_id [type=int]
+ │    │              └── variable: o_id [type=int]
  │    └── filters
  │         └── or [type=bool, outer=(1,9)]
  │              ├── is [type=bool]

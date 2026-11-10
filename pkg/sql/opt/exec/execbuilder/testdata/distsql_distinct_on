@@ -126,7 +126,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT ON (a,b,c) a, b, c FROM abc
 ----
 ·     distributed  true         ·          ·
-·     vectorized   true         ·          ·
+·     vectorized   false        ·          ·
 scan  ·            ·            (a, b, c)  ·
 ·     table        abc@primary  ·          ·
 ·     spans        ALL          ·          ·
@@ -140,7 +140,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT ON (a, b) a, b FROM abc ORDER BY a, b, c
 ----
 ·               distributed  true         ·          ·
-·               vectorized   true         ·          ·
+·               vectorized   false        ·          ·
 render          ·            ·            (a, b)     +a,+b
  │              render 0     a            ·          ·
  │              render 1     b            ·          ·

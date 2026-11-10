@@ -192,10 +192,6 @@ func (f *stubFactory) ConstructProjectSet(
 	return struct{}{}, nil
 }
 
-func (f *stubFactory) ConstructWindow(n exec.Node, wi exec.WindowInfo) (exec.Node, error) {
-	return struct{}{}, nil
-}
-
 func (f *stubFactory) RenameColumns(input exec.Node, colNames []string) (exec.Node, error) {
 	return struct{}{}, nil
 }
@@ -363,8 +359,3 @@ func (f *stubFactory) ConstructCreateView(
 	return struct{}{}, nil
 }
 
-func (f *stubFactory) ConstructExport(
-	input exec.Node, fileName tree.TypedExpr, fileFormat string, options []exec.KVOption,
-) (exec.Node, error) {
-	return struct{}{}, nil
-}

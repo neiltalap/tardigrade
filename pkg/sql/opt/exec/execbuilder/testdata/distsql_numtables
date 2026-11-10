@@ -80,30 +80,29 @@ https://cockroachdb.github.io/distsqlplan/decode.html#eJy8lVGL4jwUhu-_XxHO1QxksG
 query TTTTT
 EXPLAIN (VERBOSE) SELECT x, str FROM NumToSquare JOIN NumToStr ON x = y WHERE x % 2 = 0
 ----
-·                distributed         true                 ·            ·
-·                vectorized          false                ·            ·
-render           ·                   ·                    (x, str)     ·
- │               render 0            x                    ·            ·
- │               render 1            str                  ·            ·
- └── merge-join  ·                   ·                    (x, y, str)  ·
-      │          type                inner                ·            ·
-      │          equality            (x) = (y)            ·            ·
-      │          left cols are key   ·                    ·            ·
-      │          right cols are key  ·                    ·            ·
-      │          mergeJoinOrder      +"(x=y)"             ·            ·
-      ├── scan   ·                   ·                    (x)          +x
-      │          table               numtosquare@primary  ·            ·
-      │          spans               ALL                  ·            ·
-      │          filter              (x % 2) = 0          ·            ·
-      └── scan   ·                   ·                    (y, str)     +y
-·                table               numtostr@primary     ·            ·
-·                spans               ALL                  ·            ·
-·                filter              (y % 2) = 0          ·            ·
+·               distributed         true                 ·            ·
+·               vectorized          false                ·            ·
+render          ·                   ·                    (x, str)     ·
+ │              render 0            x                    ·            ·
+ │              render 1            str                  ·            ·
+ └── hash-join  ·                   ·                    (x, y, str)  ·
+      │         type                inner                ·            ·
+      │         equality            (x) = (y)            ·            ·
+      │         left cols are key   ·                    ·            ·
+      │         right cols are key  ·                    ·            ·
+      ├── scan  ·                   ·                    (x)          ·
+      │         table               numtosquare@primary  ·            ·
+      │         spans               ALL                  ·            ·
+      │         filter              (x % 2) = 0          ·            ·
+      └── scan  ·                   ·                    (y, str)     ·
+·               table               numtostr@primary     ·            ·
+·               spans               ALL                  ·            ·
+·               filter              (y % 2) = 0          ·            ·
 
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT x, str FROM NumToSquare JOIN NumToStr ON x = y WHERE x % 2 = 0]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzElV1r2zwUx--fTyEOPJBSlVi282YoZGwpS2mTLglsUHzhxlpqcK1UkiGl9LsP2xlp0kySpyW584t-1jn_n_B5BfGcQgDTwc3g8wzlPEVXk_Etuh_8uLv5NByhxpfhdDb9dnOG1ktWGAnJq1VZ_iSZeM4jTtH1eDhaP5AcjUdohS7RC_r-dTAZoMYK_Y_cM3SJnBAwZCymo-iJCgjugQAGFzB4gMEHDC0IMSw5m1MhGC-WvJbAMF5B4GBIsmUui8chhjnjFIJXkIlMKQQwix5SOqFRTHnTAQwxlVGSltssefIU8Zf-u5oBw3QZZSJAF4DhKkkl5QFq9ElRbBAEw9GsW9a8vgYM41wGqE8gfMPAcrmuZFPAwwt6jMTj9tbl-hCDkNGCQkDe8N91RFQdSf6unabrOI5ZTzaduH_sZPOdPGM8ppzGW18KC_L3kn0LoE_Oq712E7mlfEGvWZJR3mxvMyn9KRt9cn52yZPFY3W5kYb73k63m048i0721DhiF2zZJGS35717-1t7E_Pz4Jqeh_I4XDT9ExwKcvxD0TnMoXDNxXjGYvxSTPsEYtzji-keRoxnLsY3FtMuxXRPIMY7vpjeYcT45mJaxmIKJYbj-t858Y_vhDiHn217SphQsWSZoEaTyymaoPGCVrkIlvM5veNsXm5T3Y5LrhwEMRWyeutWN8OselUUaA63bOCODdyzgQlR06RGYm49uGUDd2zgng28k9gH2t2lnfe0p47bU8JkO29nl_ZtZKlhjSw1rJGlhjWy1LBOVstGVtsmbjWsiVsNa-JWw5q41bAu7o5N3F2buNWwJm41rIlbDWviVsO6uHs2cZM6w_LjP7TOtKxL637-deZlXVqXOfkwPZShh2___QoAAP__Jx8lsg==
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzElV1r2zAUhu_3K8SBQQoqsWznS1DI2FKa0iVdEtig-MKNtcbgWqkkQ0rpfx92AmnSTJKnJb3zhx7rnPcRPi8gnzKgMB3cDL7OUCEydDkZf0d3g1-3N1-GI9T4NpzOpj9uztBmyQojqcR6VV48Ki6filgwdD0ejjYPlEDjEVqhC_SMfl4NJgPUWKHPyD9DF8iLAEPOEzaKH5kEegcEMPiAIQAMIWBoQYRhKficSclFueSlAobJCqiHIc2XhSofRxjmXDCgL6BSlTGgMIvvMzZhccJE0wMMCVNxmlXbLEX6GIvn_puaAcN0GeeSonPAcJlmigmKGn1SFkspHY5m3armzTVgGBeKoj6B6BUDL9Smkm0B989oEcvF7tbV-giDVPEDA0pe8b91RHQdKfGmnabveZ5dTy6d-H_tZPudIuciYYIlO1-KStK05EAcV7FcXPM0Z6LZ3i0tY79Vo0_OLkT6sKiutrpwP9jrc9tD4NDDgQJH_Jwvm4Tsd3tw73Bnb2J_Enzbk1AdhPNm-AHHgZz2OHSOcRx8eyWBtZKwUtL-ACX-aZV0j6EksFcSWitpV0q6H6AkOK2S3jGUhPZKWtZKShmWY_n_2QhPa4N4x55hB_afMLnkuWRWE8orO2DJA1snInkh5uxW8Hm1zfp2XHHVDz9hUq3f-uubYb5-VRZoD7dc4I4L3HOBCdHTpEZifj245QJ3XOCeC7yX2Dva36e9t3SgjzvQwmQ3b2-fDl1k6WGDLD1skKWHDbL0sElWy0VW2yVuPWyIWw8b4tbDhrj1sCnujkvcXZe49bAhbj1siFsPG-LWw6a4ey5xkzrD8v0_tM60rEubfv515mVd2pQ5eTc9tKFHr5_-BAAA__-uACH3
 
 #
 # -- Aggregation tests --
@@ -151,7 +150,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT x FROM (SELECT x, 2*x, x+1 FROM NumToSquare)
 ----
 ·     distributed  true                 ·    ·
-·     vectorized   true                 ·    ·
+·     vectorized   false                ·    ·
 scan  ·            ·                    (x)  ·
 ·     table        numtosquare@primary  ·    ·
 ·     spans        ALL                  ·    ·
@@ -186,7 +185,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT y, str, repeat('test', y) AS res FROM NumToStr ORDER BY res LIMIT 10
 ----
 ·                         distributed  true               ·              ·
-·                         vectorized   true               ·              ·
+·                         vectorized   false              ·              ·
 render                    ·            ·                  (y, str, res)  ·
  │                        render 0     y                  ·              ·
  │                        render 1     str                ·              ·

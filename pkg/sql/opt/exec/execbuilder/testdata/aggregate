@@ -114,7 +114,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT count(*), k FROM kv GROUP BY 2
 ----
 ·               distributed  false              ·                        ·
-·               vectorized   true               ·                        ·
+·               vectorized   false              ·                        ·
 render          ·            ·                  (count int, k int)       ·
  │              render 0     (count_rows)[int]  ·                        ·
  │              render 1     (k)[int]           ·                        ·
@@ -151,7 +151,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT count(*), k+v AS r FROM kv GROUP BY k, v
 ----
 ·               distributed  false                                  ·                                          ·
-·               vectorized   true                                   ·                                          ·
+·               vectorized   false                                  ·                                          ·
 render          ·            ·                                      (count int, r int)                         ·
  │              render 0     (count_rows)[int]                      ·                                          ·
  │              render 1     ((k)[int] + (any_not_null)[int])[int]  ·                                          ·
@@ -169,7 +169,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT count(k) FROM kv
 ----
 ·          distributed  false       ·            ·
-·          vectorized   true        ·            ·
+·          vectorized   false       ·            ·
 group      ·            ·           (count int)  ·
  │         aggregate 0  count(k)    ·            ·
  │         scalar       ·           ·            ·
@@ -327,7 +327,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(a) FROM abc
 ----
 ·          distributed  false            ·           ·
-·          vectorized   true             ·           ·
+·          vectorized   false            ·           ·
 group      ·            ·                (min char)  ·
  │         aggregate 0  any_not_null(a)  ·           ·
  │         scalar       ·                ·           ·
@@ -355,7 +355,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(x) FROM xyz
 ----
 ·          distributed  false            ·          ·
-·          vectorized   true             ·          ·
+·          vectorized   false            ·          ·
 group      ·            ·                (min int)  ·
  │         aggregate 0  any_not_null(x)  ·          ·
  │         scalar       ·                ·          ·
@@ -368,7 +368,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(x) FROM xyz WHERE x in (0, 4, 7)
 ----
 ·          distributed  false              ·          ·
-·          vectorized   true               ·          ·
+·          vectorized   false              ·          ·
 group      ·            ·                  (min int)  ·
  │         aggregate 0  any_not_null(x)    ·          ·
  │         scalar       ·                  ·          ·
@@ -381,7 +381,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT max(x) FROM xyz
 ----
 ·             distributed  false            ·          ·
-·             vectorized   true             ·          ·
+·             vectorized   false            ·          ·
 group         ·            ·                (max int)  ·
  │            aggregate 0  any_not_null(x)  ·          ·
  │            scalar       ·                ·          ·
@@ -394,7 +394,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(y) FROM xyz WHERE x = 1
 ----
 ·               distributed  false            ·               ·
-·               vectorized   true             ·               ·
+·               vectorized   false            ·               ·
 group           ·            ·                (min int)       ·
  │              aggregate 0  any_not_null(y)  ·               ·
  │              scalar       ·                ·               ·
@@ -408,7 +408,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT max(y) FROM xyz WHERE x = 1
 ----
 ·               distributed  false            ·               ·
-·               vectorized   true             ·               ·
+·               vectorized   false            ·               ·
 group           ·            ·                (max int)       ·
  │              aggregate 0  any_not_null(y)  ·               ·
  │              scalar       ·                ·               ·
@@ -422,7 +422,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(y) FROM xyz WHERE z = 7
 ----
 ·               distributed  false                        ·                 ·
-·               vectorized   true                         ·                 ·
+·               vectorized   false                        ·                 ·
 group           ·            ·                            (min int)         ·
  │              aggregate 0  any_not_null(y)              ·                 ·
  │              scalar       ·                            ·                 ·
@@ -437,7 +437,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT max(y) FROM xyz WHERE z = 7
 ----
 ·                  distributed  false                        ·                 ·
-·                  vectorized   true                         ·                 ·
+·                  vectorized   false                        ·                 ·
 group              ·            ·                            (max int)         ·
  │                 aggregate 0  any_not_null(y)              ·                 ·
  │                 scalar       ·                            ·                 ·
@@ -452,7 +452,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(x) FROM xyz WHERE (y, z) = (2, 3.0)
 ----
 ·               distributed  false      ·                        ·
-·               vectorized   true       ·                        ·
+·               vectorized   false      ·                        ·
 group           ·            ·          (min int)                ·
  │              aggregate 0  min(x)     ·                        ·
  │              scalar       ·          ·                        ·
@@ -477,7 +477,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT max(x) FROM xyz WHERE (z, y) = (3.0, 2)
 ----
 ·               distributed  false      ·                        ·
-·               vectorized   true       ·                        ·
+·               vectorized   false      ·                        ·
 group           ·            ·          (max int)                ·
  │              aggregate 0  max(x)     ·                        ·
  │              scalar       ·          ·                        ·
@@ -699,7 +699,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT 1 a FROM kv GROUP BY kv.*;
 ----
 ·          distributed  false       ·        ·
-·          vectorized   true        ·        ·
+·          vectorized   false       ·        ·
 render     ·            ·           (a int)  ·
  │         render 0     (1)[int]    ·        ·
  └── scan  ·            ·           ()       ·
@@ -736,7 +736,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(v) FROM opt_test
 ----
 ·          distributed  false            ·          ·
-·          vectorized   true             ·          ·
+·          vectorized   false            ·          ·
 group      ·            ·                (min int)  ·
  │         aggregate 0  any_not_null(v)  ·          ·
  │         scalar       ·                ·          ·
@@ -752,7 +752,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(v) FROM opt_test WHERE k <> 4
 ----
 ·               distributed  false             ·               ·
-·               vectorized   true              ·               ·
+·               vectorized   false             ·               ·
 group           ·            ·                 (min int)       ·
  │              aggregate 0  min(v)            ·               ·
  │              scalar       ·                 ·               ·
@@ -768,7 +768,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(v+1) FROM opt_test
 ----
 ·               distributed  false                       ·              ·
-·               vectorized   true                        ·              ·
+·               vectorized   false                       ·              ·
 group           ·            ·                           (min int)      ·
  │              aggregate 0  min(column3)                ·              ·
  │              scalar       ·                           ·              ·
@@ -783,7 +783,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT min(v) FROM opt_test GROUP BY k
 ----
 ·               distributed  false             ·                 ·
-·               vectorized   true              ·                 ·
+·               vectorized   false             ·                 ·
 render          ·            ·                 (min int)         ·
  │              render 0     (min)[int]        ·                 ·
  └── group      ·            ·                 (k int, min int)  ·

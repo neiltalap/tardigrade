@@ -16,7 +16,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd WHERE a >= 20 AND a <= 30
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        abcd@primary
 ·     spans        /20-/30/#
@@ -27,7 +27,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd WHERE a >= 20 AND a <= 30 ORDER BY a DESC
 ----
 ·        distributed  false
-·        vectorized   true
+·        vectorized   false
 revscan  ·            ·
 ·        table        abcd@primary
 ·        spans        /20-/30/#
@@ -38,7 +38,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@primary WHERE a >= 20 AND a <= 30
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        abcd@primary
 ·     spans        /20-/30/#
@@ -49,7 +49,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@{FORCE_INDEX=primary,DESC} WHERE a >= 20 AND a <= 30
 ----
 ·        distributed  false
-·        vectorized   true
+·        vectorized   false
 revscan  ·            ·
 ·        table        abcd@primary
 ·        spans        /20-/30/#
@@ -60,7 +60,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@primary WHERE a >= 20 AND a <= 30 ORDER BY a DESC
 ----
 ·        distributed  false
-·        vectorized   true
+·        vectorized   false
 revscan  ·            ·
 ·        table        abcd@primary
 ·        spans        /20-/30/#
@@ -84,7 +84,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@b WHERE a >= 20 AND a <= 30
 ----
 ·                distributed  false
-·                vectorized   true
+·                vectorized   false
 filter           ·            ·
  │               filter       (a >= 20) AND (a <= 30)
  └── index-join  ·            ·
@@ -98,7 +98,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@{FORCE_INDEX=b,DESC} WHERE a >= 20 AND a <= 30
 ----
 ·                  distributed  false
-·                  vectorized   true
+·                  vectorized   false
 filter             ·            ·
  │                 filter       (a >= 20) AND (a <= 30)
  └── index-join    ·            ·
@@ -112,7 +112,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@b ORDER BY b DESC LIMIT 5
 ----
 ·             distributed  false
-·             vectorized   true
+·             vectorized   false
 index-join    ·            ·
  │            table        abcd@primary
  └── revscan  ·            ·
@@ -125,7 +125,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@{FORCE_INDEX=b,DESC} ORDER BY b DESC LIMIT 5
 ----
 ·             distributed  false
-·             vectorized   true
+·             vectorized   false
 index-join    ·            ·
  │            table        abcd@primary
  └── revscan  ·            ·
@@ -139,7 +139,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@{FORCE_INDEX=b,ASC} ORDER BY b DESC LIMIT 5
 ----
 ·                     distributed  false
-·                     vectorized   true
+·                     vectorized   false
 limit                 ·            ·
  │                    count        5
  └── sort             ·            ·
@@ -155,7 +155,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@cd WHERE a >= 20 AND a <= 30
 ----
 ·                distributed  false
-·                vectorized   true
+·                vectorized   false
 filter           ·            ·
  │               filter       (a >= 20) AND (a <= 30)
  └── index-join  ·            ·
@@ -169,7 +169,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@bcd WHERE a >= 20 AND a <= 30
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        abcd@bcd
 ·     spans        ALL
@@ -180,7 +180,7 @@ query TTT
 EXPLAIN SELECT b FROM abcd@b WHERE a >= 20 AND a <= 30
 ----
 ·          distributed  false
-·          vectorized   true
+·          vectorized   false
 render     ·            ·
  └── scan  ·            ·
 ·          table        abcd@b
@@ -192,7 +192,7 @@ query TTT
 EXPLAIN SELECT b FROM abcd@b WHERE c >= 20 AND c <= 30
 ----
 ·                     distributed  false
-·                     vectorized   true
+·                     vectorized   false
 render                ·            ·
  └── filter           ·            ·
       │               filter       (c >= 20) AND (c <= 30)
@@ -207,7 +207,7 @@ query TTT
 EXPLAIN SELECT c, d FROM abcd WHERE c >= 20 AND c < 40
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        abcd@cd
 ·     spans        /20-/40
@@ -217,7 +217,7 @@ query TTT
 EXPLAIN SELECT c, d FROM abcd@primary WHERE c >= 20 AND c < 40
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        abcd@primary
 ·     spans        ALL
@@ -228,7 +228,7 @@ query TTT
 EXPLAIN SELECT c, d FROM abcd@b WHERE c >= 20 AND c < 40
 ----
 ·                distributed  false
-·                vectorized   true
+·                vectorized   false
 filter           ·            ·
  │               filter       (c >= 20) AND (c < 40)
  └── index-join  ·            ·
@@ -241,7 +241,7 @@ query TTT
 EXPLAIN SELECT * FROM abcd@{FORCE_INDEX=b} WHERE a >= 20 AND a <= 30
 ----
 ·                distributed  false
-·                vectorized   true
+·                vectorized   false
 filter           ·            ·
  │               filter       (a >= 20) AND (a <= 30)
  └── index-join  ·            ·
@@ -254,7 +254,7 @@ query TTT
 EXPLAIN SELECT b, c, d FROM abcd WHERE c = 10
 ----
 ·           distributed  false
-·           vectorized   true
+·           vectorized   false
 index-join  ·            ·
  │          table        abcd@primary
  └── scan   ·            ·
@@ -265,7 +265,7 @@ query TTT
 EXPLAIN SELECT b, c, d FROM abcd@{NO_INDEX_JOIN} WHERE c = 10
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        abcd@primary
 ·     spans        ALL
@@ -275,7 +275,7 @@ query TTT
 EXPLAIN SELECT b, c, d FROM abcd@{FORCE_INDEX=bcd} WHERE c = 10
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        abcd@bcd
 ·     spans        ALL
@@ -285,7 +285,7 @@ query TTT
 EXPLAIN SELECT b, c, d FROM abcd@{FORCE_INDEX=primary} WHERE c = 10
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        abcd@primary
 ·     spans        ALL

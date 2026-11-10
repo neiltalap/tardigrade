@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/stats"
 )
 
 // Details is a marker interface for job details proto structs.
@@ -56,7 +55,9 @@ func DetailsType(d isPayload_Details) Type {
 		return TypeChangefeed
 	case *Payload_CreateStats:
 		createStatsName := d.CreateStats.Name
-		if createStatsName == stats.AutoStatsName {
+		// "__auto__" was stats.AutoStatsName; the statistics subsystem has
+		// been removed, but old job rows may still carry the name.
+		if createStatsName == "__auto__" {
 			return TypeAutoCreateStats
 		}
 		return TypeCreateStats

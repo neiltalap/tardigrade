@@ -100,23 +100,20 @@ inner-join (cross)
 opt expect=RejectNullsLeftJoin
 SELECT * FROM a LEFT JOIN xy ON true WHERE xy.x = a.k
 ----
-inner-join (merge)
+inner-join (hash)
  ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) x:5(int!null) y:6(int)
- ├── left ordering: +1
- ├── right ordering: +5
  ├── key: (5)
  ├── fd: (1)-->(2-4), (5)-->(6), (1)==(5), (5)==(1)
  ├── scan a
  │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string)
  │    ├── key: (1)
- │    ├── fd: (1)-->(2-4)
- │    └── ordering: +1
+ │    └── fd: (1)-->(2-4)
  ├── scan xy
  │    ├── columns: x:5(int!null) y:6(int)
  │    ├── key: (5)
- │    ├── fd: (5)-->(6)
- │    └── ordering: +5
- └── filters (true)
+ │    └── fd: (5)-->(6)
+ └── filters
+      └── x = k [type=bool, outer=(1,5), constraints=(/1: (/NULL - ]; /5: (/NULL - ]), fd=(1)==(5), (5)==(1)]
 
 # Right-join operator.
 opt expect=RejectNullsRightJoin

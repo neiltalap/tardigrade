@@ -20,42 +20,36 @@ CREATE TABLE cd (c INT PRIMARY KEY, d INT NOT NULL)
 opt expect=DecorrelateJoin
 SELECT * FROM a WHERE EXISTS(SELECT * FROM xy WHERE x=k)
 ----
-semi-join (merge)
+semi-join (hash)
  ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
- ├── left ordering: +1
- ├── right ordering: +6
  ├── key: (1)
  ├── fd: (1)-->(2-5)
  ├── scan a
  │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
  │    ├── key: (1)
- │    ├── fd: (1)-->(2-5)
- │    └── ordering: +1
+ │    └── fd: (1)-->(2-5)
  ├── scan xy
  │    ├── columns: x:6(int!null)
- │    ├── key: (6)
- │    └── ordering: +6
- └── filters (true)
+ │    └── key: (6)
+ └── filters
+      └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
 
 opt expect=DecorrelateJoin
 SELECT * FROM a WHERE NOT EXISTS(SELECT * FROM xy WHERE x=k)
 ----
-anti-join (merge)
+anti-join (hash)
  ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
- ├── left ordering: +1
- ├── right ordering: +6
  ├── key: (1)
  ├── fd: (1)-->(2-5)
  ├── scan a
  │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
  │    ├── key: (1)
- │    ├── fd: (1)-->(2-5)
- │    └── ordering: +1
+ │    └── fd: (1)-->(2-5)
  ├── scan xy
  │    ├── columns: x:6(int!null)
- │    ├── key: (6)
- │    └── ordering: +6
- └── filters (true)
+ │    └── key: (6)
+ └── filters
+      └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
 
 # Decorrelate UPDATE statement.
 opt expect=DecorrelateJoin
@@ -69,23 +63,20 @@ update xy
  │    └──  v:6 => y:2
  ├── cardinality: [0 - 0]
  ├── side-effects, mutations
- └── left-join (merge)
+ └── left-join (hash)
       ├── columns: x:3(int!null) y:4(int) u:5(int) v:6(int)
-      ├── left ordering: +3
-      ├── right ordering: +5
       ├── key: (3,5)
       ├── fd: (3)-->(4), (5)-->(6)
       ├── scan xy
       │    ├── columns: x:3(int!null) y:4(int)
       │    ├── key: (3)
-      │    ├── fd: (3)-->(4)
-      │    └── ordering: +3
+      │    └── fd: (3)-->(4)
       ├── scan uv
       │    ├── columns: u:5(int!null) v:6(int)
       │    ├── key: (5)
-      │    ├── fd: (5)-->(6)
-      │    └── ordering: +5
-      └── filters (true)
+      │    └── fd: (5)-->(6)
+      └── filters
+           └── u = x [type=bool, outer=(3,5), constraints=(/3: (/NULL - ]; /5: (/NULL - ]), fd=(3)==(5), (5)==(3)]
 
 # Decorrelate INSERT..ON CONFLICT statement.
 opt expect=DecorrelateJoin
@@ -144,20 +135,17 @@ delete xy
  ├── fetch columns: x:3(int)
  ├── cardinality: [0 - 0]
  ├── side-effects, mutations
- └── semi-join (merge)
+ └── semi-join (hash)
       ├── columns: x:3(int!null)
-      ├── left ordering: +3
-      ├── right ordering: +5
       ├── key: (3)
       ├── scan xy
       │    ├── columns: x:3(int!null)
-      │    ├── key: (3)
-      │    └── ordering: +3
+      │    └── key: (3)
       ├── scan uv
       │    ├── columns: u:5(int!null)
-      │    ├── key: (5)
-      │    └── ordering: +5
-      └── filters (true)
+      │    └── key: (5)
+      └── filters
+           └── u = x [type=bool, outer=(3,5), constraints=(/3: (/NULL - ]; /5: (/NULL - ]), fd=(3)==(5), (5)==(3)]
 
 # --------------------------------------------------
 # DecorrelateProjectSet
@@ -257,390 +245,6 @@ inner-join (cross)
  │                             │              └── const: 0 [type=int]
  │                             └── filters (true)
  └── filters (true)
-
-# --------------------------------------------------
-# TryDecorrelateWindow
-# --------------------------------------------------
-
-norm expect=TryDecorrelateWindow
-SELECT
-    *
-FROM
-    uv,
-    LATERAL (SELECT rank() OVER (), i FROM (SELECT * FROM a WHERE k = u))
-WHERE i = 3
-----
-project
- ├── columns: u:1(int!null) v:2(int) rank:8(int) i:4(int!null)
- ├── key: (1,8)
- ├── fd: ()-->(4), (1)-->(2)
- └── window partition=(1)
-      ├── columns: u:1(int!null) v:2(int) k:3(int!null) i:4(int!null) rank:8(int)
-      ├── key: (3)
-      ├── fd: ()-->(4), (1)-->(2), (1)==(3), (3)==(1)
-      ├── inner-join (hash)
-      │    ├── columns: u:1(int!null) v:2(int) k:3(int!null) i:4(int!null)
-      │    ├── key: (3)
-      │    ├── fd: ()-->(4), (1)-->(2), (1)==(3), (3)==(1)
-      │    ├── scan uv
-      │    │    ├── columns: u:1(int!null) v:2(int)
-      │    │    ├── key: (1)
-      │    │    └── fd: (1)-->(2)
-      │    ├── select
-      │    │    ├── columns: k:3(int!null) i:4(int!null)
-      │    │    ├── key: (3)
-      │    │    ├── fd: ()-->(4)
-      │    │    ├── scan a
-      │    │    │    ├── columns: k:3(int!null) i:4(int)
-      │    │    │    ├── key: (3)
-      │    │    │    └── fd: (3)-->(4)
-      │    │    └── filters
-      │    │         └── i = 3 [type=bool, outer=(4), constraints=(/4: [/3 - /3]; tight), fd=()-->(4)]
-      │    └── filters
-      │         └── k = u [type=bool, outer=(1,3), constraints=(/1: (/NULL - ]; /3: (/NULL - ]), fd=(1)==(3), (3)==(1)]
-      └── windows
-           └── rank [type=int]
-
-# TryDecorrelateWindow will trigger twice here: first to pull the window above
-# the non-apply join, and then again the pull it above the apply join.
-norm expect=TryDecorrelateWindow
-SELECT
-    *
-FROM
-    uv,
-    LATERAL (
-        SELECT
-            *
-        FROM
-            (SELECT x FROM xy) CROSS JOIN (SELECT ntile(u) OVER (), i FROM a)
-    )
-WHERE
-    i = 3
-----
-project
- ├── columns: u:1(int!null) v:2(int) x:3(int!null) ntile:10(int) i:6(int!null)
- ├── fd: ()-->(6), (1)-->(2)
- └── select
-      ├── columns: u:1(int!null) v:2(int) x:3(int!null) i:6(int!null) ntile:10(int) ntile_1_arg1:11(int!null)
-      ├── fd: ()-->(6), (1)-->(2,11), (1)==(11), (11)==(1)
-      ├── window partition=(1,3)
-      │    ├── columns: u:1(int!null) v:2(int) x:3(int!null) i:6(int) ntile:10(int) ntile_1_arg1:11(int!null)
-      │    ├── fd: (1)-->(2,11), (1)==(11), (11)==(1)
-      │    ├── project
-      │    │    ├── columns: ntile_1_arg1:11(int!null) u:1(int!null) v:2(int) x:3(int!null) i:6(int)
-      │    │    ├── fd: (1)-->(2,11), (1)==(11), (11)==(1)
-      │    │    ├── inner-join (cross)
-      │    │    │    ├── columns: u:1(int!null) v:2(int) x:3(int!null) i:6(int)
-      │    │    │    ├── fd: (1)-->(2)
-      │    │    │    ├── scan uv
-      │    │    │    │    ├── columns: u:1(int!null) v:2(int)
-      │    │    │    │    ├── key: (1)
-      │    │    │    │    └── fd: (1)-->(2)
-      │    │    │    ├── inner-join (cross)
-      │    │    │    │    ├── columns: x:3(int!null) i:6(int)
-      │    │    │    │    ├── scan xy
-      │    │    │    │    │    ├── columns: x:3(int!null)
-      │    │    │    │    │    └── key: (3)
-      │    │    │    │    ├── scan a
-      │    │    │    │    │    └── columns: i:6(int)
-      │    │    │    │    └── filters (true)
-      │    │    │    └── filters (true)
-      │    │    └── projections
-      │    │         └── variable: u [type=int, outer=(1)]
-      │    └── windows
-      │         └── ntile [type=int, outer=(11)]
-      │              └── variable: ntile_1_arg1 [type=int]
-      └── filters
-           └── i = 3 [type=bool, outer=(6), constraints=(/6: [/3 - /3]; tight), fd=()-->(6)]
-
-# If the LHS has no key, we need to add one, or else identical rows would end up in the same
-# partition.
-
-norm expect=TryDecorrelateWindow
-SELECT
-    *
-FROM
-    (VALUES (1), (1), (1)) AS v (x),
-    LATERAL (SELECT row_number() OVER (), i FROM (SELECT * FROM a WHERE k = x))
-----
-project
- ├── columns: x:1(int!null) row_number:7(int) i:3(int)
- ├── fd: (1)-->(3)
- └── window partition=(8)
-      ├── columns: column1:1(int!null) k:2(int!null) i:3(int) row_number:7(int) rownum:8(int!null)
-      ├── key: (8)
-      ├── fd: (8)-->(1), (2)-->(3), (1)==(2), (2)==(1)
-      ├── inner-join (hash)
-      │    ├── columns: column1:1(int!null) k:2(int!null) i:3(int) rownum:8(int!null)
-      │    ├── key: (8)
-      │    ├── fd: (8)-->(1), (2)-->(3), (1)==(2), (2)==(1)
-      │    ├── ordinality
-      │    │    ├── columns: column1:1(int!null) rownum:8(int!null)
-      │    │    ├── cardinality: [3 - 3]
-      │    │    ├── key: (8)
-      │    │    ├── fd: (8)-->(1)
-      │    │    └── values
-      │    │         ├── columns: column1:1(int!null)
-      │    │         ├── cardinality: [3 - 3]
-      │    │         ├── (1,) [type=tuple{int}]
-      │    │         ├── (1,) [type=tuple{int}]
-      │    │         └── (1,) [type=tuple{int}]
-      │    ├── scan a
-      │    │    ├── columns: k:2(int!null) i:3(int)
-      │    │    ├── key: (2)
-      │    │    └── fd: (2)-->(3)
-      │    └── filters
-      │         └── k = column1 [type=bool, outer=(1,2), constraints=(/1: (/NULL - ]; /2: (/NULL - ]), fd=(1)==(2), (2)==(1)]
-      └── windows
-           └── row-number [type=int]
-
-norm expect=TryDecorrelateWindow
-SELECT
-    *
-FROM
-    (VALUES (1), (1), (1)) AS v (x),
-    LATERAL (SELECT row_number() OVER (ORDER BY i), i FROM (SELECT * FROM a WHERE x > 3))
-----
-project
- ├── columns: x:1(int!null) row_number:7(int) i:3(int)
- └── window partition=(8) ordering=+3 opt(1,8)
-      ├── columns: column1:1(int!null) i:3(int) row_number:7(int) rownum:8(int!null)
-      ├── fd: (8)-->(1)
-      ├── inner-join (cross)
-      │    ├── columns: column1:1(int!null) i:3(int) rownum:8(int!null)
-      │    ├── fd: (8)-->(1)
-      │    ├── select
-      │    │    ├── columns: column1:1(int!null) rownum:8(int!null)
-      │    │    ├── cardinality: [0 - 3]
-      │    │    ├── key: (8)
-      │    │    ├── fd: (8)-->(1)
-      │    │    ├── ordinality
-      │    │    │    ├── columns: column1:1(int!null) rownum:8(int!null)
-      │    │    │    ├── cardinality: [3 - 3]
-      │    │    │    ├── key: (8)
-      │    │    │    ├── fd: (8)-->(1)
-      │    │    │    └── values
-      │    │    │         ├── columns: column1:1(int!null)
-      │    │    │         ├── cardinality: [3 - 3]
-      │    │    │         ├── (1,) [type=tuple{int}]
-      │    │    │         ├── (1,) [type=tuple{int}]
-      │    │    │         └── (1,) [type=tuple{int}]
-      │    │    └── filters
-      │    │         └── column1 > 3 [type=bool, outer=(1), constraints=(/1: [/4 - ]; tight)]
-      │    ├── scan a
-      │    │    └── columns: i:3(int)
-      │    └── filters (true)
-      └── windows
-           └── row-number [type=int]
-
-# In this example, we introduce a key called rownum, and after TryDecorrelateWindow triggers
-# PARTITION BY x becomes PARTITION BY x, rownum. Then later, ReduceWindowPartitionCols triggers,
-# recognizing that rownum determines x.
-
-norm expect=TryDecorrelateWindow
-SELECT
-    *
-FROM
-    (VALUES (1), (1), (1)) AS v (x),
-    LATERAL (SELECT row_number() OVER (PARTITION BY x), i FROM (SELECT * FROM a WHERE k = x))
-----
-project
- ├── columns: x:1(int!null) row_number:7(int) i:3(int)
- ├── fd: (1)-->(3)
- └── window partition=(9)
-      ├── columns: column1:1(int!null) i:3(int) row_number:7(int) rownum:9(int!null)
-      ├── key: (9)
-      ├── fd: (9)-->(1), (1)-->(3)
-      ├── project
-      │    ├── columns: column1:1(int!null) i:3(int) rownum:9(int!null)
-      │    ├── key: (9)
-      │    ├── fd: (9)-->(1), (1)-->(3)
-      │    └── inner-join (hash)
-      │         ├── columns: column1:1(int!null) k:2(int!null) i:3(int) rownum:9(int!null)
-      │         ├── key: (9)
-      │         ├── fd: (9)-->(1), (2)-->(3), (1)==(2), (2)==(1)
-      │         ├── ordinality
-      │         │    ├── columns: column1:1(int!null) rownum:9(int!null)
-      │         │    ├── cardinality: [3 - 3]
-      │         │    ├── key: (9)
-      │         │    ├── fd: (9)-->(1)
-      │         │    └── values
-      │         │         ├── columns: column1:1(int!null)
-      │         │         ├── cardinality: [3 - 3]
-      │         │         ├── (1,) [type=tuple{int}]
-      │         │         ├── (1,) [type=tuple{int}]
-      │         │         └── (1,) [type=tuple{int}]
-      │         ├── scan a
-      │         │    ├── columns: k:2(int!null) i:3(int)
-      │         │    ├── key: (2)
-      │         │    └── fd: (2)-->(3)
-      │         └── filters
-      │              └── k = column1 [type=bool, outer=(1,2), constraints=(/1: (/NULL - ]; /2: (/NULL - ]), fd=(1)==(2), (2)==(1)]
-      └── windows
-           └── row-number [type=int]
-
-norm expect=TryDecorrelateWindow
-SELECT
-    *
-FROM
-    (VALUES (1, 2), (1, 3), (1, 4)) AS v (x, y),
-    LATERAL (SELECT row_number() OVER (PARTITION BY x ORDER BY y), i FROM (SELECT * FROM a WHERE k = x))
-----
-project
- ├── columns: x:1(int!null) y:2(int!null) row_number:8(int) i:4(int)
- ├── fd: (1)-->(4)
- └── window partition=(11)
-      ├── columns: column1:1(int!null) column2:2(int!null) i:4(int) row_number:8(int) rownum:11(int!null)
-      ├── key: (11)
-      ├── fd: (11)-->(1,2), (1)-->(4)
-      ├── project
-      │    ├── columns: column1:1(int!null) column2:2(int!null) i:4(int) rownum:11(int!null)
-      │    ├── key: (11)
-      │    ├── fd: (11)-->(1,2), (1)-->(4)
-      │    └── inner-join (hash)
-      │         ├── columns: column1:1(int!null) column2:2(int!null) k:3(int!null) i:4(int) rownum:11(int!null)
-      │         ├── key: (11)
-      │         ├── fd: (11)-->(1,2), (3)-->(4), (1)==(3), (3)==(1)
-      │         ├── ordinality
-      │         │    ├── columns: column1:1(int!null) column2:2(int!null) rownum:11(int!null)
-      │         │    ├── cardinality: [3 - 3]
-      │         │    ├── key: (11)
-      │         │    ├── fd: (11)-->(1,2)
-      │         │    └── values
-      │         │         ├── columns: column1:1(int!null) column2:2(int!null)
-      │         │         ├── cardinality: [3 - 3]
-      │         │         ├── (1, 2) [type=tuple{int, int}]
-      │         │         ├── (1, 3) [type=tuple{int, int}]
-      │         │         └── (1, 4) [type=tuple{int, int}]
-      │         ├── scan a
-      │         │    ├── columns: k:3(int!null) i:4(int)
-      │         │    ├── key: (3)
-      │         │    └── fd: (3)-->(4)
-      │         └── filters
-      │              └── k = column1 [type=bool, outer=(1,3), constraints=(/1: (/NULL - ]; /3: (/NULL - ]), fd=(1)==(3), (3)==(1)]
-      └── windows
-           └── row-number [type=int]
-
-norm expect=TryDecorrelateWindow
-SELECT
-    *
-FROM
-    uv,
-    LATERAL (SELECT row_number() OVER (PARTITION BY u), i FROM (SELECT * FROM a WHERE k = u))
-----
-window partition=(1)
- ├── columns: u:1(int!null) v:2(int) row_number:8(int) i:4(int)
- ├── key: (1)
- ├── fd: (1)-->(2,4)
- ├── project
- │    ├── columns: u:1(int!null) v:2(int) i:4(int)
- │    ├── key: (1)
- │    ├── fd: (1)-->(2,4)
- │    └── inner-join (hash)
- │         ├── columns: u:1(int!null) v:2(int) k:3(int!null) i:4(int)
- │         ├── key: (3)
- │         ├── fd: (1)-->(2), (3)-->(4), (1)==(3), (3)==(1)
- │         ├── scan uv
- │         │    ├── columns: u:1(int!null) v:2(int)
- │         │    ├── key: (1)
- │         │    └── fd: (1)-->(2)
- │         ├── scan a
- │         │    ├── columns: k:3(int!null) i:4(int)
- │         │    ├── key: (3)
- │         │    └── fd: (3)-->(4)
- │         └── filters
- │              └── k = u [type=bool, outer=(1,3), constraints=(/1: (/NULL - ]; /3: (/NULL - ]), fd=(1)==(3), (3)==(1)]
- └── windows
-      └── row-number [type=int]
-
-norm expect=TryDecorrelateWindow
-SELECT
-    *
-FROM
-    uv,
-    LATERAL (SELECT row_number() OVER (PARTITION BY s), i FROM (SELECT * FROM a WHERE k = u))
-----
-project
- ├── columns: u:1(int!null) v:2(int) row_number:8(int) i:4(int)
- ├── key: (1,8)
- ├── fd: (1)-->(2,4)
- └── window partition=(1)
-      ├── columns: u:1(int!null) v:2(int) k:3(int!null) i:4(int) row_number:8(int)
-      ├── key: (3)
-      ├── fd: (1)-->(2), (3)-->(4), (1)==(3), (3)==(1)
-      ├── inner-join (hash)
-      │    ├── columns: u:1(int!null) v:2(int) k:3(int!null) i:4(int)
-      │    ├── key: (3)
-      │    ├── fd: (1)-->(2), (3)-->(4), (1)==(3), (3)==(1)
-      │    ├── scan uv
-      │    │    ├── columns: u:1(int!null) v:2(int)
-      │    │    ├── key: (1)
-      │    │    └── fd: (1)-->(2)
-      │    ├── scan a
-      │    │    ├── columns: k:3(int!null) i:4(int)
-      │    │    ├── key: (3)
-      │    │    └── fd: (3)-->(4)
-      │    └── filters
-      │         └── k = u [type=bool, outer=(1,3), constraints=(/1: (/NULL - ]; /3: (/NULL - ]), fd=(1)==(3), (3)==(1)]
-      └── windows
-           └── row-number [type=int]
-
-norm expect=TryDecorrelateWindow
-SELECT
-    *
-FROM
-    uv,
-    LATERAL (SELECT row_number() OVER (PARTITION BY s), i FROM (SELECT * FROM a WHERE i = u))
-----
-project
- ├── columns: u:1(int!null) v:2(int) row_number:8(int) i:4(int!null)
- ├── fd: (1)-->(2), (1)==(4), (4)==(1)
- └── window partition=(1,6)
-      ├── columns: u:1(int!null) v:2(int) i:4(int!null) s:6(string) row_number:8(int)
-      ├── fd: (1)-->(2), (1)==(4), (4)==(1)
-      ├── inner-join (hash)
-      │    ├── columns: u:1(int!null) v:2(int) i:4(int!null) s:6(string)
-      │    ├── fd: (1)-->(2), (1)==(4), (4)==(1)
-      │    ├── scan uv
-      │    │    ├── columns: u:1(int!null) v:2(int)
-      │    │    ├── key: (1)
-      │    │    └── fd: (1)-->(2)
-      │    ├── scan a
-      │    │    └── columns: i:4(int) s:6(string)
-      │    └── filters
-      │         └── i = u [type=bool, outer=(1,4), constraints=(/1: (/NULL - ]; /4: (/NULL - ]), fd=(1)==(4), (4)==(1)]
-      └── windows
-           └── row-number [type=int]
-
-norm expect=TryDecorrelateWindow
-SELECT * FROM uv, LATERAL (SELECT avg(f) FILTER (WHERE u = 3) OVER (), i FROM a)
-----
-project
- ├── columns: u:1(int!null) v:2(int) avg:8(float) i:4(int)
- ├── fd: (1)-->(2)
- └── window partition=(1)
-      ├── columns: u:1(int!null) v:2(int) i:4(int) f:5(float) avg:8(float) avg_1_filter:9(bool)
-      ├── fd: (1)-->(2,9)
-      ├── project
-      │    ├── columns: avg_1_filter:9(bool) u:1(int!null) v:2(int) i:4(int) f:5(float)
-      │    ├── fd: (1)-->(2,9)
-      │    ├── inner-join (cross)
-      │    │    ├── columns: u:1(int!null) v:2(int) i:4(int) f:5(float)
-      │    │    ├── fd: (1)-->(2)
-      │    │    ├── scan uv
-      │    │    │    ├── columns: u:1(int!null) v:2(int)
-      │    │    │    ├── key: (1)
-      │    │    │    └── fd: (1)-->(2)
-      │    │    ├── scan a
-      │    │    │    └── columns: i:4(int) f:5(float)
-      │    │    └── filters (true)
-      │    └── projections
-      │         └── u = 3 [type=bool, outer=(1)]
-      └── windows
-           └── agg-filter [type=float, outer=(5,9)]
-                ├── avg [type=float]
-                │    └── variable: f [type=float]
-                └── variable: avg_1_filter [type=bool]
 
 # --------------------------------------------------
 # TryDecorrelateSelect
@@ -857,40 +461,33 @@ project
  ├── group-by
  │    ├── columns: k:1(int!null) bool_or:10(bool)
  │    ├── grouping columns: k:1(int!null)
- │    ├── internal-ordering: +1
  │    ├── key: (1)
  │    ├── fd: (1)-->(10)
- │    ├── left-join (merge)
+ │    ├── left-join (hash)
  │    │    ├── columns: k:1(int!null) x:6(int) notnull:9(bool)
- │    │    ├── left ordering: +1
- │    │    ├── right ordering: +6
  │    │    ├── key: (1,6)
  │    │    ├── fd: (6)-->(9)
- │    │    ├── ordering: +1
  │    │    ├── scan a
  │    │    │    ├── columns: k:1(int!null)
- │    │    │    ├── key: (1)
- │    │    │    └── ordering: +1
+ │    │    │    └── key: (1)
  │    │    ├── project
  │    │    │    ├── columns: notnull:9(bool) x:6(int!null)
  │    │    │    ├── key: (6)
  │    │    │    ├── fd: (6)-->(9)
- │    │    │    ├── ordering: +6
  │    │    │    ├── select
  │    │    │    │    ├── columns: x:6(int!null) y:7(int)
  │    │    │    │    ├── key: (6)
  │    │    │    │    ├── fd: (6)-->(7)
- │    │    │    │    ├── ordering: +6
  │    │    │    │    ├── scan xy
  │    │    │    │    │    ├── columns: x:6(int!null) y:7(int)
  │    │    │    │    │    ├── key: (6)
- │    │    │    │    │    ├── fd: (6)-->(7)
- │    │    │    │    │    └── ordering: +6
+ │    │    │    │    │    └── fd: (6)-->(7)
  │    │    │    │    └── filters
  │    │    │    │         └── (y = 5) IS NOT false [type=bool, outer=(7)]
  │    │    │    └── projections
  │    │    │         └── y IS NOT NULL [type=bool, outer=(7)]
- │    │    └── filters (true)
+ │    │    └── filters
+ │    │         └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  │    └── aggregations
  │         └── bool-or [type=bool, outer=(9)]
  │              └── variable: notnull [type=bool]
@@ -936,40 +533,33 @@ project
  ├── group-by
  │    ├── columns: k:1(int!null) bool_or:10(bool)
  │    ├── grouping columns: k:1(int!null)
- │    ├── internal-ordering: +1
  │    ├── key: (1)
  │    ├── fd: (1)-->(10)
- │    ├── left-join (merge)
+ │    ├── left-join (hash)
  │    │    ├── columns: k:1(int!null) x:6(int) notnull:9(bool)
- │    │    ├── left ordering: +1
- │    │    ├── right ordering: +6
  │    │    ├── key: (1,6)
  │    │    ├── fd: (6)-->(9)
- │    │    ├── ordering: +1
  │    │    ├── scan a
  │    │    │    ├── columns: k:1(int!null)
- │    │    │    ├── key: (1)
- │    │    │    └── ordering: +1
+ │    │    │    └── key: (1)
  │    │    ├── project
  │    │    │    ├── columns: notnull:9(bool) x:6(int!null)
  │    │    │    ├── key: (6)
  │    │    │    ├── fd: (6)-->(9)
- │    │    │    ├── ordering: +6
  │    │    │    ├── select
  │    │    │    │    ├── columns: x:6(int!null) y:7(int)
  │    │    │    │    ├── key: (6)
  │    │    │    │    ├── fd: (6)-->(7)
- │    │    │    │    ├── ordering: +6
  │    │    │    │    ├── scan xy
  │    │    │    │    │    ├── columns: x:6(int!null) y:7(int)
  │    │    │    │    │    ├── key: (6)
- │    │    │    │    │    ├── fd: (6)-->(7)
- │    │    │    │    │    └── ordering: +6
+ │    │    │    │    │    └── fd: (6)-->(7)
  │    │    │    │    └── filters
  │    │    │    │         └── (y = 5) IS NOT false [type=bool, outer=(7)]
  │    │    │    └── projections
  │    │    │         └── y IS NOT NULL [type=bool, outer=(7)]
- │    │    └── filters (true)
+ │    │    └── filters
+ │    │         └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  │    └── aggregations
  │         └── bool-or [type=bool, outer=(9)]
  │              └── variable: notnull [type=bool]
@@ -985,34 +575,28 @@ project
  ├── group-by
  │    ├── columns: k:1(int!null) i:2(int) bool_or:10(bool)
  │    ├── grouping columns: k:1(int!null)
- │    ├── internal-ordering: +1
  │    ├── key: (1)
  │    ├── fd: (1)-->(2,10)
- │    ├── left-join (merge)
+ │    ├── left-join (hash)
  │    │    ├── columns: k:1(int!null) i:2(int) x:6(int) y:7(int) notnull:9(bool)
- │    │    ├── left ordering: +1
- │    │    ├── right ordering: +6
  │    │    ├── key: (1,6)
  │    │    ├── fd: (1)-->(2), (6)-->(7), (7)~~>(9), (1,6)-->(9)
- │    │    ├── ordering: +1
  │    │    ├── scan a
  │    │    │    ├── columns: k:1(int!null) i:2(int)
  │    │    │    ├── key: (1)
- │    │    │    ├── fd: (1)-->(2)
- │    │    │    └── ordering: +1
+ │    │    │    └── fd: (1)-->(2)
  │    │    ├── project
  │    │    │    ├── columns: notnull:9(bool) x:6(int!null) y:7(int)
  │    │    │    ├── key: (6)
  │    │    │    ├── fd: (6)-->(7), (7)-->(9)
- │    │    │    ├── ordering: +6
  │    │    │    ├── scan xy
  │    │    │    │    ├── columns: x:6(int!null) y:7(int)
  │    │    │    │    ├── key: (6)
- │    │    │    │    ├── fd: (6)-->(7)
- │    │    │    │    └── ordering: +6
+ │    │    │    │    └── fd: (6)-->(7)
  │    │    │    └── projections
  │    │    │         └── y IS NOT NULL [type=bool, outer=(7)]
  │    │    └── filters
+ │    │         ├── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  │    │         └── (i = y) IS NOT false [type=bool, outer=(2,7)]
  │    └── aggregations
  │         ├── bool-or [type=bool, outer=(9)]
@@ -1032,44 +616,37 @@ project
  ├── group-by
  │    ├── columns: k:1(int!null) scalar:9(decimal) bool_or:11(bool)
  │    ├── grouping columns: k:1(int!null)
- │    ├── internal-ordering: +1
  │    ├── side-effects
  │    ├── key: (1)
  │    ├── fd: (1)-->(9,11)
- │    ├── left-join (merge)
+ │    ├── left-join (hash)
  │    │    ├── columns: k:1(int!null) x:6(int) y:7(int) scalar:9(decimal) notnull:10(bool)
- │    │    ├── left ordering: +1
- │    │    ├── right ordering: +6
  │    │    ├── side-effects
  │    │    ├── key: (1,6)
  │    │    ├── fd: (1)-->(9), (6)-->(7), (7)~~>(10), (1,6)-->(10)
- │    │    ├── ordering: +1
  │    │    ├── project
  │    │    │    ├── columns: scalar:9(decimal) k:1(int!null)
  │    │    │    ├── side-effects
  │    │    │    ├── key: (1)
  │    │    │    ├── fd: (1)-->(9)
- │    │    │    ├── ordering: +1
  │    │    │    ├── scan a
  │    │    │    │    ├── columns: k:1(int!null) i:2(int)
  │    │    │    │    ├── key: (1)
- │    │    │    │    ├── fd: (1)-->(2)
- │    │    │    │    └── ordering: +1
+ │    │    │    │    └── fd: (1)-->(2)
  │    │    │    └── projections
  │    │    │         └── (i * i) / 5 [type=decimal, outer=(2), side-effects]
  │    │    ├── project
  │    │    │    ├── columns: notnull:10(bool) x:6(int!null) y:7(int)
  │    │    │    ├── key: (6)
  │    │    │    ├── fd: (6)-->(7), (7)-->(10)
- │    │    │    ├── ordering: +6
  │    │    │    ├── scan xy
  │    │    │    │    ├── columns: x:6(int!null) y:7(int)
  │    │    │    │    ├── key: (6)
- │    │    │    │    ├── fd: (6)-->(7)
- │    │    │    │    └── ordering: +6
+ │    │    │    │    └── fd: (6)-->(7)
  │    │    │    └── projections
  │    │    │         └── y IS NOT NULL [type=bool, outer=(7)]
  │    │    └── filters
+ │    │         ├── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  │    │         └── (scalar = y) IS NOT false [type=bool, outer=(7,9)]
  │    └── aggregations
  │         ├── bool-or [type=bool, outer=(10)]
@@ -1278,46 +855,37 @@ project
  ├── group-by
  │    ├── columns: k:1(int!null) sum:11(decimal)
  │    ├── grouping columns: k:1(int!null)
- │    ├── internal-ordering: +1
  │    ├── key: (1)
  │    ├── fd: (1)-->(11)
- │    ├── left-join (merge)
+ │    ├── left-join (hash)
  │    │    ├── columns: k:1(int!null) x:6(int) column10:10(int)
- │    │    ├── left ordering: +1
- │    │    ├── right ordering: +6
  │    │    ├── key: (1,6)
  │    │    ├── fd: (6)-->(10)
- │    │    ├── ordering: +1
  │    │    ├── scan a
  │    │    │    ├── columns: k:1(int!null)
- │    │    │    ├── key: (1)
- │    │    │    └── ordering: +1
+ │    │    │    └── key: (1)
  │    │    ├── project
  │    │    │    ├── columns: column10:10(int) x:6(int!null)
  │    │    │    ├── key: (6)
  │    │    │    ├── fd: (6)-->(10)
- │    │    │    ├── ordering: +6
- │    │    │    ├── inner-join (merge)
+ │    │    │    ├── inner-join (hash)
  │    │    │    │    ├── columns: x:6(int!null) y:7(int) u:8(int!null) v:9(int)
- │    │    │    │    ├── left ordering: +6
- │    │    │    │    ├── right ordering: +8
  │    │    │    │    ├── key: (8)
  │    │    │    │    ├── fd: (6)-->(7), (8)-->(9), (6)==(8), (8)==(6)
- │    │    │    │    ├── ordering: +(6|8) [actual: +6]
  │    │    │    │    ├── scan xy
  │    │    │    │    │    ├── columns: x:6(int!null) y:7(int)
  │    │    │    │    │    ├── key: (6)
- │    │    │    │    │    ├── fd: (6)-->(7)
- │    │    │    │    │    └── ordering: +6
+ │    │    │    │    │    └── fd: (6)-->(7)
  │    │    │    │    ├── scan uv
  │    │    │    │    │    ├── columns: u:8(int!null) v:9(int)
  │    │    │    │    │    ├── key: (8)
- │    │    │    │    │    ├── fd: (8)-->(9)
- │    │    │    │    │    └── ordering: +8
- │    │    │    │    └── filters (true)
+ │    │    │    │    │    └── fd: (8)-->(9)
+ │    │    │    │    └── filters
+ │    │    │    │         └── x = u [type=bool, outer=(6,8), constraints=(/6: (/NULL - ]; /8: (/NULL - ]), fd=(6)==(8), (8)==(6)]
  │    │    │    └── projections
  │    │    │         └── y + v [type=int, outer=(7,9)]
- │    │    └── filters (true)
+ │    │    └── filters
+ │    │         └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  │    └── aggregations
  │         └── sum [type=decimal, outer=(10)]
  │              └── variable: column10 [type=int]
@@ -1335,32 +903,26 @@ WHERE EXISTS
     SELECT * FROM xy INNER JOIN uv ON x=u AND x=k
 )
 ----
-semi-join (merge)
+semi-join (hash)
  ├── columns: k:1(int!null)
- ├── left ordering: +1
- ├── right ordering: +6
  ├── key: (1)
  ├── scan a
  │    ├── columns: k:1(int!null)
- │    ├── key: (1)
- │    └── ordering: +1
- ├── inner-join (merge)
+ │    └── key: (1)
+ ├── inner-join (hash)
  │    ├── columns: x:6(int!null) u:8(int!null)
- │    ├── left ordering: +6
- │    ├── right ordering: +8
  │    ├── key: (8)
  │    ├── fd: (6)==(8), (8)==(6)
- │    ├── ordering: +(6|8) [actual: +6]
  │    ├── scan xy
  │    │    ├── columns: x:6(int!null)
- │    │    ├── key: (6)
- │    │    └── ordering: +6
+ │    │    └── key: (6)
  │    ├── scan uv
  │    │    ├── columns: u:8(int!null)
- │    │    ├── key: (8)
- │    │    └── ordering: +8
- │    └── filters (true)
- └── filters (true)
+ │    │    └── key: (8)
+ │    └── filters
+ │         └── x = u [type=bool, outer=(6,8), constraints=(/6: (/NULL - ]; /8: (/NULL - ]), fd=(6)==(8), (8)==(6)]
+ └── filters
+      └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
 
 # Anti-join as outer.
 opt expect=TryDecorrelateInnerJoin
@@ -1370,32 +932,26 @@ WHERE NOT EXISTS
     SELECT * FROM xy INNER JOIN uv ON x=u AND x=k
 )
 ----
-anti-join (merge)
+anti-join (hash)
  ├── columns: k:1(int!null)
- ├── left ordering: +1
- ├── right ordering: +6
  ├── key: (1)
  ├── scan a
  │    ├── columns: k:1(int!null)
- │    ├── key: (1)
- │    └── ordering: +1
- ├── inner-join (merge)
+ │    └── key: (1)
+ ├── inner-join (hash)
  │    ├── columns: x:6(int!null) u:8(int!null)
- │    ├── left ordering: +6
- │    ├── right ordering: +8
  │    ├── key: (8)
  │    ├── fd: (6)==(8), (8)==(6)
- │    ├── ordering: +(6|8) [actual: +6]
  │    ├── scan xy
  │    │    ├── columns: x:6(int!null)
- │    │    ├── key: (6)
- │    │    └── ordering: +6
+ │    │    └── key: (6)
  │    ├── scan uv
  │    │    ├── columns: u:8(int!null)
- │    │    ├── key: (8)
- │    │    └── ordering: +8
- │    └── filters (true)
- └── filters (true)
+ │    │    └── key: (8)
+ │    └── filters
+ │         └── x = u [type=bool, outer=(6,8), constraints=(/6: (/NULL - ]; /8: (/NULL - ]), fd=(6)==(8), (8)==(6)]
+ └── filters
+      └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
 
 # Right-join as outer.
 opt expect=TryDecorrelateInnerJoin
@@ -1418,37 +974,29 @@ project
       ├── group-by
       │    ├── columns: k:1(int!null) count_rows:10(int)
       │    ├── grouping columns: k:1(int!null)
-      │    ├── internal-ordering: +1
       │    ├── key: (1)
       │    ├── fd: (1)-->(10)
-      │    ├── left-join (merge)
+      │    ├── left-join (hash)
       │    │    ├── columns: k:1(int!null) x:6(int) u:8(int)
-      │    │    ├── left ordering: +1
-      │    │    ├── right ordering: +6
       │    │    ├── key: (1,8)
       │    │    ├── fd: (6)==(8), (8)==(6)
-      │    │    ├── ordering: +1
       │    │    ├── scan a
       │    │    │    ├── columns: k:1(int!null)
-      │    │    │    ├── key: (1)
-      │    │    │    └── ordering: +1
-      │    │    ├── inner-join (merge)
+      │    │    │    └── key: (1)
+      │    │    ├── inner-join (hash)
       │    │    │    ├── columns: x:6(int!null) u:8(int!null)
-      │    │    │    ├── left ordering: +6
-      │    │    │    ├── right ordering: +8
       │    │    │    ├── key: (8)
       │    │    │    ├── fd: (6)==(8), (8)==(6)
-      │    │    │    ├── ordering: +(6|8) [actual: +6]
       │    │    │    ├── scan xy
       │    │    │    │    ├── columns: x:6(int!null)
-      │    │    │    │    ├── key: (6)
-      │    │    │    │    └── ordering: +6
+      │    │    │    │    └── key: (6)
       │    │    │    ├── scan uv
       │    │    │    │    ├── columns: u:8(int!null)
-      │    │    │    │    ├── key: (8)
-      │    │    │    │    └── ordering: +8
-      │    │    │    └── filters (true)
-      │    │    └── filters (true)
+      │    │    │    │    └── key: (8)
+      │    │    │    └── filters
+      │    │    │         └── x = u [type=bool, outer=(6,8), constraints=(/6: (/NULL - ]; /8: (/NULL - ]), fd=(6)==(8), (8)==(6)]
+      │    │    └── filters
+      │    │         └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
       │    └── aggregations
       │         └── count [type=int, outer=(6)]
       │              └── variable: x [type=int]
@@ -1469,21 +1017,18 @@ semi-join-apply
  ├── scan a
  │    ├── columns: k:1(int!null)
  │    └── key: (1)
- ├── left-join (merge)
+ ├── left-join (hash)
  │    ├── columns: x:6(int!null) u:8(int)
- │    ├── left ordering: +6
- │    ├── right ordering: +8
  │    ├── outer: (1)
  │    ├── key: (6,8)
  │    ├── scan xy
  │    │    ├── columns: x:6(int!null)
- │    │    ├── key: (6)
- │    │    └── ordering: +6
+ │    │    └── key: (6)
  │    ├── scan uv
  │    │    ├── columns: u:8(int!null)
- │    │    ├── key: (8)
- │    │    └── ordering: +8
+ │    │    └── key: (8)
  │    └── filters
+ │         ├── x = u [type=bool, outer=(6,8), constraints=(/6: (/NULL - ]; /8: (/NULL - ]), fd=(6)==(8), (8)==(6)]
  │         └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  └── filters (true)
 
@@ -1791,30 +1336,26 @@ project
       │    │    │    ├── columns: u:3(int!null) v:4(int)
       │    │    │    ├── key: (3)
       │    │    │    └── fd: (3)-->(4)
-      │    │    ├── inner-join (merge)
+      │    │    ├── inner-join (hash)
       │    │    │    ├── columns: x:1(int!null) y:2(int) k:5(int!null) i:6(int!null)
-      │    │    │    ├── left ordering: +1
-      │    │    │    ├── right ordering: +5
       │    │    │    ├── key: (5)
       │    │    │    ├── fd: (1)-->(2), (5)-->(6), (1)==(5), (5)==(1)
       │    │    │    ├── scan xy
       │    │    │    │    ├── columns: x:1(int!null) y:2(int)
       │    │    │    │    ├── key: (1)
-      │    │    │    │    ├── fd: (1)-->(2)
-      │    │    │    │    └── ordering: +1
+      │    │    │    │    └── fd: (1)-->(2)
       │    │    │    ├── select
       │    │    │    │    ├── columns: k:5(int!null) i:6(int!null)
       │    │    │    │    ├── key: (5)
       │    │    │    │    ├── fd: (5)-->(6)
-      │    │    │    │    ├── ordering: +5
       │    │    │    │    ├── scan a
       │    │    │    │    │    ├── columns: k:5(int!null) i:6(int)
       │    │    │    │    │    ├── key: (5)
-      │    │    │    │    │    ├── fd: (5)-->(6)
-      │    │    │    │    │    └── ordering: +5
+      │    │    │    │    │    └── fd: (5)-->(6)
       │    │    │    │    └── filters
       │    │    │    │         └── i IS NOT NULL [type=bool, outer=(6), constraints=(/6: (/NULL - ]; tight)]
-      │    │    │    └── filters (true)
+      │    │    │    └── filters
+      │    │    │         └── k = x [type=bool, outer=(1,5), constraints=(/1: (/NULL - ]; /5: (/NULL - ]), fd=(1)==(5), (5)==(1)]
       │    │    └── filters
       │    │         └── x = v [type=bool, outer=(1,4), constraints=(/1: (/NULL - ]; /4: (/NULL - ]), fd=(1)==(4), (4)==(1)]
       │    └── aggregations
@@ -2890,22 +2431,19 @@ project
       │    ├── columns: v:9(int)
       │    ├── grouping columns: v:9(int)
       │    ├── key: (9)
-      │    └── inner-join (merge)
+      │    └── inner-join (hash)
       │         ├── columns: x:6(int!null) u:8(int!null) v:9(int)
-      │         ├── left ordering: +6
-      │         ├── right ordering: +8
       │         ├── key: (8)
       │         ├── fd: (8)-->(9), (6)==(8), (8)==(6)
       │         ├── scan xy
       │         │    ├── columns: x:6(int!null)
-      │         │    ├── key: (6)
-      │         │    └── ordering: +6
+      │         │    └── key: (6)
       │         ├── scan uv
       │         │    ├── columns: u:8(int!null) v:9(int)
       │         │    ├── key: (8)
-      │         │    ├── fd: (8)-->(9)
-      │         │    └── ordering: +8
-      │         └── filters (true)
+      │         │    └── fd: (8)-->(9)
+      │         └── filters
+      │              └── x = u [type=bool, outer=(6,8), constraints=(/6: (/NULL - ]; /8: (/NULL - ]), fd=(6)==(8), (8)==(6)]
       └── filters
            └── v = i [type=bool, outer=(2,9), constraints=(/2: (/NULL - ]; /9: (/NULL - ]), fd=(2)==(9), (9)==(2)]
 
@@ -3127,23 +2665,20 @@ project
  │    │    ├── scan xy
  │    │    │    ├── columns: x:1(int!null)
  │    │    │    └── key: (1)
- │    │    ├── inner-join (merge)
+ │    │    ├── inner-join (hash)
  │    │    │    ├── columns: u:3(int!null) uv.v:4(int) k:5(int!null) i:6(int)
- │    │    │    ├── left ordering: +3
- │    │    │    ├── right ordering: +5
  │    │    │    ├── key: (5)
  │    │    │    ├── fd: (3)-->(4), (5)-->(6), (3)==(5), (5)==(3)
  │    │    │    ├── scan uv
  │    │    │    │    ├── columns: u:3(int!null) uv.v:4(int)
  │    │    │    │    ├── key: (3)
- │    │    │    │    ├── fd: (3)-->(4)
- │    │    │    │    └── ordering: +3
+ │    │    │    │    └── fd: (3)-->(4)
  │    │    │    ├── scan a
  │    │    │    │    ├── columns: k:5(int!null) i:6(int)
  │    │    │    │    ├── key: (5)
- │    │    │    │    ├── fd: (5)-->(6)
- │    │    │    │    └── ordering: +5
- │    │    │    └── filters (true)
+ │    │    │    │    └── fd: (5)-->(6)
+ │    │    │    └── filters
+ │    │    │         └── u = k [type=bool, outer=(3,5), constraints=(/3: (/NULL - ]; /5: (/NULL - ]), fd=(3)==(5), (5)==(3)]
  │    │    └── filters
  │    │         └── i = x [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  │    └── aggregations
@@ -3203,22 +2738,19 @@ project
 opt expect=HoistSelectExists
 SELECT * FROM a WHERE EXISTS(SELECT * FROM xy WHERE x=k)
 ----
-semi-join (merge)
+semi-join (hash)
  ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
- ├── left ordering: +1
- ├── right ordering: +6
  ├── key: (1)
  ├── fd: (1)-->(2-5)
  ├── scan a
  │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
  │    ├── key: (1)
- │    ├── fd: (1)-->(2-5)
- │    └── ordering: +1
+ │    └── fd: (1)-->(2-5)
  ├── scan xy
  │    ├── columns: x:6(int!null)
- │    ├── key: (6)
- │    └── ordering: +6
- └── filters (true)
+ │    └── key: (6)
+ └── filters
+      └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
 
 # Ensure that EXISTS is hoisted even when it is one of several conjuncts.
 opt expect=HoistSelectExists
@@ -3294,33 +2826,27 @@ select
 opt expect=HoistSelectExists
 SELECT * FROM a WHERE EXISTS(SELECT * FROM xy WHERE EXISTS (SELECT * FROM uv WHERE x=u) AND x=k)
 ----
-semi-join (merge)
+semi-join (hash)
  ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
- ├── left ordering: +1
- ├── right ordering: +6
  ├── key: (1)
  ├── fd: (1)-->(2-5)
  ├── scan a
  │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
  │    ├── key: (1)
- │    ├── fd: (1)-->(2-5)
- │    └── ordering: +1
- ├── semi-join (merge)
+ │    └── fd: (1)-->(2-5)
+ ├── semi-join (hash)
  │    ├── columns: x:6(int!null)
- │    ├── left ordering: +6
- │    ├── right ordering: +8
  │    ├── key: (6)
- │    ├── ordering: +6
  │    ├── scan xy
  │    │    ├── columns: x:6(int!null)
- │    │    ├── key: (6)
- │    │    └── ordering: +6
+ │    │    └── key: (6)
  │    ├── scan uv
  │    │    ├── columns: u:8(int!null)
- │    │    ├── key: (8)
- │    │    └── ordering: +8
- │    └── filters (true)
- └── filters (true)
+ │    │    └── key: (8)
+ │    └── filters
+ │         └── x = u [type=bool, outer=(6,8), constraints=(/6: (/NULL - ]; /8: (/NULL - ]), fd=(6)==(8), (8)==(6)]
+ └── filters
+      └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
 
 # --------------------------------------------------
 # HoistSelectNotExists
@@ -3328,22 +2854,19 @@ semi-join (merge)
 opt expect=HoistSelectNotExists
 SELECT * FROM a WHERE NOT EXISTS(SELECT * FROM xy WHERE x=k)
 ----
-anti-join (merge)
+anti-join (hash)
  ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
- ├── left ordering: +1
- ├── right ordering: +6
  ├── key: (1)
  ├── fd: (1)-->(2-5)
  ├── scan a
  │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
  │    ├── key: (1)
- │    ├── fd: (1)-->(2-5)
- │    └── ordering: +1
+ │    └── fd: (1)-->(2-5)
  ├── scan xy
  │    ├── columns: x:6(int!null)
- │    ├── key: (6)
- │    └── ordering: +6
- └── filters (true)
+ │    └── key: (6)
+ └── filters
+      └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
 
 # Ensure that NOT EXISTS is hoisted even when one of several conjuncts.
 opt expect=HoistSelectNotExists
@@ -3508,11 +3031,24 @@ project
       │    ├── cardinality: [0 - 1]
       │    ├── key: ()
       │    ├── fd: ()-->(1-5,7)
-      │    ├── left-join (merge)
+      │    ├── right-join (hash)
       │    │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb) y:7(int)
-      │    │    ├── left ordering: +1
-      │    │    ├── right ordering: +7
       │    │    ├── fd: ()-->(1-5)
+      │    │    ├── select
+      │    │    │    ├── columns: y:7(int!null)
+      │    │    │    ├── fd: ()-->(7)
+      │    │    │    ├── scan xy
+      │    │    │    │    └── columns: y:7(int)
+      │    │    │    └── filters
+      │    │    │         ├── y = 10 [type=bool, outer=(7), constraints=(/7: [/10 - /10]; tight), fd=()-->(7)]
+      │    │    │         └── eq [type=bool, subquery]
+      │    │    │              ├── subquery [type=int]
+      │    │    │              │    └── scan xy
+      │    │    │              │         ├── columns: x:8(int!null)
+      │    │    │              │         ├── limit: 1
+      │    │    │              │         ├── key: ()
+      │    │    │              │         └── fd: ()-->(8)
+      │    │    │              └── const: 100 [type=int]
       │    │    ├── select
       │    │    │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
       │    │    │    ├── cardinality: [0 - 1]
@@ -3533,22 +3069,8 @@ project
       │    │    │              │         ├── key: ()
       │    │    │              │         └── fd: ()-->(8)
       │    │    │              └── const: 100 [type=int]
-      │    │    ├── select
-      │    │    │    ├── columns: y:7(int!null)
-      │    │    │    ├── fd: ()-->(7)
-      │    │    │    ├── scan xy
-      │    │    │    │    └── columns: y:7(int)
-      │    │    │    └── filters
-      │    │    │         ├── y = 10 [type=bool, outer=(7), constraints=(/7: [/10 - /10]; tight), fd=()-->(7)]
-      │    │    │         └── eq [type=bool, subquery]
-      │    │    │              ├── subquery [type=int]
-      │    │    │              │    └── scan xy
-      │    │    │              │         ├── columns: x:8(int!null)
-      │    │    │              │         ├── limit: 1
-      │    │    │              │         ├── key: ()
-      │    │    │              │         └── fd: ()-->(8)
-      │    │    │              └── const: 100 [type=int]
-      │    │    └── filters (true)
+      │    │    └── filters
+      │    │         └── y = k [type=bool, outer=(1,7), constraints=(/1: (/NULL - ]; /7: (/NULL - ]), fd=(1)==(7), (7)==(1)]
       │    └── const: 1 [type=int]
       └── filters
            └── i = y [type=bool, outer=(2,7), constraints=(/2: (/NULL - ]; /7: (/NULL - ]), fd=(2)==(7), (7)==(2)]
@@ -3641,26 +3163,21 @@ project
       ├── group-by
       │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb) count_rows:8(int)
       │    ├── grouping columns: k:1(int!null)
-      │    ├── internal-ordering: +1
       │    ├── key: (1)
       │    ├── fd: (1)-->(2-5,8)
-      │    ├── left-join (merge)
+      │    ├── left-join (hash)
       │    │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb) u:6(int)
-      │    │    ├── left ordering: +1
-      │    │    ├── right ordering: +6
       │    │    ├── key: (1,6)
       │    │    ├── fd: (1)-->(2-5)
-      │    │    ├── ordering: +1
       │    │    ├── scan a
       │    │    │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
       │    │    │    ├── key: (1)
-      │    │    │    ├── fd: (1)-->(2-5)
-      │    │    │    └── ordering: +1
+      │    │    │    └── fd: (1)-->(2-5)
       │    │    ├── scan uv
       │    │    │    ├── columns: u:6(int!null)
-      │    │    │    ├── key: (6)
-      │    │    │    └── ordering: +6
-      │    │    └── filters (true)
+      │    │    │    └── key: (6)
+      │    │    └── filters
+      │    │         └── k = u [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
       │    └── aggregations
       │         ├── count [type=int, outer=(6)]
       │         │    └── variable: u [type=int]
@@ -3741,34 +3258,28 @@ project
       │    ├── group-by
       │    │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb) bool_or:9(bool)
       │    │    ├── grouping columns: k:1(int!null)
-      │    │    ├── internal-ordering: +1
       │    │    ├── key: (1)
       │    │    ├── fd: (1)-->(2-5,9)
-      │    │    ├── left-join (merge)
+      │    │    ├── left-join (hash)
       │    │    │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb) x:6(int) y:7(int) notnull:8(bool)
-      │    │    │    ├── left ordering: +1
-      │    │    │    ├── right ordering: +6
       │    │    │    ├── key: (1,6)
       │    │    │    ├── fd: (1)-->(2-5), (6)-->(7), (7)~~>(8), (1,6)-->(8)
-      │    │    │    ├── ordering: +1
       │    │    │    ├── scan a
       │    │    │    │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
       │    │    │    │    ├── key: (1)
-      │    │    │    │    ├── fd: (1)-->(2-5)
-      │    │    │    │    └── ordering: +1
+      │    │    │    │    └── fd: (1)-->(2-5)
       │    │    │    ├── project
       │    │    │    │    ├── columns: notnull:8(bool) x:6(int!null) y:7(int)
       │    │    │    │    ├── key: (6)
       │    │    │    │    ├── fd: (6)-->(7), (7)-->(8)
-      │    │    │    │    ├── ordering: +6
       │    │    │    │    ├── scan xy
       │    │    │    │    │    ├── columns: x:6(int!null) y:7(int)
       │    │    │    │    │    ├── key: (6)
-      │    │    │    │    │    ├── fd: (6)-->(7)
-      │    │    │    │    │    └── ordering: +6
+      │    │    │    │    │    └── fd: (6)-->(7)
       │    │    │    │    └── projections
       │    │    │    │         └── y IS NOT NULL [type=bool, outer=(7)]
       │    │    │    └── filters
+      │    │    │         ├── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
       │    │    │         └── (i = y) IS NOT false [type=bool, outer=(2,7)]
       │    │    └── aggregations
       │    │         ├── bool-or [type=bool, outer=(8)]
@@ -3816,44 +3327,37 @@ project
  ├── group-by
  │    ├── columns: k:1(int!null) s:4(string) scalar:9(decimal) bool_or:11(bool)
  │    ├── grouping columns: k:1(int!null)
- │    ├── internal-ordering: +1
  │    ├── side-effects
  │    ├── key: (1)
  │    ├── fd: (1)-->(4,9,11)
- │    ├── left-join (merge)
+ │    ├── left-join (hash)
  │    │    ├── columns: k:1(int!null) s:4(string) x:6(int) y:7(int) scalar:9(decimal) notnull:10(bool)
- │    │    ├── left ordering: +1
- │    │    ├── right ordering: +6
  │    │    ├── side-effects
  │    │    ├── key: (1,6)
  │    │    ├── fd: (1)-->(4,9), (6)-->(7), (7)~~>(10), (1,6)-->(10)
- │    │    ├── ordering: +1
  │    │    ├── project
  │    │    │    ├── columns: scalar:9(decimal) k:1(int!null) s:4(string)
  │    │    │    ├── side-effects
  │    │    │    ├── key: (1)
  │    │    │    ├── fd: (1)-->(4,9)
- │    │    │    ├── ordering: +1
  │    │    │    ├── scan a
  │    │    │    │    ├── columns: k:1(int!null) i:2(int) s:4(string)
  │    │    │    │    ├── key: (1)
- │    │    │    │    ├── fd: (1)-->(2,4)
- │    │    │    │    └── ordering: +1
+ │    │    │    │    └── fd: (1)-->(2,4)
  │    │    │    └── projections
  │    │    │         └── (i * i) / 100 [type=decimal, outer=(2), side-effects]
  │    │    ├── project
  │    │    │    ├── columns: notnull:10(bool) x:6(int!null) y:7(int)
  │    │    │    ├── key: (6)
  │    │    │    ├── fd: (6)-->(7), (7)-->(10)
- │    │    │    ├── ordering: +6
  │    │    │    ├── scan xy
  │    │    │    │    ├── columns: x:6(int!null) y:7(int)
  │    │    │    │    ├── key: (6)
- │    │    │    │    ├── fd: (6)-->(7)
- │    │    │    │    └── ordering: +6
+ │    │    │    │    └── fd: (6)-->(7)
  │    │    │    └── projections
  │    │    │         └── y IS NOT NULL [type=bool, outer=(7)]
  │    │    └── filters
+ │    │         ├── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  │    │         └── (scalar >= y) IS NOT false [type=bool, outer=(7,9)]
  │    └── aggregations
  │         ├── bool-or [type=bool, outer=(10)]
@@ -3881,33 +3385,27 @@ project
       ├── group-by
       │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb) true_agg:11(bool)
       │    ├── grouping columns: k:1(int!null)
-      │    ├── internal-ordering: +1
       │    ├── key: (1)
       │    ├── fd: (1)-->(2-5,11)
-      │    ├── left-join (merge)
+      │    ├── left-join (hash)
       │    │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb) x:8(int) true:10(bool)
-      │    │    ├── left ordering: +1
-      │    │    ├── right ordering: +8
       │    │    ├── key: (1,8)
       │    │    ├── fd: (1)-->(2-5), (1,8)-->(10)
-      │    │    ├── ordering: +1
       │    │    ├── scan a
       │    │    │    ├── columns: k:1(int!null) i:2(int) f:3(float) s:4(string) j:5(jsonb)
       │    │    │    ├── key: (1)
-      │    │    │    ├── fd: (1)-->(2-5)
-      │    │    │    └── ordering: +1
+      │    │    │    └── fd: (1)-->(2-5)
       │    │    ├── project
       │    │    │    ├── columns: true:10(bool!null) x:8(int!null)
       │    │    │    ├── key: (8)
       │    │    │    ├── fd: ()-->(10)
-      │    │    │    ├── ordering: +8 opt(10) [actual: +8]
       │    │    │    ├── scan xy
       │    │    │    │    ├── columns: x:8(int!null)
-      │    │    │    │    ├── key: (8)
-      │    │    │    │    └── ordering: +8
+      │    │    │    │    └── key: (8)
       │    │    │    └── projections
       │    │    │         └── true [type=bool]
-      │    │    └── filters (true)
+      │    │    └── filters
+      │    │         └── x = k [type=bool, outer=(1,8), constraints=(/1: (/NULL - ]; /8: (/NULL - ]), fd=(1)==(8), (8)==(1)]
       │    └── aggregations
       │         ├── const-not-null-agg [type=bool, outer=(10)]
       │         │    └── variable: true [type=bool]
@@ -3937,20 +3435,17 @@ SELECT (SELECT x FROM xy WHERE x=k) FROM a
 ----
 project
  ├── columns: x:8(int)
- ├── left-join (merge)
+ ├── left-join (hash)
  │    ├── columns: k:1(int!null) xy.x:6(int)
- │    ├── left ordering: +1
- │    ├── right ordering: +6
  │    ├── key: (1,6)
  │    ├── scan a
  │    │    ├── columns: k:1(int!null)
- │    │    ├── key: (1)
- │    │    └── ordering: +1
+ │    │    └── key: (1)
  │    ├── scan xy
  │    │    ├── columns: xy.x:6(int!null)
- │    │    ├── key: (6)
- │    │    └── ordering: +6
- │    └── filters (true)
+ │    │    └── key: (6)
+ │    └── filters
+ │         └── xy.x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  └── projections
       └── variable: xy.x [type=int, outer=(6)]
 
@@ -3975,20 +3470,17 @@ project
  │    ├── fd: (1,6)-->(16)
  │    ├── left-join (hash)
  │    │    ├── columns: k:1(int!null) xy.x:6(int) xy.y:15(int)
- │    │    ├── left-join (merge)
+ │    │    ├── left-join (hash)
  │    │    │    ├── columns: k:1(int!null) xy.x:6(int)
- │    │    │    ├── left ordering: +1
- │    │    │    ├── right ordering: +6
  │    │    │    ├── key: (1,6)
  │    │    │    ├── scan a
  │    │    │    │    ├── columns: k:1(int!null)
- │    │    │    │    ├── key: (1)
- │    │    │    │    └── ordering: +1
+ │    │    │    │    └── key: (1)
  │    │    │    ├── scan xy
  │    │    │    │    ├── columns: xy.x:6(int!null)
- │    │    │    │    ├── key: (6)
- │    │    │    │    └── ordering: +6
- │    │    │    └── filters (true)
+ │    │    │    │    └── key: (6)
+ │    │    │    └── filters
+ │    │    │         └── xy.x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  │    │    ├── scan xy
  │    │    │    └── columns: xy.y:15(int)
  │    │    └── filters
@@ -4596,22 +4088,19 @@ project
       ├── side-effects
       ├── project
       │    ├── columns: v:4(int)
-      │    └── left-join (merge)
+      │    └── left-join (hash)
       │         ├── columns: x:1(int!null) u:3(int) v:4(int)
-      │         ├── left ordering: +1
-      │         ├── right ordering: +3
       │         ├── key: (1,3)
       │         ├── fd: (3)-->(4)
       │         ├── scan xy
       │         │    ├── columns: x:1(int!null)
-      │         │    ├── key: (1)
-      │         │    └── ordering: +1
+      │         │    └── key: (1)
       │         ├── scan uv
       │         │    ├── columns: u:3(int!null) v:4(int)
       │         │    ├── key: (3)
-      │         │    ├── fd: (3)-->(4)
-      │         │    └── ordering: +3
-      │         └── filters (true)
+      │         │    └── fd: (3)-->(4)
+      │         └── filters
+      │              └── u = x [type=bool, outer=(1,3), constraints=(/1: (/NULL - ]; /3: (/NULL - ]), fd=(1)==(3), (3)==(1)]
       └── zip
            └── function: generate_series [type=int, outer=(4), side-effects]
                 ├── const: 1 [type=int]
@@ -4634,23 +4123,20 @@ group-by
  │    ├── project
  │    │    ├── columns: x:1(int!null) y:2(int) v:4(int)
  │    │    ├── fd: (1)-->(2)
- │    │    └── left-join (merge)
+ │    │    └── left-join (hash)
  │    │         ├── columns: x:1(int!null) y:2(int) u:3(int) v:4(int)
- │    │         ├── left ordering: +1
- │    │         ├── right ordering: +3
  │    │         ├── key: (1,3)
  │    │         ├── fd: (1)-->(2), (3)-->(4)
  │    │         ├── scan xy
  │    │         │    ├── columns: x:1(int!null) y:2(int)
  │    │         │    ├── key: (1)
- │    │         │    ├── fd: (1)-->(2)
- │    │         │    └── ordering: +1
+ │    │         │    └── fd: (1)-->(2)
  │    │         ├── scan uv
  │    │         │    ├── columns: u:3(int!null) v:4(int)
  │    │         │    ├── key: (3)
- │    │         │    ├── fd: (3)-->(4)
- │    │         │    └── ordering: +3
- │    │         └── filters (true)
+ │    │         │    └── fd: (3)-->(4)
+ │    │         └── filters
+ │    │              └── u = x [type=bool, outer=(1,3), constraints=(/1: (/NULL - ]; /3: (/NULL - ]), fd=(1)==(3), (3)==(1)]
  │    └── zip
  │         └── function: generate_series [type=int, outer=(4), side-effects]
  │              ├── const: 1 [type=int]
@@ -4671,35 +4157,29 @@ project
       ├── side-effects
       ├── project
       │    ├── columns: y:7(int) v:9(int)
-      │    └── left-join (merge)
+      │    └── left-join (hash)
       │         ├── columns: k:1(int!null) x:6(int) y:7(int) u:8(int) v:9(int)
-      │         ├── left ordering: +1
-      │         ├── right ordering: +8
       │         ├── key: (1,6,8)
       │         ├── fd: (6)-->(7), (8)-->(9)
-      │         ├── left-join (merge)
+      │         ├── left-join (hash)
       │         │    ├── columns: k:1(int!null) x:6(int) y:7(int)
-      │         │    ├── left ordering: +1
-      │         │    ├── right ordering: +6
       │         │    ├── key: (1,6)
       │         │    ├── fd: (6)-->(7)
-      │         │    ├── ordering: +1
       │         │    ├── scan a
       │         │    │    ├── columns: k:1(int!null)
-      │         │    │    ├── key: (1)
-      │         │    │    └── ordering: +1
+      │         │    │    └── key: (1)
       │         │    ├── scan xy
       │         │    │    ├── columns: x:6(int!null) y:7(int)
       │         │    │    ├── key: (6)
-      │         │    │    ├── fd: (6)-->(7)
-      │         │    │    └── ordering: +6
-      │         │    └── filters (true)
+      │         │    │    └── fd: (6)-->(7)
+      │         │    └── filters
+      │         │         └── x = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
       │         ├── scan uv
       │         │    ├── columns: u:8(int!null) v:9(int)
       │         │    ├── key: (8)
-      │         │    ├── fd: (8)-->(9)
-      │         │    └── ordering: +8
-      │         └── filters (true)
+      │         │    └── fd: (8)-->(9)
+      │         └── filters
+      │              └── u = k [type=bool, outer=(1,8), constraints=(/1: (/NULL - ]; /8: (/NULL - ]), fd=(1)==(8), (8)==(1)]
       └── zip
            └── function: generate_series [type=int, outer=(7,9), side-effects]
                 ├── variable: y [type=int]
@@ -4720,34 +4200,28 @@ project
  │    ├── side-effects
  │    ├── project
  │    │    ├── columns: v:7(int) xy.x:9(int)
- │    │    └── left-join (merge)
+ │    │    └── left-join (hash)
  │    │         ├── columns: k:1(int!null) u:6(int) v:7(int) xy.x:9(int)
- │    │         ├── left ordering: +1
- │    │         ├── right ordering: +9
  │    │         ├── key: (1,6,9)
  │    │         ├── fd: (6)-->(7)
- │    │         ├── left-join (merge)
+ │    │         ├── left-join (hash)
  │    │         │    ├── columns: k:1(int!null) u:6(int) v:7(int)
- │    │         │    ├── left ordering: +1
- │    │         │    ├── right ordering: +6
  │    │         │    ├── key: (1,6)
  │    │         │    ├── fd: (6)-->(7)
- │    │         │    ├── ordering: +1
  │    │         │    ├── scan a
  │    │         │    │    ├── columns: k:1(int!null)
- │    │         │    │    ├── key: (1)
- │    │         │    │    └── ordering: +1
+ │    │         │    │    └── key: (1)
  │    │         │    ├── scan uv
  │    │         │    │    ├── columns: u:6(int!null) v:7(int)
  │    │         │    │    ├── key: (6)
- │    │         │    │    ├── fd: (6)-->(7)
- │    │         │    │    └── ordering: +6
- │    │         │    └── filters (true)
+ │    │         │    │    └── fd: (6)-->(7)
+ │    │         │    └── filters
+ │    │         │         └── u = k [type=bool, outer=(1,6), constraints=(/1: (/NULL - ]; /6: (/NULL - ]), fd=(1)==(6), (6)==(1)]
  │    │         ├── scan xy
  │    │         │    ├── columns: xy.x:9(int!null)
- │    │         │    ├── key: (9)
- │    │         │    └── ordering: +9
- │    │         └── filters (true)
+ │    │         │    └── key: (9)
+ │    │         └── filters
+ │    │              └── xy.x = k [type=bool, outer=(1,9), constraints=(/1: (/NULL - ]; /9: (/NULL - ]), fd=(1)==(9), (9)==(1)]
  │    └── zip
  │         ├── function: generate_series [type=int, outer=(7), side-effects]
  │         │    ├── const: 1 [type=int]

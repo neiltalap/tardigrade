@@ -12,11 +12,13 @@ package tests_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
 
-	"github.com/podomy/tardigrade/pkg/bench"
+	"github.com/podomy/tardigrade/pkg/base"
+	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
 	"github.com/podomy/tardigrade/pkg/testutils/sqlutils"
 )
 
@@ -72,11 +74,17 @@ UPDATE bench.bank
 }
 
 func BenchmarkBank(b *testing.B) {
-	bench.ForEachDB(b, func(b *testing.B, db *sqlutils.SQLRunner) {
-		for _, numAccounts := range []int{2, 4, 8, 32, 64} {
-			b.Run(fmt.Sprintf("numAccounts=%d", numAccounts), func(b *testing.B) {
-				runBenchmarkBank(b, db, numAccounts)
-			})
-		}
-	})
+	s, db, _ := serverutils.StartServer(b, base.TestServerArgs{UseDatabase: "bench"})
+	defer s.Stopper().Stop(context.TODO())
+
+	if _, err := db.Exec(`CREATE DATABASE IF NOT EXISTS bench`); err != nil {
+		b.Fatal(err)
+	}
+
+	runner := sqlutils.MakeSQLRunner(db)
+	for _, numAccounts := range []int{2, 4, 8, 32, 64} {
+		b.Run(fmt.Sprintf("numAccounts=%d", numAccounts), func(b *testing.B) {
+			runBenchmarkBank(b, runner, numAccounts)
+		})
+	}
 }

@@ -65,12 +65,12 @@ define FiltersItem {
 package norm
 
 import (
+	"github.com/cockroachdb/errors"
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/memo"
 	"github.com/podomy/tardigrade/pkg/sql/opt/props/physical"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/types"
-	"github.com/cockroachdb/errors"
 )
 
 // ConstructSelect constructs an expression for the Select operator.
@@ -144,14 +144,14 @@ func (_f *Factory) ConstructInnerJoinApply(
 // ancestors via a calls to the corresponding factory Construct methods. Here
 // is example usage:
 //
-//   var replace func(e opt.Expr, replace ReplaceFunc) opt.Expr
-//   replace = func(e opt.Expr, replace ReplaceFunc) opt.Expr {
-//     if e.Op() == opt.VariableOp {
-//       return getReplaceVar(e)
-//     }
-//     return e.Replace(e, replace)
-//   }
-//   replace(root, replace)
+//	var replace func(e opt.Expr, replace ReplaceFunc) opt.Expr
+//	replace = func(e opt.Expr, replace ReplaceFunc) opt.Expr {
+//	  if e.Op() == opt.VariableOp {
+//	    return getReplaceVar(e)
+//	  }
+//	  return e.Replace(e, replace)
+//	}
+//	replace(root, replace)
 //
 // Here, all variables in the tree are being replaced by some other expression
 // in a pre-order traversal of the tree. Post-order traversal is trivially

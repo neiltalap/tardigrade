@@ -213,7 +213,7 @@ pid1  cid1  ca1  pa1
 #   parent1.pid1 pa1          child1.pid1     cid1        ca1
 #                (pid1 % 8)                             (cid1 % 66)
 query IIIII colnames
-SELECT * FROM parent1 JOIN child1 ON parent1.pid1 = child1.pid1 WHERE parent1.pid1 >= 29 AND parent1.pid1 <= 31 ORDER BY parent1.pid1
+SELECT * FROM parent1 JOIN child1 ON parent1.pid1 = child1.pid1 WHERE parent1.pid1 >= 29 AND parent1.pid1 <= 31 ORDER BY parent1.pid1, child1.cid1
 ----
 pid1 pa1 pid1 cid1 ca1
 29    5    29    29    29
@@ -584,11 +584,6 @@ query TTTTTTTT
 SELECT * FROM small_child_fam JOIN large_parent_fam USING (a)
 ----
 first  second  third_child  second  third  fourth  fifth  sixth
-
-query T
-SELECT feature_name FROM crdb_internal.feature_usage WHERE feature_name='sql.plan.interleaved-table-join' AND usage_count > 0
-----
-sql.plan.interleaved-table-join
 
 subtest regression_42609
 

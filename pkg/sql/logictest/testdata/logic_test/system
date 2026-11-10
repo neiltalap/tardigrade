@@ -17,10 +17,6 @@ lease
 locations
 namespace
 rangelog
-replication_constraint_stats
-replication_critical_localities
-replication_stats
-reports_meta
 role_members
 settings
 table_statistics
@@ -44,10 +40,6 @@ SELECT * FROM system.namespace
 1  locations                        21
 1  namespace                        2
 1  rangelog                         13
-1  replication_constraint_stats     25
-1  replication_critical_localities  26
-1  replication_stats                27
-1  reports_meta                     28
 1  role_members                     23
 1  settings                         6
 1  table_statistics                 20
@@ -75,10 +67,6 @@ SELECT id FROM system.descriptor
 21
 23
 24
-25
-26
-27
-28
 50
 51
 52
@@ -270,46 +258,6 @@ system  public  rangelog                         root    GRANT
 system  public  rangelog                         root    INSERT
 system  public  rangelog                         root    SELECT
 system  public  rangelog                         root    UPDATE
-system  public  replication_constraint_stats     admin   DELETE
-system  public  replication_constraint_stats     admin   GRANT
-system  public  replication_constraint_stats     admin   INSERT
-system  public  replication_constraint_stats     admin   SELECT
-system  public  replication_constraint_stats     admin   UPDATE
-system  public  replication_constraint_stats     root    DELETE
-system  public  replication_constraint_stats     root    GRANT
-system  public  replication_constraint_stats     root    INSERT
-system  public  replication_constraint_stats     root    SELECT
-system  public  replication_constraint_stats     root    UPDATE
-system  public  replication_critical_localities  admin   DELETE
-system  public  replication_critical_localities  admin   GRANT
-system  public  replication_critical_localities  admin   INSERT
-system  public  replication_critical_localities  admin   SELECT
-system  public  replication_critical_localities  admin   UPDATE
-system  public  replication_critical_localities  root    DELETE
-system  public  replication_critical_localities  root    GRANT
-system  public  replication_critical_localities  root    INSERT
-system  public  replication_critical_localities  root    SELECT
-system  public  replication_critical_localities  root    UPDATE
-system  public  replication_stats                admin   DELETE
-system  public  replication_stats                admin   GRANT
-system  public  replication_stats                admin   INSERT
-system  public  replication_stats                admin   SELECT
-system  public  replication_stats                admin   UPDATE
-system  public  replication_stats                root    DELETE
-system  public  replication_stats                root    GRANT
-system  public  replication_stats                root    INSERT
-system  public  replication_stats                root    SELECT
-system  public  replication_stats                root    UPDATE
-system  public  reports_meta                     admin   DELETE
-system  public  reports_meta                     admin   GRANT
-system  public  reports_meta                     admin   INSERT
-system  public  reports_meta                     admin   SELECT
-system  public  reports_meta                     admin   UPDATE
-system  public  reports_meta                     root    DELETE
-system  public  reports_meta                     root    GRANT
-system  public  reports_meta                     root    INSERT
-system  public  reports_meta                     root    SELECT
-system  public  reports_meta                     root    UPDATE
 system  public  role_members                     admin   DELETE
 system  public  role_members                     admin   GRANT
 system  public  role_members                     admin   INSERT
@@ -488,14 +436,12 @@ query T
 SELECT name
 FROM system.settings
 WHERE name != 'sql.defaults.distsql'
-AND name != 'sql.stats.automatic_collection.enabled'
 AND name NOT LIKE '%sql.defaults.vectorize%'
 ORDER BY name
 ----
 cluster.secret
 diagnostics.reporting.enabled
 kv.range_merge.queue_enabled
-sql.stats.automatic_collection.min_stale_rows
 trace.debug.enable
 version
 
@@ -506,14 +452,13 @@ query TT
 SELECT name, value
 FROM system.settings
 WHERE name NOT IN ('version', 'sql.defaults.distsql', 'cluster.secret',
-  'sql.stats.automatic_collection.enabled', 'sql.defaults.vectorize',
+  'sql.defaults.vectorize',
   'sql.defaults.vectorize_row_count_threshold')
 ORDER BY name
 ----
 diagnostics.reporting.enabled                  true
 kv.range_merge.queue_enabled                   false
 somesetting                                    somevalue
-sql.stats.automatic_collection.min_stale_rows  5
 trace.debug.enable                             false
 
 user testuser

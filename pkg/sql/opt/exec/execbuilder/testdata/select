@@ -65,7 +65,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53 AS num_ref_alias]
 ----
 ·     distributed  false            ·          ·
-·     vectorized   true             ·          ·
+·     vectorized   false            ·          ·
 scan  ·            ·                (p, d, c)  ·
 ·     table        num_ref@primary  ·          ·
 ·     spans        ALL              ·          ·
@@ -74,7 +74,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(4) AS num_ref_alias]
 ----
 ·     distributed  false            ·    ·
-·     vectorized   true             ·    ·
+·     vectorized   false            ·    ·
 scan  ·            ·                (c)  ·
 ·     table        num_ref@primary  ·    ·
 ·     spans        ALL              ·    ·
@@ -83,7 +83,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(1,4) AS num_ref_alias]
 ----
 ·     distributed  false            ·       ·
-·     vectorized   true             ·       ·
+·     vectorized   false            ·       ·
 scan  ·            ·                (p, c)  ·
 ·     table        num_ref@primary  ·       ·
 ·     spans        ALL              ·       ·
@@ -92,7 +92,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(1,3,4) AS num_ref_alias]
 ----
 ·     distributed  false            ·          ·
-·     vectorized   true             ·          ·
+·     vectorized   false            ·          ·
 scan  ·            ·                (p, d, c)  ·
 ·     table        num_ref@primary  ·          ·
 ·     spans        ALL              ·          ·
@@ -101,7 +101,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(4,3,1) AS num_ref_alias]
 ----
 ·          distributed  false            ·          ·
-·          vectorized   true             ·          ·
+·          vectorized   false            ·          ·
 render     ·            ·                (c, d, p)  ·
  │         render 0     c                ·          ·
  │         render 1     d                ·          ·
@@ -114,7 +114,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(4,3,1) AS num_ref_alias(col1,col2,col3)]
 ----
 ·          distributed  false            ·                   ·
-·          vectorized   true             ·                   ·
+·          vectorized   false            ·                   ·
 render     ·            ·                (col1, col2, col3)  ·
  │         render 0     c                ·                   ·
  │         render 1     d                ·                   ·
@@ -127,7 +127,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(4,3,1) AS num_ref_alias]@bc
 ----
 ·          distributed  false       ·          ·
-·          vectorized   true        ·          ·
+·          vectorized   false       ·          ·
 render     ·            ·           (c, d, p)  ·
  │         render 0     c           ·          ·
  │         render 1     d           ·          ·
@@ -140,7 +140,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(4) AS num_ref_alias]@bc
 ----
 ·     distributed  false       ·    ·
-·     vectorized   true        ·    ·
+·     vectorized   false       ·    ·
 scan  ·            ·           (c)  ·
 ·     table        num_ref@bc  ·    ·
 ·     spans        ALL         ·    ·
@@ -149,7 +149,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(3) AS num_ref_alias]@bc
 ----
 ·     distributed  false       ·    ·
-·     vectorized   true        ·    ·
+·     vectorized   false       ·    ·
 scan  ·            ·           (d)  ·
 ·     table        num_ref@bc  ·    ·
 ·     spans        ALL         ·    ·
@@ -158,7 +158,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(1) AS num_ref_alias]@bc
 ----
 ·     distributed  false       ·    ·
-·     vectorized   true        ·    ·
+·     vectorized   false       ·    ·
 scan  ·            ·           (p)  ·
 ·     table        num_ref@bc  ·    ·
 ·     spans        ALL         ·    ·
@@ -167,7 +167,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(1) AS num_ref_alias]@[1]
 ----
 ·     distributed  false            ·    ·
-·     vectorized   true             ·    ·
+·     vectorized   false            ·    ·
 scan  ·            ·                (p)  ·
 ·     table        num_ref@primary  ·    ·
 ·     spans        ALL              ·    ·
@@ -176,7 +176,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(1) AS num_ref_alias]@[2]
 ----
 ·     distributed  false       ·    ·
-·     vectorized   true        ·    ·
+·     vectorized   false       ·    ·
 scan  ·            ·           (p)  ·
 ·     table        num_ref@bc  ·    ·
 ·     spans        ALL         ·    ·
@@ -185,7 +185,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(3) AS num_ref_alias]@[1]
 ----
 ·     distributed  false            ·    ·
-·     vectorized   true             ·    ·
+·     vectorized   false            ·    ·
 scan  ·            ·                (d)  ·
 ·     table        num_ref@primary  ·    ·
 ·     spans        ALL              ·    ·
@@ -194,7 +194,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(3) AS num_ref_alias]@[2]
 ----
 ·     distributed  false       ·    ·
-·     vectorized   true        ·    ·
+·     vectorized   false       ·    ·
 scan  ·            ·           (d)  ·
 ·     table        num_ref@bc  ·    ·
 ·     spans        ALL         ·    ·
@@ -203,7 +203,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(4) AS num_ref_alias]@[1]
 ----
 ·     distributed  false            ·    ·
-·     vectorized   true             ·    ·
+·     vectorized   false            ·    ·
 scan  ·            ·                (c)  ·
 ·     table        num_ref@primary  ·    ·
 ·     spans        ALL              ·    ·
@@ -212,7 +212,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [53(4) AS num_ref_alias]@[2]
 ----
 ·     distributed  false       ·    ·
-·     vectorized   true        ·    ·
+·     vectorized   false       ·    ·
 scan  ·            ·           (c)  ·
 ·     table        num_ref@bc  ·    ·
 ·     spans        ALL         ·    ·
@@ -221,7 +221,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [54(1,3) AS num_ref_alias]
 ----
 ·     distributed  false                   ·    ·
-·     vectorized   true                    ·    ·
+·     vectorized   false                   ·    ·
 scan  ·            ·                       (a)  ·
 ·     table        num_ref_hidden@primary  ·    ·
 ·     spans        ALL                     ·    ·
@@ -230,7 +230,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM [54(3) AS num_ref_alias]
 ----
 ·     distributed  false                   ·   ·
-·     vectorized   true                    ·   ·
+·     vectorized   false                   ·   ·
 scan  ·            ·                       ()  ·
 ·     table        num_ref_hidden@primary  ·   ·
 ·     spans        ALL                     ·   ·
@@ -239,7 +239,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT rowid FROM [54(3) AS num_ref_alias]
 ----
 ·     distributed  false                   ·                ·
-·     vectorized   true                    ·                ·
+·     vectorized   false                   ·                ·
 scan  ·            ·                       (rowid[hidden])  ·
 ·     table        num_ref_hidden@primary  ·                ·
 ·     spans        ALL                     ·                ·
@@ -275,7 +275,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM a WHERE x > 1
 ----
 ·     distributed  false      ·       ·
-·     vectorized   true       ·       ·
+·     vectorized   false      ·       ·
 scan  ·            ·          (x, y)  ·
 ·     table        a@primary  ·       ·
 ·     spans        /2-        ·       ·
@@ -284,7 +284,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM a WHERE y > 10
 ----
 ·     distributed  false      ·       ·
-·     vectorized   true       ·       ·
+·     vectorized   false      ·       ·
 scan  ·            ·          (x, y)  ·
 ·     table        a@primary  ·       ·
 ·     spans        ALL        ·       ·
@@ -294,7 +294,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM a WHERE x > 1 AND x < 3
 ----
 ·     distributed  false      ·       ·
-·     vectorized   true       ·       ·
+·     vectorized   false      ·       ·
 scan  ·            ·          (x, y)  ·
 ·     table        a@primary  ·       ·
 ·     spans        /2-/2/#    ·       ·
@@ -303,7 +303,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM a WHERE x > 1 AND y < 30
 ----
 ·     distributed  false      ·       ·
-·     vectorized   true       ·       ·
+·     vectorized   false      ·       ·
 scan  ·            ·          (x, y)  ·
 ·     table        a@primary  ·       ·
 ·     spans        /2-        ·       ·
@@ -313,7 +313,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT x + 1 AS r FROM a
 ----
 ·          distributed  false      ·    ·
-·          vectorized   true       ·    ·
+·          vectorized   false      ·    ·
 render     ·            ·          (r)  ·
  │         render 0     x + 1      ·    ·
  └── scan  ·            ·          (x)  ·
@@ -324,7 +324,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT x AS a, x + 1 AS b, y, y + 1 AS c, x + y AS d FROM a
 ----
 ·          distributed  false      ·                ·
-·          vectorized   true       ·                ·
+·          vectorized   false      ·                ·
 render     ·            ·          (a, b, y, c, d)  ·
  │         render 0     x          ·                ·
  │         render 1     x + 1      ·                ·
@@ -339,7 +339,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT u * v + v AS r FROM (SELECT x + 3, y + 10 FROM a) AS foo(u, v)
 ----
 ·               distributed  false                                   ·                         ·
-·               vectorized   true                                    ·                         ·
+·               vectorized   false                                   ·                         ·
 render          ·            ·                                       (r)                       ·
  │              render 0     "?column?" + ("?column?" * "?column?")  ·                         ·
  └── render     ·            ·                                       ("?column?", "?column?")  ·
@@ -353,7 +353,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT x, x, y, x FROM a
 ----
 ·          distributed  false      ·             ·
-·          vectorized   true       ·             ·
+·          vectorized   false      ·             ·
 render     ·            ·          (x, x, y, x)  ·
  │         render 0     x          ·             ·
  │         render 1     x          ·             ·
@@ -367,7 +367,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT x + 1 AS a, x + y AS b FROM a WHERE x + y > 20
 ----
 ·          distributed  false         ·       ·
-·          vectorized   true          ·       ·
+·          vectorized   false         ·       ·
 render     ·            ·             (a, b)  ·
  │         render 0     x + 1         ·       ·
  │         render 1     x + y         ·       ·
@@ -389,7 +389,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM b
 ----
 ·     distributed  false      ·       ·
-·     vectorized   true       ·       ·
+·     vectorized   false      ·       ·
 scan  ·            ·          (x, y)  ·
 ·     table        b@primary  ·       ·
 ·     spans        ALL        ·       ·
@@ -398,7 +398,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT x, y, rowid FROM b WHERE rowid > 0
 ----
 ·     distributed  false      ·                      ·
-·     vectorized   true       ·                      ·
+·     vectorized   false      ·                      ·
 scan  ·            ·          (x, y, rowid[hidden])  ·
 ·     table        b@primary  ·                      ·
 ·     spans        /1-        ·                      ·
@@ -522,7 +522,7 @@ query TTT
 EXPLAIN SELECT a FROM t14601 ORDER BY a
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        t14601@i14601
 ·     spans        ALL
@@ -546,7 +546,7 @@ query TTT
 EXPLAIN SELECT a, b FROM t14601a ORDER BY a
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        t14601a@i14601a
 ·     spans        ALL
@@ -561,7 +561,7 @@ query TTT
 EXPLAIN SELECT a, b FROM t14601a ORDER BY a
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        t14601a@i14601a
 ·     spans        ALL
@@ -579,7 +579,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM c WHERE str >= 'moo'
 ----
 ·     distributed  false              ·         ·
-·     vectorized   true               ·         ·
+·     vectorized   false              ·         ·
 scan  ·            ·                  (n, str)  ·
 ·     table        c@str              ·         ·
 ·     spans        -/"moo"/PrefixEnd  ·         ·
@@ -597,7 +597,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT 1 AS a, * FROM nocols
 ----
 ·          distributed  false           ·    ·
-·          vectorized   true            ·    ·
+·          vectorized   false           ·    ·
 render     ·            ·               (a)  ·
  │         render 0     1               ·    ·
  └── scan  ·            ·               ()   ·
@@ -658,7 +658,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT b FROM computed ORDER BY b
 ----
 ·     distributed  false                    ·           ·
-·     vectorized   true                     ·           ·
+·     vectorized   false                    ·           ·
 scan  ·            ·                        (b string)  +b
 ·     table        computed@computed_b_idx  ·           ·
 ·     spans        ALL                      ·           ·
@@ -738,7 +738,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM dec WHERE d IS NaN and v IS NaN
 ----
 ·     distributed  false                ·                       ·
-·     vectorized   true                 ·                       ·
+·     vectorized   false                ·                       ·
 scan  ·            ·                    (d decimal, v decimal)  ·
 ·     table        dec@primary          ·                       ·
 ·     spans        /NaN/NaN-/NaN/NaN/#  ·                       ·
@@ -748,7 +748,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM dec WHERE d = 'Infinity' and v = 'Infinity'
 ----
 ·     distributed  false                                    ·                       ·
-·     vectorized   true                                     ·                       ·
+·     vectorized   false                                    ·                       ·
 scan  ·            ·                                        (d decimal, v decimal)  ·
 ·     table        dec@primary                              ·                       ·
 ·     spans        /Infinity/Infinity-/Infinity/Infinity/#  ·                       ·
@@ -757,7 +757,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM dec WHERE d = '-Infinity' and v = '-Infinity'
 ----
 ·     distributed  false                                        ·                       ·
-·     vectorized   true                                         ·                       ·
+·     vectorized   false                                        ·                       ·
 scan  ·            ·                                            (d decimal, v decimal)  ·
 ·     table        dec@primary                                  ·                       ·
 ·     spans        /-Infinity/-Infinity-/-Infinity/-Infinity/#  ·                       ·
@@ -811,7 +811,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM dec2 WHERE d IS NaN
 ----
 ·     distributed  false            ·            ·
-·     vectorized   true             ·            ·
+·     vectorized   false            ·            ·
 scan  ·            ·                (d decimal)  ·
 ·     table        dec2@dec2_d_idx  ·            ·
 ·     spans        /NaN-/-Infinity  ·            ·
@@ -820,7 +820,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM dec2 WHERE d = 'NaN'
 ----
 ·     distributed  false            ·            ·
-·     vectorized   true             ·            ·
+·     vectorized   false            ·            ·
 scan  ·            ·                (d decimal)  ·
 ·     table        dec2@dec2_d_idx  ·            ·
 ·     spans        /NaN-/-Infinity  ·            ·
@@ -851,7 +851,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM flt WHERE f IS NaN
 ----
 ·     distributed  false                ·          ·
-·     vectorized   true                 ·          ·
+·     vectorized   false                ·          ·
 scan  ·            ·                    (f float)  ·
 ·     table        flt@flt_f_key        ·          ·
 ·     spans        /NaN-/NaN/PrefixEnd  ·          ·
@@ -860,7 +860,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT * FROM flt WHERE f = 'NaN'
 ----
 ·     distributed  false                ·          ·
-·     vectorized   true                 ·          ·
+·     vectorized   false                ·          ·
 scan  ·            ·                    (f float)  ·
 ·     table        flt@flt_f_key        ·          ·
 ·     spans        /NaN-/NaN/PrefixEnd  ·          ·
@@ -899,7 +899,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT i FROM num WHERE i = -1:::INT
 ----
 ·     distributed  false          ·        ·
-·     vectorized   true           ·        ·
+·     vectorized   false          ·        ·
 scan  ·            ·              (i int)  ·
 ·     table        num@num_i_key  ·        ·
 ·     spans        /-1-/0         ·        ·
@@ -908,7 +908,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT f FROM num WHERE f = -1:::FLOAT
 ----
 ·     distributed  false              ·          ·
-·     vectorized   true               ·          ·
+·     vectorized   false              ·          ·
 scan  ·            ·                  (f float)  ·
 ·     table        num@num_f_key      ·          ·
 ·     spans        /-1-/-1/PrefixEnd  ·          ·
@@ -917,7 +917,7 @@ query TTTTT
 EXPLAIN (TYPES) SELECT d FROM num WHERE d = -1:::DECIMAL
 ----
 ·     distributed  false              ·            ·
-·     vectorized   true               ·            ·
+·     vectorized   false              ·            ·
 scan  ·            ·                  (d decimal)  ·
 ·     table        num@num_d_key      ·            ·
 ·     spans        /-1-/-1/PrefixEnd  ·            ·
@@ -1131,7 +1131,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT a + x FROM (SELECT a, b + c AS x FROM abcd) ORDER BY a
 ----
 ·          distributed  false         ·             ·
-·          vectorized   true          ·             ·
+·          vectorized   false         ·             ·
 render     ·            ·             ("?column?")  ·
  │         render 0     a + (b + c)   ·             ·
  └── scan  ·            ·             (a, b, c)     +a
@@ -1159,7 +1159,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT a + x FROM (SELECT a, b, a + b + c AS x FROM abcd) ORDER BY a DESC, b DESC
 ----
 ·             distributed  false              ·             ·
-·             vectorized   true               ·             ·
+·             vectorized   false              ·             ·
 render        ·            ·                  ("?column?")  ·
  │            render 0     a + (c + (a + b))  ·             ·
  └── revscan  ·            ·                  (a, b, c)     -a,-b
@@ -1171,7 +1171,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM abcd WHERE a > b ORDER BY a
 ----
 ·     distributed  false         ·             ·
-·     vectorized   true          ·             ·
+·     vectorized   false         ·             ·
 scan  ·            ·             (a, b, c, d)  +a
 ·     table        abcd@primary  ·             ·
 ·     spans        ALL           ·             ·
@@ -1193,7 +1193,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM (SELECT a, b FROM abcd LIMIT 10) WHERE a > b ORDER BY a
 ----
 ·          distributed  false         ·       ·
-·          vectorized   true          ·       ·
+·          vectorized   false         ·       ·
 filter     ·            ·             (a, b)  +a
  │         filter       a > b         ·       ·
  └── scan  ·            ·             (a, b)  +a
@@ -1205,7 +1205,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM (SELECT a, a+b+c AS x FROM (SELECT * FROM abcd LIMIT 10)) WHERE x > 100 ORDER BY a
 ----
 ·               distributed  false                ·          ·
-·               vectorized   true                 ·          ·
+·               vectorized   false                ·          ·
 render          ·            ·                    (a, x)     ·
  │              render 0     a                    ·          ·
  │              render 1     c + (a + b)          ·          ·
@@ -1224,7 +1224,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM (SELECT * FROM xyz LIMIT 10) WHERE y = 1 ORDER BY x, y, z
 ----
 ·          distributed  false              ·          ·
-·          vectorized   true               ·          ·
+·          vectorized   false              ·          ·
 filter     ·            ·                  (x, y, z)  +x,+z
  │         filter       y = 1              ·          ·
  └── scan  ·            ·                  (x, y, z)  +x,+y,+z
@@ -1246,7 +1246,7 @@ query TTT
 EXPLAIN SELECT * FROM a WHERE a = 10
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        a@primary
 ·     spans        /10-/10/#
@@ -1255,7 +1255,7 @@ query TTT
 EXPLAIN SELECT * FROM a WHERE a = 10 OR a = 20
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        a@primary
 ·     spans        /10-/10/# /20-/20/#
@@ -1265,7 +1265,7 @@ query TTT
 EXPLAIN SELECT * FROM a WHERE a IN (10, 20)
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        a@primary
 ·     spans        /10-/10/# /20-/20/#
@@ -1276,7 +1276,7 @@ query TTT
 EXPLAIN SELECT * FROM a WHERE a in (10, 11)
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        a@primary
 ·     spans        /10-/11/#
@@ -1286,7 +1286,7 @@ query TTT
 EXPLAIN SELECT * FROM a WHERE a > 10 AND a < 20
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        a@primary
 ·     spans        /11-/19/#
@@ -1298,7 +1298,7 @@ query TTT
 EXPLAIN SELECT * FROM a WHERE a > 10
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        a@primary
 ·     spans        /11-
@@ -1310,7 +1310,7 @@ query TTT
 EXPLAIN SELECT price FROM a WHERE item IN ('sock', 'ball')
 ----
 ·                distributed  false
-·                vectorized   true
+·                vectorized   false
 render           ·            ·
  └── index-join  ·            ·
       │          table        a@primary
@@ -1325,7 +1325,7 @@ query TTT
 EXPLAIN SELECT item FROM a WHERE price > 5 AND price < 10 OR price > 20 AND price < 40
 ----
 ·                distributed  false
-·                vectorized   true
+·                vectorized   false
 render           ·            ·
  └── index-join  ·            ·
       │          table        a@primary
@@ -1341,7 +1341,7 @@ query TTT
 EXPLAIN SELECT * FROM a WHERE a IN (10, 20)
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        a@primary
 ·     spans        /10-/10/# /20-/20/#
@@ -1354,7 +1354,7 @@ query TTT
 EXPLAIN SELECT * FROM b WHERE (a = 10 AND b = 10) OR (a = 20 AND b = 20)
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        b@primary
 ·     spans        /10/10-/10/10/# /20/20-/20/20/#
@@ -1367,7 +1367,7 @@ query TTT
 EXPLAIN SELECT * FROM b WHERE a = 10 OR a = 20
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        b@primary
 ·     spans        /10-/11 /20-/21
@@ -1377,7 +1377,7 @@ query TTT
 EXPLAIN SELECT * FROM a WHERE a = 10 OR a = 20 LIMIT 1
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        a@primary
 ·     spans        /10-/10/# /20-/20/#
@@ -1391,7 +1391,7 @@ query TTT
 EXPLAIN SELECT b FROM b WHERE b = 10 OR b = 20
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        b@b_b_idx
 ·     spans        /10-/11 /20-/21
@@ -1405,7 +1405,7 @@ query TTT
 EXPLAIN SELECT c FROM b WHERE c = 10 OR c = 20
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        b@b_c_key
 ·     spans        /10-/11 /20-/21
@@ -1415,7 +1415,7 @@ query TTT
 EXPLAIN SELECT c FROM b WHERE c = 10 OR c < 2
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        b@b_c_key
 ·     spans        /!NULL-/2 /10-/11
@@ -1429,7 +1429,7 @@ query TTT
 EXPLAIN SELECT d FROM b WHERE d = 10 OR d < 2
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        b@b_d_key
 ·     spans        /10-/9 /1-/NULL
@@ -1443,7 +1443,7 @@ query TTT
 EXPLAIN SELECT d FROM b WHERE c = 10 AND d = 10 OR c IS NULL AND d > 0 AND d < 2
 ----
 ·          distributed  false
-·          vectorized   true
+·          vectorized   false
 render     ·            ·
  └── scan  ·            ·
 ·          table        b@b_c_d_key
@@ -1461,7 +1461,7 @@ query TTT
 EXPLAIN SELECT b FROM b WHERE b = 10 OR b = 20
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        b@b_b_key
 ·     spans        /10-/11 /20-/21

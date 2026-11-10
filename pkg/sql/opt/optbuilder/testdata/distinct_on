@@ -307,28 +307,6 @@ distinct-on
                      ├── variable: min [type=int]
                      └── const: 1 [type=int]
 
-#########################
-# With window functions #
-#########################
-
-build
-SELECT DISTINCT ON(row_number() OVER()) y FROM xyz
-----
-distinct-on
- ├── columns: y:2(int)  [hidden: row_number:6(int)]
- ├── grouping columns: row_number:6(int)
- ├── project
- │    ├── columns: y:2(int) row_number:6(int)
- │    └── window partition=()
- │         ├── columns: x:1(int) y:2(int) z:3(int) pk1:4(int!null) pk2:5(int!null) row_number:6(int)
- │         ├── scan xyz
- │         │    └── columns: x:1(int) y:2(int) z:3(int) pk1:4(int!null) pk2:5(int!null)
- │         └── windows
- │              └── row-number [type=int]
- └── aggregations
-      └── first-agg [type=int]
-           └── variable: y [type=int]
-
 ###########################
 # With ordinal references #
 ###########################

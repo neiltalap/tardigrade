@@ -34,7 +34,7 @@ EXPLAIN (VERBOSE)
   WITH t AS (SELECT a FROM y) SELECT * FROM t
 ----
 ·          distributed  false      ·    ·
-·          vectorized   true       ·    ·
+·          vectorized   false      ·    ·
 render     ·            ·          (a)  ·
  │         render 0     a          ·    ·
  └── scan  ·            ·          (a)  ·

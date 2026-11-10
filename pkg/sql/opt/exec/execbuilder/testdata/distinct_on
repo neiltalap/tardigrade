@@ -52,7 +52,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT ON (b, c, a) a, c, b FROM abc
 ----
 ·          distributed  false        ·          ·
-·          vectorized   true         ·          ·
+·          vectorized   false        ·          ·
 render     ·            ·            (a, c, b)  ·
  │         render 0     a            ·          ·
  │         render 1     c            ·          ·
@@ -66,7 +66,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT ON (b, c, a) a FROM abc
 ----
 ·     distributed  false        ·    ·
-·     vectorized   true         ·    ·
+·     vectorized   false        ·    ·
 scan  ·            ·            (a)  ·
 ·     table        abc@primary  ·    ·
 ·     spans        ALL          ·    ·
@@ -179,7 +179,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT ON (pk1) pk1, pk2 FROM xyz
 ----
 ·          distributed  false        ·           ·
-·          vectorized   true         ·           ·
+·          vectorized   false        ·           ·
 distinct   ·            ·            (pk1, pk2)  weak-key(pk1); +pk1
  │         distinct on  pk1          ·           ·
  │         order key    pk1          ·           ·
@@ -267,7 +267,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT ON (max(y)) max(x) FROM xyz
 ----
 ·               distributed  false        ·       ·
-·               vectorized   true         ·       ·
+·               vectorized   false        ·       ·
 group           ·            ·            (max)   ·
  │              aggregate 0  max(x)       ·       ·
  │              scalar       ·            ·       ·
@@ -281,7 +281,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT ON(min(a), max(b), min(c)) max(a) FROM abc
 ----
 ·                  distributed  false            ·          ·
-·                  vectorized   true             ·          ·
+·                  vectorized   false            ·          ·
 group              ·            ·                (max)      ·
  │                 aggregate 0  any_not_null(a)  ·          ·
  │                 scalar       ·                ·          ·
@@ -331,26 +331,6 @@ render                    ·            ·            (min)     ·
 ·                         table        xyz@primary  ·         ·
 ·                         spans        ALL          ·         ·
 
-#########################
-# With window functions #
-#########################
-
-query TTTTT
-EXPLAIN (VERBOSE) SELECT DISTINCT ON(row_number() OVER()) y FROM xyz
-----
-·                    distributed  false                                                                  ·                ·
-·                    vectorized   false                                                                  ·                ·
-render               ·            ·                                                                      (y)              ·
- │                   render 0     y                                                                      ·                ·
- └── distinct        ·            ·                                                                      (y, row_number)  weak-key(row_number)
-      │              distinct on  row_number                                                             ·                ·
-      └── window     ·            ·                                                                      (y, row_number)  ·
-           │         window 0     row_number() OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)  ·                ·
-           │         render 1     row_number() OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)  ·                ·
-           └── scan  ·            ·                                                                      (y)              ·
-·                    table        xyz@primary                                                            ·                ·
-·                    spans        ALL                                                                    ·                ·
-
 ###########################
 # With ordinal references #
 ###########################
@@ -371,7 +351,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT ON (1,2,3) a, b, c FROM abc
 ----
 ·     distributed  false        ·          ·
-·     vectorized   true         ·          ·
+·     vectorized   false        ·          ·
 scan  ·            ·            (a, b, c)  ·
 ·     table        abc@primary  ·          ·
 ·     spans        ALL          ·          ·
@@ -456,7 +436,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT ON (x) x, y FROM xyz WHERE x = 1 ORDER BY x, y
 ----
 ·               distributed  false        ·       ·
-·               vectorized   true         ·       ·
+·               vectorized   false        ·       ·
 limit           ·            ·            (x, y)  +y
  │              count        1            ·       ·
  └── sort       ·            ·            (x, y)  +y
@@ -470,7 +450,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT count(*) FROM (SELECT DISTINCT ON (x) x, y FROM xyz WHERE x = 1 ORDER BY x, y)
 ----
 ·                         distributed  false         ·        ·
-·                         vectorized   true          ·        ·
+·                         vectorized   false         ·        ·
 group                     ·            ·             (count)  ·
  │                        aggregate 0  count_rows()  ·        ·
  │                        scalar       ·             ·        ·

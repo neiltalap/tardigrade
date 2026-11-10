@@ -135,11 +135,9 @@ project
       │         │    │    │    │    ├── stats: [rows=2000, distinct(34)=1844.80594, null(34)=0, distinct(37)=5, null(37)=0, distinct(41)=5, null(41)=0, distinct(43)=1, null(43)=0, distinct(45)=1, null(45)=0, distinct(46)=0.996222107, null(46)=0]
       │         │    │    │    │    ├── key: (34)
       │         │    │    │    │    ├── fd: ()-->(46), (34)-->(37), (41)-->(43), (43)==(45), (45)==(43), (37)==(41), (41)==(37)
-      │         │    │    │    │    ├── inner-join (merge)
-      │         │    │    │    │    │    ├── save-table-name: q2_merge_join_10
+      │         │    │    │    │    ├── inner-join (hash)
+      │         │    │    │    │    │    ├── save-table-name: q2_inner_join_10
       │         │    │    │    │    │    ├── columns: n_nationkey:41(int!null) n_regionkey:43(int!null) r_regionkey:45(int!null) r_name:46(char!null)
-      │         │    │    │    │    │    ├── left ordering: +43
-      │         │    │    │    │    │    ├── right ordering: +45
       │         │    │    │    │    │    ├── stats: [rows=5, distinct(41)=5, null(41)=0, distinct(43)=1, null(43)=0, distinct(45)=1, null(45)=0, distinct(46)=0.996222107, null(46)=0]
       │         │    │    │    │    │    ├── key: (41)
       │         │    │    │    │    │    ├── fd: ()-->(46), (41)-->(43), (43)==(45), (45)==(43)
@@ -152,15 +150,13 @@ project
       │         │    │    │    │    │    │    │   histogram(43)=  0  5  0  5  0  5  0  5  0  5
       │         │    │    │    │    │    │    │                 <--- 0 --- 1 --- 2 --- 3 --- 4
       │         │    │    │    │    │    │    ├── key: (41)
-      │         │    │    │    │    │    │    ├── fd: (41)-->(43)
-      │         │    │    │    │    │    │    └── ordering: +43
+      │         │    │    │    │    │    │    └── fd: (41)-->(43)
       │         │    │    │    │    │    ├── select
       │         │    │    │    │    │    │    ├── save-table-name: q2_select_12
       │         │    │    │    │    │    │    ├── columns: r_regionkey:45(int!null) r_name:46(char!null)
       │         │    │    │    │    │    │    ├── stats: [rows=1, distinct(45)=1, null(45)=0, distinct(46)=1, null(46)=0]
       │         │    │    │    │    │    │    ├── key: (45)
       │         │    │    │    │    │    │    ├── fd: ()-->(46)
-      │         │    │    │    │    │    │    ├── ordering: +45 opt(46) [actual: +45]
       │         │    │    │    │    │    │    ├── scan region
       │         │    │    │    │    │    │    │    ├── save-table-name: q2_scan_13
       │         │    │    │    │    │    │    │    ├── columns: r_regionkey:45(int!null) r_name:46(char!null)
@@ -168,11 +164,11 @@ project
       │         │    │    │    │    │    │    │    │   histogram(45)=  0  1  0  1  0  1  0  1  0  1
       │         │    │    │    │    │    │    │    │                 <--- 0 --- 1 --- 2 --- 3 --- 4
       │         │    │    │    │    │    │    │    ├── key: (45)
-      │         │    │    │    │    │    │    │    ├── fd: (45)-->(46)
-      │         │    │    │    │    │    │    │    └── ordering: +45 opt(46) [actual: +45]
+      │         │    │    │    │    │    │    │    └── fd: (45)-->(46)
       │         │    │    │    │    │    │    └── filters
       │         │    │    │    │    │    │         └── r_name = 'EUROPE' [type=bool, outer=(46), constraints=(/46: [/'EUROPE' - /'EUROPE']; tight), fd=()-->(46)]
-      │         │    │    │    │    │    └── filters (true)
+      │         │    │    │    │    │    └── filters
+      │         │    │    │    │    │         └── n_regionkey = r_regionkey [type=bool, outer=(43,45), constraints=(/43: (/NULL - ]; /45: (/NULL - ]), fd=(43)==(45), (45)==(43)]
       │         │    │    │    │    └── filters (true)
       │         │    │    │    └── filters
       │         │    │    │         └── s_suppkey = ps_suppkey [type=bool, outer=(30,34), constraints=(/30: (/NULL - ]; /34: (/NULL - ]), fd=(30)==(34), (34)==(30)]
@@ -556,7 +552,7 @@ column_names   row_count_est  row_count_err  distinct_count_est  distinct_count_
 {s_nationkey}  2000.00        1.01           5.00                1.00                0.00            1.00
 {s_suppkey}    2000.00        1.01           1845.00             1.08                0.00            1.00
 
-stats table=q2_merge_join_10
+stats table=q2_inner_join_10
 ----
 column_names   row_count  distinct_count  null_count
 {n_nationkey}  5          5               0

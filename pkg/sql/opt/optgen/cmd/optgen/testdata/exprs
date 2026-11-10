@@ -47,6 +47,7 @@ package memo
 import (
 	"unsafe"
 
+	"github.com/cockroachdb/errors"
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/cat"
 	"github.com/podomy/tardigrade/pkg/sql/opt/constraint"
@@ -54,7 +55,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/opt/props/physical"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/types"
-	"github.com/cockroachdb/errors"
 )
 
 // ProjectExpr is a projection operator.

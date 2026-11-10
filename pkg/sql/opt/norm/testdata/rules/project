@@ -62,22 +62,19 @@ SELECT y+1 AS r FROM (SELECT a.y FROM a, b WHERE a.x=b.x) a
 ----
 project
  ├── columns: r:7(int)
- ├── inner-join (merge)
+ ├── inner-join (hash)
  │    ├── columns: a.x:1(int!null) y:2(int) b.x:5(int!null)
- │    ├── left ordering: +1
- │    ├── right ordering: +5
  │    ├── key: (5)
  │    ├── fd: (1)-->(2), (1)==(5), (5)==(1)
  │    ├── scan a
  │    │    ├── columns: a.x:1(int!null) y:2(int)
  │    │    ├── key: (1)
- │    │    ├── fd: (1)-->(2)
- │    │    └── ordering: +1
+ │    │    └── fd: (1)-->(2)
  │    ├── scan b
  │    │    ├── columns: b.x:5(int!null)
- │    │    ├── key: (5)
- │    │    └── ordering: +5
- │    └── filters (true)
+ │    │    └── key: (5)
+ │    └── filters
+ │         └── a.x = b.x [type=bool, outer=(1,5), constraints=(/1: (/NULL - ]; /5: (/NULL - ]), fd=(1)==(5), (5)==(1)]
  └── projections
       └── y + 1 [type=int, outer=(2)]
 

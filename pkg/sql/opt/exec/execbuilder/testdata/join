@@ -409,19 +409,18 @@ CREATE TABLE cards(id INT PRIMARY KEY, cust INT NOT NULL REFERENCES customers(id
 query TTT
 EXPLAIN SELECT * FROM cards LEFT OUTER JOIN customers ON customers.id = cards.cust
 ----
-·           distributed         false
-·           vectorized          false
-merge-join  ·                   ·
- │          type                inner
- │          equality            (cust) = (id)
- │          right cols are key  ·
- │          mergeJoinOrder      +"(cust=id)"
- ├── scan   ·                   ·
- │          table               cards@cards_auto_index_fk_cust_ref_customers
- │          spans               ALL
- └── scan   ·                   ·
-·           table               customers@primary
-·           spans               ALL
+·          distributed         false
+·          vectorized          false
+hash-join  ·                   ·
+ │         type                inner
+ │         equality            (cust) = (id)
+ │         right cols are key  ·
+ ├── scan  ·                   ·
+ │         table               cards@primary
+ │         spans               ALL
+ └── scan  ·                   ·
+·          table               customers@primary
+·          spans               ALL
 
 # Tests for filter propagation through joins.
 
@@ -706,44 +705,42 @@ render          ·                   ·                            (a, b, c, d) 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM pkBAC AS l JOIN pkBAC AS r USING(a, b, c)
 ----
-·                distributed         false                       ·                         ·
-·                vectorized          true                        ·                         ·
-render           ·                   ·                           (a, b, c, d, d)           ·
- │               render 0            a                           ·                         ·
- │               render 1            b                           ·                         ·
- │               render 2            c                           ·                         ·
- │               render 3            d                           ·                         ·
- │               render 4            d                           ·                         ·
- └── merge-join  ·                   ·                           (a, b, c, d, a, b, c, d)  ·
-      │          type                inner                       ·                         ·
-      │          equality            (b, a, c) = (b, a, c)       ·                         ·
-      │          left cols are key   ·                           ·                         ·
-      │          right cols are key  ·                           ·                         ·
-      │          mergeJoinOrder      +"(b=b)",+"(a=a)",+"(c=c)"  ·                         ·
-      ├── scan   ·                   ·                           (a, b, c, d)              +b,+a,+c
-      │          table               pkbac@primary               ·                         ·
-      │          spans               ALL                         ·                         ·
-      └── scan   ·                   ·                           (a, b, c, d)              +b,+a,+c
-·                table               pkbac@primary               ·                         ·
-·                spans               ALL                         ·                         ·
+·               distributed         false                  ·                         ·
+·               vectorized          false                  ·                         ·
+render          ·                   ·                      (a, b, c, d, d)           ·
+ │              render 0            a                      ·                         ·
+ │              render 1            b                      ·                         ·
+ │              render 2            c                      ·                         ·
+ │              render 3            d                      ·                         ·
+ │              render 4            d                      ·                         ·
+ └── hash-join  ·                   ·                      (a, b, c, d, a, b, c, d)  ·
+      │         type                inner                  ·                         ·
+      │         equality            (a, b, c) = (a, b, c)  ·                         ·
+      │         left cols are key   ·                      ·                         ·
+      │         right cols are key  ·                      ·                         ·
+      ├── scan  ·                   ·                      (a, b, c, d)              ·
+      │         table               pkbac@primary          ·                         ·
+      │         spans               ALL                    ·                         ·
+      └── scan  ·                   ·                      (a, b, c, d)              ·
+·               table               pkbac@primary          ·                         ·
+·               spans               ALL                    ·                         ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM pkBAC AS l JOIN pkBAD AS r ON l.c = r.d AND l.a = r.a AND l.b = r.b
 ----
-·           distributed         false                       ·                         ·
-·           vectorized          true                        ·                         ·
-merge-join  ·                   ·                           (a, b, c, d, a, b, c, d)  ·
- │          type                inner                       ·                         ·
- │          equality            (b, a, c) = (b, a, d)       ·                         ·
- │          left cols are key   ·                           ·                         ·
- │          right cols are key  ·                           ·                         ·
- │          mergeJoinOrder      +"(b=b)",+"(a=a)",+"(c=d)"  ·                         ·
- ├── scan   ·                   ·                           (a, b, c, d)              +b,+a,+c
- │          table               pkbac@primary               ·                         ·
- │          spans               ALL                         ·                         ·
- └── scan   ·                   ·                           (a, b, c, d)              +b,+a,+d
-·           table               pkbad@primary               ·                         ·
-·           spans               ALL                         ·                         ·
+·          distributed         false                  ·                         ·
+·          vectorized          false                  ·                         ·
+hash-join  ·                   ·                      (a, b, c, d, a, b, c, d)  ·
+ │         type                inner                  ·                         ·
+ │         equality            (c, a, b) = (d, a, b)  ·                         ·
+ │         left cols are key   ·                      ·                         ·
+ │         right cols are key  ·                      ·                         ·
+ ├── scan  ·                   ·                      (a, b, c, d)              ·
+ │         table               pkbac@primary          ·                         ·
+ │         spans               ALL                    ·                         ·
+ └── scan  ·                   ·                      (a, b, c, d)              ·
+·          table               pkbad@primary          ·                         ·
+·          spans               ALL                    ·                         ·
 
 # Tests with joins with merged columns of collated string type.
 statement ok
@@ -860,275 +857,269 @@ CREATE TABLE xyv (x INT, y INT, v INT, PRIMARY KEY(x,y,v))
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM xyu INNER JOIN xyv USING(x, y) WHERE x > 2
 ----
-·                distributed     false              ·                   ·
-·                vectorized      false              ·                   ·
-render           ·               ·                  (x, y, u, v)        ·
- │               render 0        x                  ·                   ·
- │               render 1        y                  ·                   ·
- │               render 2        u                  ·                   ·
- │               render 3        v                  ·                   ·
- └── merge-join  ·               ·                  (x, y, u, x, y, v)  ·
-      │          type            inner              ·                   ·
-      │          equality        (x, y) = (x, y)    ·                   ·
-      │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
-      ├── scan   ·               ·                  (x, y, u)           +x,+y
-      │          table           xyu@primary        ·                   ·
-      │          spans           /3-                ·                   ·
-      └── scan   ·               ·                  (x, y, v)           +x,+y
-·                table           xyv@primary        ·                   ·
-·                spans           /3-                ·                   ·
+·               distributed  false            ·                   ·
+·               vectorized   false            ·                   ·
+render          ·            ·                (x, y, u, v)        ·
+ │              render 0     x                ·                   ·
+ │              render 1     y                ·                   ·
+ │              render 2     u                ·                   ·
+ │              render 3     v                ·                   ·
+ └── hash-join  ·            ·                (x, y, u, x, y, v)  ·
+      │         type         inner            ·                   ·
+      │         equality     (x, y) = (x, y)  ·                   ·
+      ├── scan  ·            ·                (x, y, u)           ·
+      │         table        xyu@primary      ·                   ·
+      │         spans        /3-              ·                   ·
+      └── scan  ·            ·                (x, y, v)           ·
+·               table        xyv@primary      ·                   ·
+·               spans        /3-              ·                   ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM xyu LEFT OUTER JOIN xyv USING(x, y) WHERE x > 2
 ----
-·                distributed     false              ·                   ·
-·                vectorized      false              ·                   ·
-render           ·               ·                  (x, y, u, v)        ·
- │               render 0        x                  ·                   ·
- │               render 1        y                  ·                   ·
- │               render 2        u                  ·                   ·
- │               render 3        v                  ·                   ·
- └── merge-join  ·               ·                  (x, y, u, x, y, v)  ·
-      │          type            left outer         ·                   ·
-      │          equality        (x, y) = (x, y)    ·                   ·
-      │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
-      ├── scan   ·               ·                  (x, y, u)           +x,+y
-      │          table           xyu@primary        ·                   ·
-      │          spans           /3-                ·                   ·
-      └── scan   ·               ·                  (x, y, v)           +x,+y
-·                table           xyv@primary        ·                   ·
-·                spans           /3-                ·                   ·
+·               distributed  false            ·                   ·
+·               vectorized   false            ·                   ·
+render          ·            ·                (x, y, u, v)        ·
+ │              render 0     x                ·                   ·
+ │              render 1     y                ·                   ·
+ │              render 2     u                ·                   ·
+ │              render 3     v                ·                   ·
+ └── hash-join  ·            ·                (x, y, u, x, y, v)  ·
+      │         type         left outer       ·                   ·
+      │         equality     (x, y) = (x, y)  ·                   ·
+      ├── scan  ·            ·                (x, y, u)           ·
+      │         table        xyu@primary      ·                   ·
+      │         spans        /3-              ·                   ·
+      └── scan  ·            ·                (x, y, v)           ·
+·               table        xyv@primary      ·                   ·
+·               spans        /3-              ·                   ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM xyu RIGHT OUTER JOIN xyv USING(x, y) WHERE x > 2
 ----
-·                distributed     false              ·                   ·
-·                vectorized      false              ·                   ·
-render           ·               ·                  (x, y, u, v)        ·
- │               render 0        x                  ·                   ·
- │               render 1        y                  ·                   ·
- │               render 2        u                  ·                   ·
- │               render 3        v                  ·                   ·
- └── merge-join  ·               ·                  (x, y, u, x, y, v)  ·
-      │          type            right outer        ·                   ·
-      │          equality        (x, y) = (x, y)    ·                   ·
-      │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
-      ├── scan   ·               ·                  (x, y, u)           +x,+y
-      │          table           xyu@primary        ·                   ·
-      │          spans           /3-                ·                   ·
-      └── scan   ·               ·                  (x, y, v)           +x,+y
-·                table           xyv@primary        ·                   ·
-·                spans           /3-                ·                   ·
+·               distributed  false            ·                   ·
+·               vectorized   false            ·                   ·
+render          ·            ·                (x, y, u, v)        ·
+ │              render 0     x                ·                   ·
+ │              render 1     y                ·                   ·
+ │              render 2     u                ·                   ·
+ │              render 3     v                ·                   ·
+ └── hash-join  ·            ·                (x, y, u, x, y, v)  ·
+      │         type         right outer      ·                   ·
+      │         equality     (x, y) = (x, y)  ·                   ·
+      ├── scan  ·            ·                (x, y, u)           ·
+      │         table        xyu@primary      ·                   ·
+      │         spans        /3-              ·                   ·
+      └── scan  ·            ·                (x, y, v)           ·
+·               table        xyv@primary      ·                   ·
+·               spans        /3-              ·                   ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM xyu FULL OUTER JOIN xyv USING(x, y) WHERE x > 2
 ----
-·                     distributed     false              ·                   ·
-·                     vectorized      false              ·                   ·
-filter                ·               ·                  (x, y, u, v)        ·
- │                    filter          x > 2              ·                   ·
- └── render           ·               ·                  (x, y, u, v)        ·
-      │               render 0        COALESCE(x, x)     ·                   ·
-      │               render 1        COALESCE(y, y)     ·                   ·
-      │               render 2        u                  ·                   ·
-      │               render 3        v                  ·                   ·
-      └── merge-join  ·               ·                  (x, y, u, x, y, v)  ·
-           │          type            full outer         ·                   ·
-           │          equality        (x, y) = (x, y)    ·                   ·
-           │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
-           ├── scan   ·               ·                  (x, y, u)           +x,+y
-           │          table           xyu@primary        ·                   ·
-           │          spans           ALL                ·                   ·
-           └── scan   ·               ·                  (x, y, v)           +x,+y
-·                     table           xyv@primary        ·                   ·
-·                     spans           ALL                ·                   ·
+·                    distributed  false            ·                   ·
+·                    vectorized   false            ·                   ·
+filter               ·            ·                (x, y, u, v)        ·
+ │                   filter       x > 2            ·                   ·
+ └── render          ·            ·                (x, y, u, v)        ·
+      │              render 0     COALESCE(x, x)   ·                   ·
+      │              render 1     COALESCE(y, y)   ·                   ·
+      │              render 2     u                ·                   ·
+      │              render 3     v                ·                   ·
+      └── hash-join  ·            ·                (x, y, u, x, y, v)  ·
+           │         type         full outer       ·                   ·
+           │         equality     (x, y) = (x, y)  ·                   ·
+           ├── scan  ·            ·                (x, y, u)           ·
+           │         table        xyu@primary      ·                   ·
+           │         spans        ALL              ·                   ·
+           └── scan  ·            ·                (x, y, v)           ·
+·                    table        xyv@primary      ·                   ·
+·                    spans        ALL              ·                   ·
+
+# Verify that we transfer constraints between the two sides.
+
+query TTTTT
+EXPLAIN (VERBOSE) SELECT * FROM xyu FULL OUTER JOIN xyv USING(x, y) WHERE x > 2
+----
+·                    distributed  false            ·                   ·
+·                    vectorized   false            ·                   ·
+filter               ·            ·                (x, y, u, v)        ·
+ │                   filter       x > 2            ·                   ·
+ └── render          ·            ·                (x, y, u, v)        ·
+      │              render 0     COALESCE(x, x)   ·                   ·
+      │              render 1     COALESCE(y, y)   ·                   ·
+      │              render 2     u                ·                   ·
+      │              render 3     v                ·                   ·
+      └── hash-join  ·            ·                (x, y, u, x, y, v)  ·
+           │         type         full outer       ·                   ·
+           │         equality     (x, y) = (x, y)  ·                   ·
+           ├── scan  ·            ·                (x, y, u)           ·
+           │         table        xyu@primary      ·                   ·
+           │         spans        ALL              ·                   ·
+           └── scan  ·            ·                (x, y, v)           ·
+·                    table        xyv@primary      ·                   ·
+·                    spans        ALL              ·                   ·
+
+# Verify that we transfer constraints between the two sides.
+
+query TTTTT
+EXPLAIN (VERBOSE) SELECT * FROM xyu FULL OUTER JOIN xyv USING(x, y) WHERE x > 2
+----
+·                    distributed  false            ·                   ·
+·                    vectorized   false            ·                   ·
+filter               ·            ·                (x, y, u, v)        ·
+ │                   filter       x > 2            ·                   ·
+ └── render          ·            ·                (x, y, u, v)        ·
+      │              render 0     COALESCE(x, x)   ·                   ·
+      │              render 1     COALESCE(y, y)   ·                   ·
+      │              render 2     u                ·                   ·
+      │              render 3     v                ·                   ·
+      └── hash-join  ·            ·                (x, y, u, x, y, v)  ·
+           │         type         full outer       ·                   ·
+           │         equality     (x, y) = (x, y)  ·                   ·
+           ├── scan  ·            ·                (x, y, u)           ·
+           │         table        xyu@primary      ·                   ·
+           │         spans        ALL              ·                   ·
+           └── scan  ·            ·                (x, y, v)           ·
+·                    table        xyv@primary      ·                   ·
+·                    spans        ALL              ·                   ·
+
+query TTTTT
+EXPLAIN (VERBOSE) SELECT * FROM xyu FULL OUTER JOIN xyv USING(x, y) WHERE x > 2
+----
+·                    distributed  false            ·                   ·
+·                    vectorized   false            ·                   ·
+filter               ·            ·                (x, y, u, v)        ·
+ │                   filter       x > 2            ·                   ·
+ └── render          ·            ·                (x, y, u, v)        ·
+      │              render 0     COALESCE(x, x)   ·                   ·
+      │              render 1     COALESCE(y, y)   ·                   ·
+      │              render 2     u                ·                   ·
+      │              render 3     v                ·                   ·
+      └── hash-join  ·            ·                (x, y, u, x, y, v)  ·
+           │         type         full outer       ·                   ·
+           │         equality     (x, y) = (x, y)  ·                   ·
+           ├── scan  ·            ·                (x, y, u)           ·
+           │         table        xyu@primary      ·                   ·
+           │         spans        ALL              ·                   ·
+           └── scan  ·            ·                (x, y, v)           ·
+·                    table        xyv@primary      ·                   ·
+·                    spans        ALL              ·                   ·
+
+# Verify that we transfer constraints between the two sides.
+
+query TTTTT
+EXPLAIN (VERBOSE) SELECT * FROM xyu FULL OUTER JOIN xyv USING(x, y) WHERE x > 2
+----
+·                    distributed  false            ·                   ·
+·                    vectorized   false            ·                   ·
+filter               ·            ·                (x, y, u, v)        ·
+ │                   filter       x > 2            ·                   ·
+ └── render          ·            ·                (x, y, u, v)        ·
+      │              render 0     COALESCE(x, x)   ·                   ·
+      │              render 1     COALESCE(y, y)   ·                   ·
+      │              render 2     u                ·                   ·
+      │              render 3     v                ·                   ·
+      └── hash-join  ·            ·                (x, y, u, x, y, v)  ·
+           │         type         full outer       ·                   ·
+           │         equality     (x, y) = (x, y)  ·                   ·
+           ├── scan  ·            ·                (x, y, u)           ·
+           │         table        xyu@primary      ·                   ·
+           │         spans        ALL              ·                   ·
+           └── scan  ·            ·                (x, y, v)           ·
+·                    table        xyv@primary      ·                   ·
+·                    spans        ALL              ·                   ·
 
 # Verify that we transfer constraints between the two sides.
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM xyu INNER JOIN xyv ON xyu.x = xyv.x AND xyu.y = xyv.y WHERE xyu.x = 1 AND xyu.y < 10
 ----
-·           distributed     false              ·                   ·
-·           vectorized      false              ·                   ·
-merge-join  ·               ·                  (x, y, u, x, y, v)  ·
- │          type            inner              ·                   ·
- │          equality        (x, y) = (x, y)    ·                   ·
- │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
- ├── scan   ·               ·                  (x, y, u)           +y
- │          table           xyu@primary        ·                   ·
- │          spans           /1-/1/10           ·                   ·
- └── scan   ·               ·                  (x, y, v)           +y
-·           table           xyv@primary        ·                   ·
-·           spans           /1-/1/10           ·                   ·
+·          distributed  false            ·                   ·
+·          vectorized   false            ·                   ·
+hash-join  ·            ·                (x, y, u, x, y, v)  ·
+ │         type         inner            ·                   ·
+ │         equality     (x, y) = (x, y)  ·                   ·
+ ├── scan  ·            ·                (x, y, u)           ·
+ │         table        xyu@primary      ·                   ·
+ │         spans        /1-/1/10         ·                   ·
+ └── scan  ·            ·                (x, y, v)           ·
+·          table        xyv@primary      ·                   ·
+·          spans        /1-/1/10         ·                   ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM xyu INNER JOIN xyv ON xyu.x = xyv.x AND xyu.y = xyv.y AND xyu.x = 1 AND xyu.y < 10
 ----
-·           distributed     false              ·                   ·
-·           vectorized      false              ·                   ·
-merge-join  ·               ·                  (x, y, u, x, y, v)  ·
- │          type            inner              ·                   ·
- │          equality        (x, y) = (x, y)    ·                   ·
- │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
- ├── scan   ·               ·                  (x, y, u)           +y
- │          table           xyu@primary        ·                   ·
- │          spans           /1-/1/10           ·                   ·
- └── scan   ·               ·                  (x, y, v)           +y
-·           table           xyv@primary        ·                   ·
-·           spans           /1-/1/10           ·                   ·
+·          distributed  false            ·                   ·
+·          vectorized   false            ·                   ·
+hash-join  ·            ·                (x, y, u, x, y, v)  ·
+ │         type         inner            ·                   ·
+ │         equality     (x, y) = (x, y)  ·                   ·
+ ├── scan  ·            ·                (x, y, u)           ·
+ │         table        xyu@primary      ·                   ·
+ │         spans        /1-/1/10         ·                   ·
+ └── scan  ·            ·                (x, y, v)           ·
+·          table        xyv@primary      ·                   ·
+·          spans        /1-/1/10         ·                   ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM xyu LEFT OUTER JOIN xyv ON xyu.x = xyv.x AND xyu.y = xyv.y AND xyu.x = 1 AND xyu.y < 10
 ----
-·           distributed     false              ·                   ·
-·           vectorized      false              ·                   ·
-merge-join  ·               ·                  (x, y, u, x, y, v)  ·
- │          type            left outer         ·                   ·
- │          equality        (x, y) = (x, y)    ·                   ·
- │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
- ├── scan   ·               ·                  (x, y, u)           +x,+y
- │          table           xyu@primary        ·                   ·
- │          spans           ALL                ·                   ·
- └── scan   ·               ·                  (x, y, v)           +y
-·           table           xyv@primary        ·                   ·
-·           spans           /1-/1/10           ·                   ·
+·          distributed  false            ·                   ·
+·          vectorized   false            ·                   ·
+hash-join  ·            ·                (x, y, u, x, y, v)  ·
+ │         type         left outer       ·                   ·
+ │         equality     (x, y) = (x, y)  ·                   ·
+ ├── scan  ·            ·                (x, y, u)           ·
+ │         table        xyu@primary      ·                   ·
+ │         spans        ALL              ·                   ·
+ └── scan  ·            ·                (x, y, v)           ·
+·          table        xyv@primary      ·                   ·
+·          spans        /1-/1/10         ·                   ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM xyu RIGHT OUTER JOIN xyv ON xyu.x = xyv.x AND xyu.y = xyv.y AND xyu.x = 1 AND xyu.y < 10
 ----
-·           distributed     false              ·                   ·
-·           vectorized      false              ·                   ·
-merge-join  ·               ·                  (x, y, u, x, y, v)  ·
- │          type            right outer        ·                   ·
- │          equality        (x, y) = (x, y)    ·                   ·
- │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
- ├── scan   ·               ·                  (x, y, u)           +y
- │          table           xyu@primary        ·                   ·
- │          spans           /1-/1/10           ·                   ·
- └── scan   ·               ·                  (x, y, v)           +x,+y
-·           table           xyv@primary        ·                   ·
-·           spans           ALL                ·                   ·
+·               distributed  false            ·                   ·
+·               vectorized   false            ·                   ·
+render          ·            ·                (x, y, u, x, y, v)  ·
+ │              render 0     x                ·                   ·
+ │              render 1     y                ·                   ·
+ │              render 2     u                ·                   ·
+ │              render 3     x                ·                   ·
+ │              render 4     y                ·                   ·
+ │              render 5     v                ·                   ·
+ └── hash-join  ·            ·                (x, y, v, x, y, u)  ·
+      │         type         left outer       ·                   ·
+      │         equality     (x, y) = (x, y)  ·                   ·
+      ├── scan  ·            ·                (x, y, v)           ·
+      │         table        xyv@primary      ·                   ·
+      │         spans        ALL              ·                   ·
+      └── scan  ·            ·                (x, y, u)           ·
+·               table        xyu@primary      ·                   ·
+·               spans        /1-/1/10         ·                   ·
 
-
-# Test OUTER joins that are run in the distSQL merge joiner
-
-query TTTTT
-EXPLAIN (VERBOSE) SELECT * FROM (SELECT * FROM xyu ORDER BY x, y) AS xyu LEFT OUTER JOIN (SELECT * FROM xyv ORDER BY x, y) AS xyv USING(x, y) WHERE x > 2
-----
-·                distributed     false              ·                   ·
-·                vectorized      false              ·                   ·
-render           ·               ·                  (x, y, u, v)        ·
- │               render 0        x                  ·                   ·
- │               render 1        y                  ·                   ·
- │               render 2        u                  ·                   ·
- │               render 3        v                  ·                   ·
- └── merge-join  ·               ·                  (x, y, u, x, y, v)  ·
-      │          type            left outer         ·                   ·
-      │          equality        (x, y) = (x, y)    ·                   ·
-      │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
-      ├── scan   ·               ·                  (x, y, u)           +x,+y
-      │          table           xyu@primary        ·                   ·
-      │          spans           /3-                ·                   ·
-      └── scan   ·               ·                  (x, y, v)           +x,+y
-·                table           xyv@primary        ·                   ·
-·                spans           /3-                ·                   ·
-
-query TTTTT
-EXPLAIN (VERBOSE) SELECT * FROM (SELECT * FROM xyu ORDER BY x, y) AS xyu RIGHT OUTER JOIN (SELECT * FROM xyv ORDER BY x, y) AS xyv USING(x, y) WHERE x > 2
-----
-·                distributed     false              ·                   ·
-·                vectorized      false              ·                   ·
-render           ·               ·                  (x, y, u, v)        ·
- │               render 0        x                  ·                   ·
- │               render 1        y                  ·                   ·
- │               render 2        u                  ·                   ·
- │               render 3        v                  ·                   ·
- └── merge-join  ·               ·                  (x, y, u, x, y, v)  ·
-      │          type            right outer        ·                   ·
-      │          equality        (x, y) = (x, y)    ·                   ·
-      │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
-      ├── scan   ·               ·                  (x, y, u)           +x,+y
-      │          table           xyu@primary        ·                   ·
-      │          spans           /3-                ·                   ·
-      └── scan   ·               ·                  (x, y, v)           +x,+y
-·                table           xyv@primary        ·                   ·
-·                spans           /3-                ·                   ·
-
-query TTTTT
-EXPLAIN (VERBOSE) SELECT * FROM (SELECT * FROM xyu ORDER BY x, y) AS xyu FULL OUTER JOIN (SELECT * FROM xyv ORDER BY x, y) AS xyv USING(x, y) WHERE x > 2
-----
-·                     distributed     false              ·                   ·
-·                     vectorized      false              ·                   ·
-filter                ·               ·                  (x, y, u, v)        ·
- │                    filter          x > 2              ·                   ·
- └── render           ·               ·                  (x, y, u, v)        ·
-      │               render 0        COALESCE(x, x)     ·                   ·
-      │               render 1        COALESCE(y, y)     ·                   ·
-      │               render 2        u                  ·                   ·
-      │               render 3        v                  ·                   ·
-      └── merge-join  ·               ·                  (x, y, u, x, y, v)  ·
-           │          type            full outer         ·                   ·
-           │          equality        (x, y) = (x, y)    ·                   ·
-           │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
-           ├── scan   ·               ·                  (x, y, u)           +x,+y
-           │          table           xyu@primary        ·                   ·
-           │          spans           ALL                ·                   ·
-           └── scan   ·               ·                  (x, y, v)           +x,+y
-·                     table           xyv@primary        ·                   ·
-·                     spans           ALL                ·                   ·
-
-query TTTTT
-EXPLAIN (VERBOSE) SELECT * FROM (SELECT * FROM xyu ORDER BY x, y) AS xyu LEFT OUTER JOIN (SELECT * FROM xyv ORDER BY x, y) AS xyv ON xyu.x = xyv.x AND xyu.y = xyv.y AND xyu.x = 1 AND xyu.y < 10
-----
-·           distributed     false              ·                   ·
-·           vectorized      false              ·                   ·
-merge-join  ·               ·                  (x, y, u, x, y, v)  ·
- │          type            left outer         ·                   ·
- │          equality        (x, y) = (x, y)    ·                   ·
- │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
- ├── scan   ·               ·                  (x, y, u)           +x,+y
- │          table           xyu@primary        ·                   ·
- │          spans           ALL                ·                   ·
- └── scan   ·               ·                  (x, y, v)           +y
-·           table           xyv@primary        ·                   ·
-·           spans           /1-/1/10           ·                   ·
-
-query TTTTT
-EXPLAIN (VERBOSE) SELECT * FROM xyu RIGHT OUTER JOIN (SELECT * FROM xyv ORDER BY x, y) AS xyv ON xyu.x = xyv.x AND xyu.y = xyv.y AND xyu.x = 1 AND xyu.y < 10
-----
-·           distributed     false              ·                   ·
-·           vectorized      false              ·                   ·
-merge-join  ·               ·                  (x, y, u, x, y, v)  ·
- │          type            right outer        ·                   ·
- │          equality        (x, y) = (x, y)    ·                   ·
- │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
- ├── scan   ·               ·                  (x, y, u)           +y
- │          table           xyu@primary        ·                   ·
- │          spans           /1-/1/10           ·                   ·
- └── scan   ·               ·                  (x, y, v)           +x,+y
-·           table           xyv@primary        ·                   ·
-·           spans           ALL                ·                   ·
 
 # Regression test for #20472: break up tuple inequalities.
+
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM xyu JOIN xyv USING(x, y) WHERE (x, y, u) > (1, 2, 3)
 ----
-·                distributed     false              ·                   ·
-·                vectorized      false              ·                   ·
-render           ·               ·                  (x, y, u, v)        ·
- │               render 0        x                  ·                   ·
- │               render 1        y                  ·                   ·
- │               render 2        u                  ·                   ·
- │               render 3        v                  ·                   ·
- └── merge-join  ·               ·                  (x, y, u, x, y, v)  ·
-      │          type            inner              ·                   ·
-      │          equality        (x, y) = (x, y)    ·                   ·
-      │          mergeJoinOrder  +"(x=x)",+"(y=y)"  ·                   ·
-      ├── scan   ·               ·                  (x, y, u)           +x,+y
-      │          table           xyu@primary        ·                   ·
-      │          spans           /1/2/4-            ·                   ·
-      └── scan   ·               ·                  (x, y, v)           +x,+y
-·                table           xyv@primary        ·                   ·
-·                spans           ALL                ·                   ·
+·               distributed  false            ·                   ·
+·               vectorized   false            ·                   ·
+render          ·            ·                (x, y, u, v)        ·
+ │              render 0     x                ·                   ·
+ │              render 1     y                ·                   ·
+ │              render 2     u                ·                   ·
+ │              render 3     v                ·                   ·
+ └── hash-join  ·            ·                (x, y, v, x, y, u)  ·
+      │         type         inner            ·                   ·
+      │         equality     (x, y) = (x, y)  ·                   ·
+      ├── scan  ·            ·                (x, y, v)           ·
+      │         table        xyv@primary      ·                   ·
+      │         spans        ALL              ·                   ·
+      └── scan  ·            ·                (x, y, u)           ·
+·               table        xyu@primary      ·                   ·
+·               spans        /1/2/4-          ·                   ·
 
 
 # Regression test for #20765/27431.
@@ -1144,78 +1135,74 @@ CREATE TABLE r (a INT PRIMARY KEY)
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM l LEFT OUTER JOIN r USING(a) WHERE a = 3;
 ----
-·                distributed         false       ·       ·
-·                vectorized          true        ·       ·
-render           ·                   ·           (a)     ·
- │               render 0            a           ·       ·
- └── merge-join  ·                   ·           (a, a)  ·
-      │          type                left outer  ·       ·
-      │          equality            (a) = (a)   ·       ·
-      │          left cols are key   ·           ·       ·
-      │          right cols are key  ·           ·       ·
-      │          mergeJoinOrder      +"(a=a)"    ·       ·
-      ├── scan   ·                   ·           (a)     ·
-      │          table               l@primary   ·       ·
-      │          spans               /3-/3/#     ·       ·
-      └── scan   ·                   ·           (a)     ·
-·                table               r@primary   ·       ·
-·                spans               /3-/3/#     ·       ·
+·               distributed         false       ·       ·
+·               vectorized          false       ·       ·
+render          ·                   ·           (a)     ·
+ │              render 0            a           ·       ·
+ └── hash-join  ·                   ·           (a, a)  ·
+      │         type                left outer  ·       ·
+      │         equality            (a) = (a)   ·       ·
+      │         left cols are key   ·           ·       ·
+      │         right cols are key  ·           ·       ·
+      ├── scan  ·                   ·           (a)     ·
+      │         table               l@primary   ·       ·
+      │         spans               /3-/3/#     ·       ·
+      └── scan  ·                   ·           (a)     ·
+·               table               r@primary   ·       ·
+·               spans               /3-/3/#     ·       ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM l LEFT OUTER JOIN r ON l.a = r.a WHERE l.a = 3;
 ----
-·           distributed         false       ·       ·
-·           vectorized          true        ·       ·
-merge-join  ·                   ·           (a, a)  ·
- │          type                left outer  ·       ·
- │          equality            (a) = (a)   ·       ·
- │          left cols are key   ·           ·       ·
- │          right cols are key  ·           ·       ·
- │          mergeJoinOrder      +"(a=a)"    ·       ·
- ├── scan   ·                   ·           (a)     ·
- │          table               l@primary   ·       ·
- │          spans               /3-/3/#     ·       ·
- └── scan   ·                   ·           (a)     ·
-·           table               r@primary   ·       ·
-·           spans               /3-/3/#     ·       ·
+·          distributed         false       ·       ·
+·          vectorized          false       ·       ·
+hash-join  ·                   ·           (a, a)  ·
+ │         type                left outer  ·       ·
+ │         equality            (a) = (a)   ·       ·
+ │         left cols are key   ·           ·       ·
+ │         right cols are key  ·           ·       ·
+ ├── scan  ·                   ·           (a)     ·
+ │         table               l@primary   ·       ·
+ │         spans               /3-/3/#     ·       ·
+ └── scan  ·                   ·           (a)     ·
+·          table               r@primary   ·       ·
+·          spans               /3-/3/#     ·       ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM l RIGHT OUTER JOIN r USING(a) WHERE a = 3;
 ----
-·                distributed         false        ·       ·
-·                vectorized          true         ·       ·
-render           ·                   ·            (a)     ·
- │               render 0            a            ·       ·
- └── merge-join  ·                   ·            (a, a)  ·
-      │          type                right outer  ·       ·
-      │          equality            (a) = (a)    ·       ·
-      │          left cols are key   ·            ·       ·
-      │          right cols are key  ·            ·       ·
-      │          mergeJoinOrder      +"(a=a)"     ·       ·
-      ├── scan   ·                   ·            (a)     ·
-      │          table               l@primary    ·       ·
-      │          spans               /3-/3/#      ·       ·
-      └── scan   ·                   ·            (a)     ·
-·                table               r@primary    ·       ·
-·                spans               /3-/3/#      ·       ·
+·               distributed         false        ·       ·
+·               vectorized          false        ·       ·
+render          ·                   ·            (a)     ·
+ │              render 0            a            ·       ·
+ └── hash-join  ·                   ·            (a, a)  ·
+      │         type                right outer  ·       ·
+      │         equality            (a) = (a)    ·       ·
+      │         left cols are key   ·            ·       ·
+      │         right cols are key  ·            ·       ·
+      ├── scan  ·                   ·            (a)     ·
+      │         table               l@primary    ·       ·
+      │         spans               /3-/3/#      ·       ·
+      └── scan  ·                   ·            (a)     ·
+·               table               r@primary    ·       ·
+·               spans               /3-/3/#      ·       ·
 
 query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM l RIGHT OUTER JOIN r ON l.a = r.a WHERE r.a = 3;
 ----
-·           distributed         false        ·       ·
-·           vectorized          true         ·       ·
-merge-join  ·                   ·            (a, a)  ·
- │          type                right outer  ·       ·
- │          equality            (a) = (a)    ·       ·
- │          left cols are key   ·            ·       ·
- │          right cols are key  ·            ·       ·
- │          mergeJoinOrder      +"(a=a)"     ·       ·
- ├── scan   ·                   ·            (a)     ·
- │          table               l@primary    ·       ·
- │          spans               /3-/3/#      ·       ·
- └── scan   ·                   ·            (a)     ·
-·           table               r@primary    ·       ·
-·           spans               /3-/3/#      ·       ·
+·          distributed         false        ·       ·
+·          vectorized          false        ·       ·
+hash-join  ·                   ·            (a, a)  ·
+ │         type                right outer  ·       ·
+ │         equality            (a) = (a)    ·       ·
+ │         left cols are key   ·            ·       ·
+ │         right cols are key  ·            ·       ·
+ ├── scan  ·                   ·            (a)     ·
+ │         table               l@primary    ·       ·
+ │         spans               /3-/3/#      ·       ·
+ └── scan  ·                   ·            (a)     ·
+·          table               r@primary    ·       ·
+·          spans               /3-/3/#      ·       ·
 
 # Regression tests for #21243
 statement ok
@@ -1240,21 +1227,20 @@ CREATE TABLE abg (
 query TTT
 EXPLAIN SELECT * FROM abcdef join (select * from abg) USING (a,b) WHERE ((a,b)>(1,2) OR ((a,b)=(1,2) AND c < 6) OR ((a,b,c)=(1,2,6) AND d > 8))
 ----
-·                distributed         false
-·                vectorized          false
-render           ·                   ·
- └── merge-join  ·                   ·
-      │          type                inner
-      │          equality            (a, b) = (a, b)
-      │          right cols are key  ·
-      │          mergeJoinOrder      +"(a=a)",+"(b=b)"
-      ├── scan   ·                   ·
-      │          table               abcdef@primary
-      │          spans               /1/2/6/9-
-      │          filter              (((a, b) > (1, 2)) OR (((a = 1) AND (b = 2)) AND (c < 6))) OR ((((a = 1) AND (b = 2)) AND (c = 6)) AND (d > 8))
-      └── scan   ·                   ·
-·                table               abg@primary
-·                spans               ALL
+·               distributed        false
+·               vectorized         false
+render          ·                  ·
+ └── hash-join  ·                  ·
+      │         type               inner
+      │         equality           (a, b) = (a, b)
+      │         left cols are key  ·
+      ├── scan  ·                  ·
+      │         table              abg@primary
+      │         spans              ALL
+      └── scan  ·                  ·
+·               table              abcdef@primary
+·               spans              /1/2/6/9-
+·               filter             (((a, b) > (1, 2)) OR (((a = 1) AND (b = 2)) AND (c < 6))) OR ((((a = 1) AND (b = 2)) AND (c = 6)) AND (d > 8))
 
 # Regression tests for mixed-type equality columns (#22514).
 statement ok
@@ -1484,7 +1470,7 @@ query TTT
 EXPLAIN SELECT a,b,c FROM zigzag WHERE b = 5 AND c = 6.0
 ----
 ·                distributed  false
-·                vectorized   true
+·                vectorized   false
 filter           ·            ·
  │               filter       c = 6.0
  └── index-join  ·            ·
@@ -1577,7 +1563,7 @@ query TTT
 EXPLAIN SELECT * FROM zigzag2 WHERE a = 1 AND b = 2 AND c IS NULL
 ----
 ·                distributed  false
-·                vectorized   true
+·                vectorized   false
 filter           ·            ·
  │               filter       c IS NULL
  └── index-join  ·            ·
@@ -1586,70 +1572,55 @@ filter           ·            ·
 ·                table        zigzag2@a_b_idx
 ·                spans        /1/2-/1/3
 
-# Test that we can force a merge join.
+# Test that we can force a hash join. (Merge joins were removed.)
 query TTT
-EXPLAIN SELECT * FROM onecolumn INNER MERGE JOIN twocolumn USING(x)
+EXPLAIN SELECT * FROM onecolumn INNER HASH JOIN twocolumn USING(x)
 ----
-·                    distributed     false
-·                    vectorized      false
-render               ·               ·
- └── merge-join      ·               ·
-      │              type            inner
-      │              equality        (x) = (x)
-      │              mergeJoinOrder  +"(x=x)"
-      ├── sort       ·               ·
-      │    │         order           +x
-      │    └── scan  ·               ·
-      │              table           onecolumn@primary
-      │              spans           ALL
-      └── sort       ·               ·
-           │         order           +x
-           └── scan  ·               ·
-·                    table           twocolumn@primary
-·                    spans           ALL
+·               distributed  false
+·               vectorized   false
+render          ·            ·
+ └── hash-join  ·            ·
+      │         type         inner
+      │         equality     (x) = (x)
+      ├── scan  ·            ·
+      │         table        onecolumn@primary
+      │         spans        ALL
+      └── scan  ·            ·
+·               table        twocolumn@primary
+·               spans        ALL
 
 # Test that we can force a merge join using the NATURAL syntax.
 query TTT
-EXPLAIN SELECT * FROM onecolumn NATURAL INNER MERGE JOIN twocolumn
+EXPLAIN SELECT * FROM onecolumn NATURAL INNER HASH JOIN twocolumn
 ----
-·                    distributed     false
-·                    vectorized      false
-render               ·               ·
- └── merge-join      ·               ·
-      │              type            inner
-      │              equality        (x) = (x)
-      │              mergeJoinOrder  +"(x=x)"
-      ├── sort       ·               ·
-      │    │         order           +x
-      │    └── scan  ·               ·
-      │              table           onecolumn@primary
-      │              spans           ALL
-      └── sort       ·               ·
-           │         order           +x
-           └── scan  ·               ·
-·                    table           twocolumn@primary
-·                    spans           ALL
+·               distributed  false
+·               vectorized   false
+render          ·            ·
+ └── hash-join  ·            ·
+      │         type         inner
+      │         equality     (x) = (x)
+      ├── scan  ·            ·
+      │         table        onecolumn@primary
+      │         spans        ALL
+      └── scan  ·            ·
+·               table        twocolumn@primary
+·               spans        ALL
 
 # Test that we can force a merge join using the CROSS syntax.
 query TTT
-EXPLAIN SELECT * FROM onecolumn CROSS MERGE JOIN twocolumn WHERE onecolumn.x = twocolumn.x
+EXPLAIN SELECT * FROM onecolumn CROSS HASH JOIN twocolumn WHERE onecolumn.x = twocolumn.x
 ----
-·               distributed     false
-·               vectorized      false
-merge-join      ·               ·
- │              type            inner
- │              equality        (x) = (x)
- │              mergeJoinOrder  +"(x=x)"
- ├── sort       ·               ·
- │    │         order           +x
- │    └── scan  ·               ·
- │              table           onecolumn@primary
- │              spans           ALL
- └── sort       ·               ·
-      │         order           +x
-      └── scan  ·               ·
-·               table           twocolumn@primary
-·               spans           ALL
+·          distributed  false
+·          vectorized   false
+hash-join  ·            ·
+ │         type         inner
+ │         equality     (x) = (x)
+ ├── scan  ·            ·
+ │         table        onecolumn@primary
+ │         spans        ALL
+ └── scan  ·            ·
+·          table        twocolumn@primary
+·          spans        ALL
 
 statement error LOOKUP can only be used with INNER or LEFT joins
 EXPLAIN SELECT * FROM onecolumn RIGHT LOOKUP JOIN twocolumn USING(x)

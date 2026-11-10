@@ -34,7 +34,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT x, y, z, ordinality FROM xyz WITH ORDINALITY
 ----
 ·           distributed  false        ·                        ·
-·           vectorized   true         ·                        ·
+·           vectorized   false        ·                        ·
 ordinality  ·            ·            (x, y, z, "ordinality")  ·
  └── scan   ·            ·            (x, y, z)                ·
 ·           table        xyz@primary  ·                        ·

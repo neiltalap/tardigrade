@@ -503,7 +503,7 @@ CREATE TABLE t32477(x) AS SELECT 1
 statement error aggregate functions are not allowed in UPDATE SET
 UPDATE t32477 SET x = count(x)
 
-statement error window functions are not allowed in UPDATE SET
+statement error at or near "over": syntax error
 UPDATE t32477 SET x = rank() OVER ()
 
 statement error generator functions are not allowed in UPDATE SET

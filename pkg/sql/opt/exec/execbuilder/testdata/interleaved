@@ -39,7 +39,7 @@ query TTT
 EXPLAIN SELECT * FROM level4
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        level4@primary
 ·     spans        ALL
@@ -52,7 +52,7 @@ query TTT
 EXPLAIN SELECT * FROM level4 WHERE k1 > 1 AND k1 < 3
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        level4@primary
 ·     spans        /2/#/54/1/#/55/1-/2/#/54/1/#/55/2
@@ -61,7 +61,7 @@ query TTT
 EXPLAIN SELECT * FROM level4 WHERE k1 = 2 AND k2 > 10 AND k2 < 30
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        level4@primary
 ·     spans        /2/#/54/1/#/55/1/11-/2/#/54/1/#/55/1/30
@@ -70,7 +70,7 @@ query TTT
 EXPLAIN SELECT * FROM level4 WHERE k1 = 2 AND k2 = 20 AND k3 > 100 AND k3 < 300
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        level4@primary
 ·     spans        /2/#/54/1/#/55/1/20/101/#/56/1-/2/#/54/1/#/55/1/20/299/#/56/1/#
@@ -80,7 +80,7 @@ query TTT
 EXPLAIN SELECT * FROM level4 WHERE k1 = 2 AND k2 = 20 AND k3 = 200
 ----
 ·     distributed  false
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        level4@primary
 ·     spans        /2/#/54/1/#/55/1/20/200/#/56/1-/2/#/54/1/#/55/1/20/200/#/56/1/#
@@ -316,7 +316,9 @@ INSERT INTO b(a_id, b_id) SELECT generate_series(1,10), 1
 statement ok
 SET TRACING = on,kv,results;
 
-query I
+# NOTE: delete workers return rows in nondeterministic order under
+# parallelism, so sort the results rather than asserting capture order.
+query I rowsort
 delete from a returning *
 ----
 1

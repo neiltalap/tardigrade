@@ -33,7 +33,7 @@ EXPLAIN (VERBOSE) SELECT * FROM abc JOIN def ON f = b
 ----
 tree         field        description  columns             ordering
 ·            distributed  true         ·                   ·
-·            vectorized   true         ·                   ·
+·            vectorized   false        ·                   ·
 lookup-join  ·            ·            (a, b, c, d, e, f)  ·
  │           table        def@primary  ·                   ·
  │           type         inner        ·                   ·
@@ -47,7 +47,7 @@ EXPLAIN (VERBOSE) SELECT * FROM abc JOIN def ON f = b AND e = c
 ----
 tree         field                  description      columns             ordering
 ·            distributed            true             ·                   ·
-·            vectorized             true             ·                   ·
+·            vectorized             false            ·                   ·
 lookup-join  ·                      ·                (a, b, c, d, e, f)  ·
  │           table                  def@primary      ·                   ·
  │           type                   inner            ·                   ·
@@ -63,7 +63,7 @@ EXPLAIN (VERBOSE) SELECT * FROM abc JOIN def ON f = b WHERE a > 1 AND e > 1
 ----
 tree         field        description  columns             ordering
 ·            distributed  true         ·                   ·
-·            vectorized   true         ·                   ·
+·            vectorized   false        ·                   ·
 lookup-join  ·            ·            (a, b, c, d, e, f)  ·
  │           table        def@primary  ·                   ·
  │           type         inner        ·                   ·
@@ -78,7 +78,7 @@ EXPLAIN (VERBOSE) SELECT * FROM abc JOIN def ON f = a WHERE f > 1
 ----
 tree         field        description  columns             ordering
 ·            distributed  true         ·                   ·
-·            vectorized   true         ·                   ·
+·            vectorized   false        ·                   ·
 lookup-join  ·            ·            (a, b, c, d, e, f)  ·
  │           table        def@primary  ·                   ·
  │           type         inner        ·                   ·
@@ -93,7 +93,7 @@ EXPLAIN (VERBOSE) SELECT * FROM abc JOIN def ON f = b WHERE a >= e
 ----
 tree         field        description  columns             ordering
 ·            distributed  true         ·                   ·
-·            vectorized   true         ·                   ·
+·            vectorized   false        ·                   ·
 lookup-join  ·            ·            (a, b, c, d, e, f)  ·
  │           table        def@primary  ·                   ·
  │           type         inner        ·                   ·
@@ -108,7 +108,7 @@ EXPLAIN (VERBOSE) SELECT * FROM abc JOIN def ON f = b AND a >= e
 ----
 tree         field        description  columns             ordering
 ·            distributed  true         ·                   ·
-·            vectorized   true         ·                   ·
+·            vectorized   false        ·                   ·
 lookup-join  ·            ·            (a, b, c, d, e, f)  ·
  │           table        def@primary  ·                   ·
  │           type         inner        ·                   ·
@@ -161,7 +161,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM (SELECT * FROM data WHERE c = 1) AS l NATURAL JOIN data AS r
 ----
 ·                 distributed            true                         ·                         ·
-·                 vectorized             true                         ·                         ·
+·                 vectorized             false                        ·                         ·
 render            ·                      ·                            (a, b, c, d)              ·
  │                render 0               a                            ·                         ·
  │                render 1               b                            ·                         ·
@@ -214,7 +214,7 @@ EXPLAIN (VERBOSE) SELECT DISTINCT b1.title FROM books as b1 JOIN books2 as b2 ON
 ----
 tree                   field        description        columns                       ordering
 ·                      distributed  true               ·                             ·
-·                      vectorized   true               ·                             ·
+·                      vectorized   false              ·                             ·
 distinct               ·            ·                  (title)                       weak-key(title); +title
  │                     distinct on  title              ·                             ·
  │                     order key    title              ·                             ·
@@ -371,7 +371,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT small.a, large.c FROM small JOIN large ON small.a = large.b
 ----
 ·                 distributed  true           ·          ·
-·                 vectorized   true           ·          ·
+·                 vectorized   false          ·          ·
 render            ·            ·              (a, c)     ·
  │                render 0     a              ·          ·
  │                render 1     c              ·          ·
@@ -388,7 +388,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT small.a, large.d FROM small JOIN large ON small.a = large.b
 ----
 ·                      distributed            true             ·             ·
-·                      vectorized             true             ·             ·
+·                      vectorized             false            ·             ·
 render                 ·                      ·                (a, d)        ·
  │                     render 0               a                ·             ·
  │                     render 1               d                ·             ·
@@ -415,7 +415,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT small.b, large.a FROM small LEFT JOIN large ON small.b = large.a
 ----
 ·            distributed  true           ·       ·
-·            vectorized   true           ·       ·
+·            vectorized   false          ·       ·
 lookup-join  ·            ·              (b, a)  ·
  │           table        large@primary  ·       ·
  │           type         left outer     ·       ·
@@ -429,7 +429,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT t1.a, t2.b FROM small t1 LEFT JOIN large t2 ON t1.a = t2.a AND t2.b % 6 = 0 ORDER BY t1.a
 ----
 ·                 distributed  true           ·          ·
-·                 vectorized   true           ·          ·
+·                 vectorized   false          ·          ·
 render            ·            ·              (a, b)     +a
  │                render 0     a              ·          ·
  │                render 1     b              ·          ·
@@ -452,7 +452,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT small.c, large.c FROM small LEFT JOIN large ON small.c = large.b
 ----
 ·                 distributed  true           ·          ·
-·                 vectorized   true           ·          ·
+·                 vectorized   false          ·          ·
 render            ·            ·              (c, c)     ·
  │                render 0     c              ·          ·
  │                render 1     c              ·          ·
@@ -469,7 +469,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT small.c, large.d FROM small LEFT JOIN large ON small.c = large.b
 ----
 ·                      distributed            true             ·             ·
-·                      vectorized             true             ·             ·
+·                      vectorized             false            ·             ·
 render                 ·                      ·                (c, d)        ·
  │                     render 0               c                ·             ·
  │                     render 1               d                ·             ·
@@ -492,7 +492,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT small.c, large.c FROM small LEFT JOIN large ON small.c = large.b AND large.c < 20
 ----
 ·                 distributed  true           ·          ·
-·                 vectorized   true           ·          ·
+·                 vectorized   false          ·          ·
 render            ·            ·              (c, c)     ·
  │                render 0     c              ·          ·
  │                render 1     c              ·          ·
@@ -545,7 +545,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT u.a FROM t JOIN u ON t.d = u.d AND t.a = u.a WHERE t.e = 5
 ----
 ·                 distributed  true             ·                ·
-·                 vectorized   true             ·                ·
+·                 vectorized   false            ·                ·
 render            ·            ·                (a)              ·
  │                render 0     a                ·                ·
  └── lookup-join  ·            ·                (a, d, e, a, d)  ·
@@ -568,7 +568,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT u.a FROM t JOIN u ON t.d = u.d AND t.a = u.a WHERE t.e = 5
 ----
 ·                 distributed            true       ·                ·
-·                 vectorized             true       ·                ·
+·                 vectorized             false      ·                ·
 render            ·                      ·          (a)              ·
  │                render 0               a          ·                ·
  └── lookup-join  ·                      ·          (a, d, e, a, d)  ·
@@ -594,7 +594,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT u.a FROM t JOIN u ON t.d = u.d AND t.a = u.a AND t.b = u.b WHERE t.e = 5
 ----
 ·                 distributed  true                   ·                      ·
-·                 vectorized   true                   ·                      ·
+·                 vectorized   false                  ·                      ·
 render            ·            ·                      (a)                    ·
  │                render 0     a                      ·                      ·
  └── lookup-join  ·            ·                      (a, b, d, e, a, b, d)  ·
@@ -617,7 +617,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT u.a FROM t JOIN u ON t.d = u.d AND t.a = u.a AND t.b = u.b WHERE t.e = 5
 ----
 ·                 distributed  true                   ·                      ·
-·                 vectorized   true                   ·                      ·
+·                 vectorized   false                  ·                      ·
 render            ·            ·                      (a)                    ·
  │                render 0     a                      ·                      ·
  └── lookup-join  ·            ·                      (a, b, d, e, a, b, d)  ·
@@ -640,7 +640,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT u.a FROM t JOIN u ON t.d = u.d AND t.a = u.a AND t.d = u.d WHERE t.e = 5
 ----
 ·                 distributed  true       ·                ·
-·                 vectorized   true       ·                ·
+·                 vectorized   false      ·                ·
 render            ·            ·          (a)              ·
  │                render 0     a          ·                ·
  └── lookup-join  ·            ·          (a, d, e, a, d)  ·
@@ -657,7 +657,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM def JOIN abc ON a=f ORDER BY a
 ----
 ·                 distributed  true         ·                   ·
-·                 vectorized   true         ·                   ·
+·                 vectorized   false        ·                   ·
 render            ·            ·            (d, e, f, a, b, c)  ·
  │                render 0     d            ·                   ·
  │                render 1     e            ·                   ·
@@ -672,23 +672,6 @@ render            ·            ·            (d, e, f, a, b, c)  ·
       └── scan    ·            ·            (a, b, c)           +a
 ·                 table        abc@primary  ·                   ·
 ·                 spans        ALL          ·                   ·
-
-# Test that we don't get a lookup join if we force a merge join.
-query TTTTT
-EXPLAIN (VERBOSE) SELECT * FROM def INNER MERGE JOIN abc ON a=f ORDER BY a
-----
-·           distributed     true         ·                   ·
-·           vectorized      false        ·                   ·
-merge-join  ·               ·            (d, e, f, a, b, c)  +f
- │          type            inner        ·                   ·
- │          equality        (f) = (a)    ·                   ·
- │          mergeJoinOrder  +"(f=a)"     ·                   ·
- ├── scan   ·               ·            (d, e, f)           +f
- │          table           def@primary  ·                   ·
- │          spans           ALL          ·                   ·
- └── scan   ·               ·            (a, b, c)           +a
-·           table           abc@primary  ·                   ·
-·           spans           ALL          ·                   ·
 
 # Test that we don't get a lookup join if we force a hash join.
 query TTTTT
@@ -713,7 +696,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * from abc WHERE EXISTS (SELECT * FROM def WHERE a=f)
 ----
 ·            distributed  true         ·          ·
-·            vectorized   true         ·          ·
+·            vectorized   false        ·          ·
 lookup-join  ·            ·            (a, b, c)  ·
  │           table        def@primary  ·          ·
  │           type         semi         ·          ·
@@ -726,7 +709,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * from abc WHERE NOT EXISTS (SELECT * FROM def WHERE a=f)
 ----
 ·            distributed  true         ·          ·
-·            vectorized   true         ·          ·
+·            vectorized   false        ·          ·
 lookup-join  ·            ·            (a, b, c)  ·
  │           table        def@primary  ·          ·
  │           type         anti         ·          ·
@@ -739,7 +722,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * from abc WHERE EXISTS (SELECT * FROM def WHERE a=f AND c=e)
 ----
 ·            distributed            true             ·          ·
-·            vectorized             true             ·          ·
+·            vectorized             false            ·          ·
 lookup-join  ·                      ·                (a, b, c)  ·
  │           table                  def@primary      ·          ·
  │           type                   semi             ·          ·
@@ -754,7 +737,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * from abc WHERE NOT EXISTS (SELECT * FROM def WHERE a=f AND c=e)
 ----
 ·            distributed            true             ·          ·
-·            vectorized             true             ·          ·
+·            vectorized             false            ·          ·
 lookup-join  ·                      ·                (a, b, c)  ·
  │           table                  def@primary      ·          ·
  │           type                   anti             ·          ·
@@ -769,7 +752,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * from abc WHERE EXISTS (SELECT * FROM def WHERE a=f AND d+b>1)
 ----
 ·            distributed  true           ·          ·
-·            vectorized   true           ·          ·
+·            vectorized   false          ·          ·
 lookup-join  ·            ·              (a, b, c)  ·
  │           table        def@primary    ·          ·
  │           type         semi           ·          ·
@@ -783,7 +766,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * from abc WHERE NOT EXISTS (SELECT * FROM def WHERE a=f AND d+b>1)
 ----
 ·            distributed  true           ·          ·
-·            vectorized   true           ·          ·
+·            vectorized   false          ·          ·
 lookup-join  ·            ·              (a, b, c)  ·
  │           table        def@primary    ·          ·
  │           type         anti           ·          ·
@@ -827,7 +810,7 @@ query TTT
 EXPLAIN SELECT count(*) FROM (SELECT * FROM b NATURAL INNER LOOKUP JOIN a)
 ----
 ·                      distributed  true
-·                      vectorized   true
+·                      vectorized   false
 group                  ·            ·
  │                     aggregate 0  count_rows()
  │                     scalar       ·
@@ -1415,51 +1398,50 @@ GROUP BY s_name
 ORDER BY numwait DESC, s_name
    LIMIT 100;
 ----
-·                                                   distributed            true
-·                                                   vectorized             false
-limit                                               ·                      ·
- │                                                  count                  100
- └── sort                                           ·                      ·
-      │                                             order                  -numwait,+s_name
-      └── group                                     ·                      ·
-           │                                        aggregate 0            s_name
-           │                                        aggregate 1            count_rows()
-           │                                        group by               s_name
-           └── render                               ·                      ·
-                └── lookup-join                     ·                      ·
-                     │                              table                  orders@primary
-                     │                              type                   inner
-                     │                              equality               (l_orderkey) = (o_orderkey)
-                     │                              equality cols are key  ·
-                     │                              parallel               ·
-                     │                              pred                   @11 = 'F'
-                     └── lookup-join                ·                      ·
-                          │                         table                  nation@primary
-                          │                         type                   inner
-                          │                         equality               (s_nationkey) = (n_nationkey)
-                          │                         equality cols are key  ·
-                          │                         parallel               ·
-                          │                         pred                   @9 = 'SAUDI ARABIA'
-                          └── lookup-join           ·                      ·
-                               │                    table                  supplier@primary
-                               │                    type                   inner
-                               │                    equality               (l_suppkey) = (s_suppkey)
-                               │                    equality cols are key  ·
-                               │                    parallel               ·
-                               └── lookup-join      ·                      ·
-                                    │               table                  lineitem@primary
-                                    │               type                   semi
-                                    │               equality               (l_orderkey) = (l_orderkey)
-                                    │               pred                   @6 != @2
-                                    └── merge-join  ·                      ·
-                                         │          type                   anti
-                                         │          equality               (l_orderkey) = (l_orderkey)
-                                         │          mergeJoinOrder         +"(l_orderkey=l_orderkey)"
-                                         ├── scan   ·                      ·
-                                         │          table                  lineitem@primary
-                                         │          spans                  ALL
-                                         │          filter                 l_receiptdate > l_commitdate
-                                         └── scan   ·                      ·
-·                                                   table                  lineitem@primary
-·                                                   spans                  ALL
-·                                                   filter                 l_receiptdate > l_commitdate
+·                                                  distributed            true
+·                                                  vectorized             false
+limit                                              ·                      ·
+ │                                                 count                  100
+ └── sort                                          ·                      ·
+      │                                            order                  -numwait,+s_name
+      └── group                                    ·                      ·
+           │                                       aggregate 0            s_name
+           │                                       aggregate 1            count_rows()
+           │                                       group by               s_name
+           └── render                              ·                      ·
+                └── lookup-join                    ·                      ·
+                     │                             table                  orders@primary
+                     │                             type                   inner
+                     │                             equality               (l_orderkey) = (o_orderkey)
+                     │                             equality cols are key  ·
+                     │                             parallel               ·
+                     │                             pred                   @11 = 'F'
+                     └── lookup-join               ·                      ·
+                          │                        table                  nation@primary
+                          │                        type                   inner
+                          │                        equality               (s_nationkey) = (n_nationkey)
+                          │                        equality cols are key  ·
+                          │                        parallel               ·
+                          │                        pred                   @9 = 'SAUDI ARABIA'
+                          └── lookup-join          ·                      ·
+                               │                   table                  supplier@primary
+                               │                   type                   inner
+                               │                   equality               (l_suppkey) = (s_suppkey)
+                               │                   equality cols are key  ·
+                               │                   parallel               ·
+                               └── lookup-join     ·                      ·
+                                    │              table                  lineitem@primary
+                                    │              type                   semi
+                                    │              equality               (l_orderkey) = (l_orderkey)
+                                    │              pred                   @6 != @2
+                                    └── hash-join  ·                      ·
+                                         │         type                   anti
+                                         │         equality               (l_orderkey) = (l_orderkey)
+                                         ├── scan  ·                      ·
+                                         │         table                  lineitem@primary
+                                         │         spans                  ALL
+                                         │         filter                 l_receiptdate > l_commitdate
+                                         └── scan  ·                      ·
+·                                                  table                  lineitem@primary
+·                                                  spans                  ALL
+·                                                  filter                 l_receiptdate > l_commitdate

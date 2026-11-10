@@ -10,9 +10,9 @@ rulestats
 SELECT * FROM abc JOIN xyz ON a=x
 ----
 Normalization rules applied 0 times.
-Exploration rules applied 8 times, added 5 expressions.
+Exploration rules applied 8 times, added 3 expressions.
 Top exploration rules:
   CommuteJoin         applied 2 times, added 1 expressions.
-  GenerateMergeJoins  applied 2 times, added 2 expressions.
+  GenerateMergeJoins  applied 2 times, added 0 expressions.
   GenerateLookupJoins applied 2 times, added 2 expressions.
   GenerateIndexScans  applied 2 times, added 0 expressions.

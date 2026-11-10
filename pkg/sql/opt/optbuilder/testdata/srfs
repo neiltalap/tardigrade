@@ -914,73 +914,65 @@ CREATE TABLE a (x INT PRIMARY KEY, j JSON, k JSON, m JSON, n JSON)
 
 build
 SELECT
-  json_array_elements(j),
-  (SELECT jsonb_each(k)),
-  (SELECT jsonb_object_keys(m) FROM a),
-  (SELECT generate_series((SELECT generate_series(x, 100) FROM jsonb_array_elements_text(n)), 1000))
+  unnest(ARRAY[1]),
+  (SELECT generate_series(1, 3)),
+  (SELECT generate_series(x, 100) FROM a),
+  (SELECT generate_series((SELECT generate_series(x, 100) FROM a), 1000))
 FROM a
 ----
 project
- ├── columns: json_array_elements:6(jsonb) jsonb_each:19(tuple{string AS key, jsonb AS value}) jsonb_object_keys:20(string) generate_series:21(int)
+ ├── columns: unnest:6(int) generate_series:21(int) generate_series:22(int) generate_series:23(int)
  ├── project-set
- │    ├── columns: x:1(int!null) j:2(jsonb) k:3(jsonb) m:4(jsonb) n:5(jsonb) json_array_elements:6(jsonb)
+ │    ├── columns: x:1(int!null) j:2(jsonb) k:3(jsonb) m:4(jsonb) n:5(jsonb) unnest:6(int)
  │    ├── scan a
  │    │    └── columns: x:1(int!null) j:2(jsonb) k:3(jsonb) m:4(jsonb) n:5(jsonb)
  │    └── zip
- │         └── function: json_array_elements [type=jsonb]
- │              └── variable: j [type=jsonb]
+ │         └── function: unnest [type=int]
+ │              └── array: [type=int[]]
+ │                   └── const: 1 [type=int]
  └── projections
-      ├── subquery [type=tuple{string AS key, jsonb AS value}]
+      ├── subquery [type=int]
       │    └── max1-row
-      │         ├── columns: jsonb_each:9(tuple{string AS key, jsonb AS value})
-      │         └── project
-      │              ├── columns: jsonb_each:9(tuple{string AS key, jsonb AS value})
-      │              ├── project-set
-      │              │    ├── columns: key:7(string) value:8(jsonb)
-      │              │    ├── values
-      │              │    │    └── tuple [type=tuple]
-      │              │    └── zip
-      │              │         └── function: jsonb_each [type=tuple{string AS key, jsonb AS value}]
-      │              │              └── variable: k [type=jsonb]
-      │              └── projections
-      │                   └── tuple [type=tuple{string AS key, jsonb AS value}]
-      │                        ├── variable: key [type=string]
-      │                        └── variable: value [type=jsonb]
-      ├── subquery [type=string]
+      │         ├── columns: generate_series:7(int)
+      │         └── project-set
+      │              ├── columns: generate_series:7(int)
+      │              ├── values
+      │              │    └── tuple [type=tuple]
+      │              └── zip
+      │                   └── function: generate_series [type=int]
+      │                        ├── const: 1 [type=int]
+      │                        └── const: 3 [type=int]
+      ├── subquery [type=int]
       │    └── max1-row
-      │         ├── columns: jsonb_object_keys:15(string)
+      │         ├── columns: generate_series:13(int)
       │         └── project
-      │              ├── columns: jsonb_object_keys:15(string)
+      │              ├── columns: generate_series:13(int)
       │              └── project-set
-      │                   ├── columns: x:10(int!null) j:11(jsonb) k:12(jsonb) m:13(jsonb) n:14(jsonb) jsonb_object_keys:15(string)
+      │                   ├── columns: x:8(int!null) j:9(jsonb) k:10(jsonb) m:11(jsonb) n:12(jsonb) generate_series:13(int)
       │                   ├── scan a
-      │                   │    └── columns: x:10(int!null) j:11(jsonb) k:12(jsonb) m:13(jsonb) n:14(jsonb)
+      │                   │    └── columns: x:8(int!null) j:9(jsonb) k:10(jsonb) m:11(jsonb) n:12(jsonb)
       │                   └── zip
-      │                        └── function: jsonb_object_keys [type=string]
-      │                             └── variable: m [type=jsonb]
+      │                        └── function: generate_series [type=int]
+      │                             ├── variable: x [type=int]
+      │                             └── const: 100 [type=int]
       └── subquery [type=int]
            └── max1-row
-                ├── columns: generate_series:18(int)
+                ├── columns: generate_series:20(int)
                 └── project-set
-                     ├── columns: generate_series:18(int)
+                     ├── columns: generate_series:20(int)
                      ├── values
                      │    └── tuple [type=tuple]
                      └── zip
                           └── function: generate_series [type=int]
                                ├── subquery [type=int]
                                │    └── max1-row
-                               │         ├── columns: generate_series:17(int)
+                               │         ├── columns: generate_series:19(int)
                                │         └── project
-                               │              ├── columns: generate_series:17(int)
+                               │              ├── columns: generate_series:19(int)
                                │              └── project-set
-                               │                   ├── columns: jsonb_array_elements_text:16(string) generate_series:17(int)
-                               │                   ├── project-set
-                               │                   │    ├── columns: jsonb_array_elements_text:16(string)
-                               │                   │    ├── values
-                               │                   │    │    └── tuple [type=tuple]
-                               │                   │    └── zip
-                               │                   │         └── function: jsonb_array_elements_text [type=string]
-                               │                   │              └── variable: n [type=jsonb]
+                               │                   ├── columns: x:14(int!null) j:15(jsonb) k:16(jsonb) m:17(jsonb) n:18(jsonb) generate_series:19(int)
+                               │                   ├── scan a
+                               │                   │    └── columns: x:14(int!null) j:15(jsonb) k:16(jsonb) m:17(jsonb) n:18(jsonb)
                                │                   └── zip
                                │                        └── function: generate_series [type=int]
                                │                             ├── variable: x [type=int]

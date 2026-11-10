@@ -133,34 +133,14 @@ sort
       │    │    │    │    │    │    │    │    │    ├── stats: [rows=30000, distinct(42)=27672.3293, null(42)=0, distinct(45)=5, null(45)=0, distinct(50)=5, null(50)=0, distinct(52)=1, null(52)=0, distinct(58)=1, null(58)=0, distinct(59)=0.996222107, null(59)=0]
       │    │    │    │    │    │    │    │    │    ├── key: (42)
       │    │    │    │    │    │    │    │    │    ├── fd: ()-->(59), (50)-->(52), (52)==(58), (58)==(52), (42)-->(45), (45)==(50), (50)==(45)
-      │    │    │    │    │    │    │    │    │    ├── inner-join (merge)
-      │    │    │    │    │    │    │    │    │    │    ├── save-table-name: q8_merge_join_13
+      │    │    │    │    │    │    │    │    │    ├── inner-join (hash)
+      │    │    │    │    │    │    │    │    │    │    ├── save-table-name: q8_inner_join_13
       │    │    │    │    │    │    │    │    │    │    ├── columns: n1.n_nationkey:50(int!null) n1.n_regionkey:52(int!null) r_regionkey:58(int!null) r_name:59(char!null)
-      │    │    │    │    │    │    │    │    │    │    ├── left ordering: +58
-      │    │    │    │    │    │    │    │    │    │    ├── right ordering: +52
       │    │    │    │    │    │    │    │    │    │    ├── stats: [rows=5, distinct(50)=5, null(50)=0, distinct(52)=1, null(52)=0, distinct(58)=1, null(58)=0, distinct(59)=0.996222107, null(59)=0]
       │    │    │    │    │    │    │    │    │    │    ├── key: (50)
       │    │    │    │    │    │    │    │    │    │    ├── fd: ()-->(59), (50)-->(52), (52)==(58), (58)==(52)
-      │    │    │    │    │    │    │    │    │    │    ├── select
-      │    │    │    │    │    │    │    │    │    │    │    ├── save-table-name: q8_select_14
-      │    │    │    │    │    │    │    │    │    │    │    ├── columns: r_regionkey:58(int!null) r_name:59(char!null)
-      │    │    │    │    │    │    │    │    │    │    │    ├── stats: [rows=1, distinct(58)=1, null(58)=0, distinct(59)=1, null(59)=0]
-      │    │    │    │    │    │    │    │    │    │    │    ├── key: (58)
-      │    │    │    │    │    │    │    │    │    │    │    ├── fd: ()-->(59)
-      │    │    │    │    │    │    │    │    │    │    │    ├── ordering: +58 opt(59) [actual: +58]
-      │    │    │    │    │    │    │    │    │    │    │    ├── scan region
-      │    │    │    │    │    │    │    │    │    │    │    │    ├── save-table-name: q8_scan_15
-      │    │    │    │    │    │    │    │    │    │    │    │    ├── columns: r_regionkey:58(int!null) r_name:59(char!null)
-      │    │    │    │    │    │    │    │    │    │    │    │    ├── stats: [rows=5, distinct(58)=5, null(58)=0, distinct(59)=5, null(59)=0]
-      │    │    │    │    │    │    │    │    │    │    │    │    │   histogram(58)=  0  1  0  1  0  1  0  1  0  1
-      │    │    │    │    │    │    │    │    │    │    │    │    │                 <--- 0 --- 1 --- 2 --- 3 --- 4
-      │    │    │    │    │    │    │    │    │    │    │    │    ├── key: (58)
-      │    │    │    │    │    │    │    │    │    │    │    │    ├── fd: (58)-->(59)
-      │    │    │    │    │    │    │    │    │    │    │    │    └── ordering: +58 opt(59) [actual: +58]
-      │    │    │    │    │    │    │    │    │    │    │    └── filters
-      │    │    │    │    │    │    │    │    │    │    │         └── r_name = 'AMERICA' [type=bool, outer=(59), constraints=(/59: [/'AMERICA' - /'AMERICA']; tight), fd=()-->(59)]
       │    │    │    │    │    │    │    │    │    │    ├── scan n1@n_rk
-      │    │    │    │    │    │    │    │    │    │    │    ├── save-table-name: q8_scan_16
+      │    │    │    │    │    │    │    │    │    │    │    ├── save-table-name: q8_scan_14
       │    │    │    │    │    │    │    │    │    │    │    ├── columns: n1.n_nationkey:50(int!null) n1.n_regionkey:52(int!null)
       │    │    │    │    │    │    │    │    │    │    │    ├── stats: [rows=25, distinct(50)=25, null(50)=0, distinct(52)=5, null(52)=0]
       │    │    │    │    │    │    │    │    │    │    │    │   histogram(50)=  0  1  0  1  0  1  0  1  0  1  0  1  0  1  0  1  0  1  0  1  0  1   0  1   0  1   0  1   0  1   0  1   0  1   0  1   0  1   0  1   0  1   0  1   0  1   0  1   0  1
@@ -168,9 +148,25 @@ sort
       │    │    │    │    │    │    │    │    │    │    │    │   histogram(52)=  0  5  0  5  0  5  0  5  0  5
       │    │    │    │    │    │    │    │    │    │    │    │                 <--- 0 --- 1 --- 2 --- 3 --- 4
       │    │    │    │    │    │    │    │    │    │    │    ├── key: (50)
-      │    │    │    │    │    │    │    │    │    │    │    ├── fd: (50)-->(52)
-      │    │    │    │    │    │    │    │    │    │    │    └── ordering: +52
-      │    │    │    │    │    │    │    │    │    │    └── filters (true)
+      │    │    │    │    │    │    │    │    │    │    │    └── fd: (50)-->(52)
+      │    │    │    │    │    │    │    │    │    │    ├── select
+      │    │    │    │    │    │    │    │    │    │    │    ├── save-table-name: q8_select_15
+      │    │    │    │    │    │    │    │    │    │    │    ├── columns: r_regionkey:58(int!null) r_name:59(char!null)
+      │    │    │    │    │    │    │    │    │    │    │    ├── stats: [rows=1, distinct(58)=1, null(58)=0, distinct(59)=1, null(59)=0]
+      │    │    │    │    │    │    │    │    │    │    │    ├── key: (58)
+      │    │    │    │    │    │    │    │    │    │    │    ├── fd: ()-->(59)
+      │    │    │    │    │    │    │    │    │    │    │    ├── scan region
+      │    │    │    │    │    │    │    │    │    │    │    │    ├── save-table-name: q8_scan_16
+      │    │    │    │    │    │    │    │    │    │    │    │    ├── columns: r_regionkey:58(int!null) r_name:59(char!null)
+      │    │    │    │    │    │    │    │    │    │    │    │    ├── stats: [rows=5, distinct(58)=5, null(58)=0, distinct(59)=5, null(59)=0]
+      │    │    │    │    │    │    │    │    │    │    │    │    │   histogram(58)=  0  1  0  1  0  1  0  1  0  1
+      │    │    │    │    │    │    │    │    │    │    │    │    │                 <--- 0 --- 1 --- 2 --- 3 --- 4
+      │    │    │    │    │    │    │    │    │    │    │    │    ├── key: (58)
+      │    │    │    │    │    │    │    │    │    │    │    │    └── fd: (58)-->(59)
+      │    │    │    │    │    │    │    │    │    │    │    └── filters
+      │    │    │    │    │    │    │    │    │    │    │         └── r_name = 'AMERICA' [type=bool, outer=(59), constraints=(/59: [/'AMERICA' - /'AMERICA']; tight), fd=()-->(59)]
+      │    │    │    │    │    │    │    │    │    │    └── filters
+      │    │    │    │    │    │    │    │    │    │         └── n1.n_regionkey = r_regionkey [type=bool, outer=(52,58), constraints=(/52: (/NULL - ]; /58: (/NULL - ]), fd=(52)==(58), (58)==(52)]
       │    │    │    │    │    │    │    │    │    └── filters (true)
       │    │    │    │    │    │    │    │    ├── scan n2
       │    │    │    │    │    │    │    │    │    ├── save-table-name: q8_scan_17
@@ -250,7 +246,6 @@ sort
       │              └── variable: volume [type=float]
       └── projections
            └── sum / sum [type=float, outer=(64,65), side-effects]
-
 
 stats table=q8_sort_1
 ----
@@ -518,7 +513,7 @@ column_names   row_count_est  row_count_err  distinct_count_est  distinct_count_
 {r_name}       30000.00       1.00           1.00                1.00                0.00            1.00
 {r_regionkey}  30000.00       1.00           1.00                1.00                0.00            1.00
 
-stats table=q8_merge_join_13
+stats table=q8_inner_join_13
 ----
 column_names   row_count  distinct_count  null_count
 {n_nationkey}  5          5               0
@@ -532,7 +527,7 @@ column_names   row_count_est  row_count_err  distinct_count_est  distinct_count_
 {r_name}       5.00           1.00           1.00                1.00                0.00            1.00
 {r_regionkey}  5.00           1.00           1.00                1.00                0.00            1.00
 
-stats table=q8_select_14
+stats table=q8_select_15
 ----
 column_names   row_count  distinct_count  null_count
 {r_name}       1          1               0
@@ -542,7 +537,7 @@ column_names   row_count_est  row_count_err  distinct_count_est  distinct_count_
 {r_name}       1.00           1.00           1.00                1.00                0.00            1.00
 {r_regionkey}  1.00           1.00           1.00                1.00                0.00            1.00
 
-stats table=q8_scan_15
+stats table=q8_scan_16
 ----
 column_names   row_count  distinct_count  null_count
 {r_name}       5          5               0
@@ -552,7 +547,7 @@ column_names   row_count_est  row_count_err  distinct_count_est  distinct_count_
 {r_name}       5.00           1.00           5.00                1.00                0.00            1.00
 {r_regionkey}  5.00           1.00           5.00                1.00                0.00            1.00
 
-stats table=q8_scan_16
+stats table=q8_scan_14
 ----
 column_names   row_count  distinct_count  null_count
 {n_nationkey}  25         25              0

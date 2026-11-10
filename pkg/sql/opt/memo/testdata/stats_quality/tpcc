@@ -732,19 +732,18 @@ scalar-group-by
  ├── columns: count:22(int)
  ├── cardinality: [1 - 1]
  ├── stats: [rows=1, distinct(22)=1, null(22)=0]
- ├── cost: 126.623333
+ ├── cost: 126.713333
  ├── key: ()
  ├── fd: ()-->(22)
  ├── prune: (22)
- ├── inner-join (merge)
- │    ├── save-table-name: consistency_01_merge_join_2
+ ├── inner-join (hash)
+ │    ├── save-table-name: consistency_01_inner_join_2
  │    ├── columns: w_id:1(int!null) w_ytd:9(decimal!null) d_w_id:11(int!null) sum:21(decimal!null)
- │    ├── left ordering: +1
- │    ├── right ordering: +11
  │    ├── stats: [rows=3.33333333, distinct(1)=3.33333333, null(1)=0, distinct(9)=1, null(9)=0, distinct(11)=3.33333333, null(11)=0, distinct(21)=3.33333333, null(21)=0]
- │    ├── cost: 126.57
+ │    ├── cost: 126.66
  │    ├── key: (11)
  │    ├── fd: (1)-->(9), (11)-->(21), (1)==(11), (11)==(1)
+ │    ├── interesting orderings: (+1) (+11)
  │    ├── scan warehouse
  │    │    ├── save-table-name: consistency_01_scan_3
  │    │    ├── columns: w_id:1(int!null) w_ytd:9(decimal)
@@ -754,18 +753,17 @@ scalar-group-by
  │    │    ├── cost: 11.12
  │    │    ├── key: (1)
  │    │    ├── fd: (1)-->(9)
- │    │    ├── ordering: +1
  │    │    ├── prune: (1,9)
  │    │    └── interesting orderings: (+1)
  │    ├── group-by
  │    │    ├── save-table-name: consistency_01_group_by_4
  │    │    ├── columns: d_w_id:11(int!null) sum:21(decimal)
  │    │    ├── grouping columns: d_w_id:11(int!null)
+ │    │    ├── internal-ordering: +11
  │    │    ├── stats: [rows=10, distinct(11)=10, null(11)=0, distinct(21)=10, null(21)=0]
  │    │    ├── cost: 115.13
  │    │    ├── key: (11)
  │    │    ├── fd: (11)-->(21)
- │    │    ├── ordering: +11
  │    │    ├── prune: (21)
  │    │    ├── interesting orderings: (+11)
  │    │    ├── scan district
@@ -782,6 +780,9 @@ scalar-group-by
  │    │         └── sum [type=decimal, outer=(19)]
  │    │              └── variable: d_ytd [type=decimal]
  │    └── filters
+ │         ├── eq [type=bool, outer=(1,11), constraints=(/1: (/NULL - ]; /11: (/NULL - ]), fd=(1)==(11), (11)==(1)]
+ │         │    ├── variable: w_id [type=int]
+ │         │    └── variable: d_w_id [type=int]
  │         └── ne [type=bool, outer=(9,21), constraints=(/9: (/NULL - ]; /21: (/NULL - ])]
  │              ├── variable: w_ytd [type=decimal]
  │              └── variable: sum [type=decimal]
@@ -798,7 +799,7 @@ column_names  row_count_est  row_count_err  distinct_count_est  distinct_count_e
 {d_w_id}      10.00          1.00           10.00               1.00                0.00            1.00
 {sum}         10.00          1.00           10.00               10.00 <==           0.00            1.00
 
-stats table=consistency_01_merge_join_2
+stats table=consistency_01_inner_join_2
 ----
 column_names  row_count  distinct_count  null_count
 {d_w_id}      0          0               0
@@ -1422,159 +1423,3 @@ column_names  row_count_est  row_count_err  distinct_count_est  distinct_count_e
 {ol_d_id}     299900.00      +Inf <==       10.00               +Inf <==            0.00            1.00
 {ol_o_id}     299900.00      +Inf <==       2999.00             +Inf <==            0.00            1.00
 {ol_w_id}     299900.00      +Inf <==       10.00               +Inf <==            0.00            1.00
-
-save-tables database=tpcc save-tables-prefix=consistency_12
-SELECT count(*)
-FROM
-(
-    SELECT o_w_id, o_d_id, o_id
-    FROM "order"
-    WHERE o_carrier_id IS NULL
-)
-FULL OUTER JOIN
-(
-    SELECT ol_w_id, ol_d_id, ol_o_id
-    FROM order_line
-    WHERE ol_delivery_d IS NULL
-)
-ON (ol_w_id = o_w_id AND ol_d_id = o_d_id AND ol_o_id = o_id)
-WHERE ol_o_id IS NULL OR o_id IS NULL
-----
-scalar-group-by
- ├── save-table-name: consistency_12_scalar_group_by_1
- ├── columns: count:19(int)
- ├── cardinality: [1 - 1]
- ├── stats: [rows=1, distinct(19)=1, null(19)=0]
- ├── key: ()
- ├── fd: ()-->(19)
- ├── select
- │    ├── save-table-name: consistency_12_select_2
- │    ├── columns: o_id:1(int) o_d_id:2(int) o_w_id:3(int) ol_o_id:9(int) ol_d_id:10(int) ol_w_id:11(int)
- │    ├── stats: [rows=299711.333, distinct(1)=2999, null(1)=209767.952, distinct(2)=10, null(2)=209767.952, distinct(3)=10, null(3)=209767.952, distinct(9)=2999, null(9)=0, distinct(10)=10, null(10)=0, distinct(11)=10, null(11)=0]
- │    ├── full-join (merge)
- │    │    ├── save-table-name: consistency_12_merge_join_3
- │    │    ├── columns: o_id:1(int) o_d_id:2(int) o_w_id:3(int) ol_o_id:9(int) ol_d_id:10(int) ol_w_id:11(int)
- │    │    ├── left ordering: +3,+2,-1
- │    │    ├── right ordering: +11,+10,-9
- │    │    ├── stats: [rows=899134, distinct(1)=2999, null(1)=629303.857, distinct(2)=10, null(2)=629303.857, distinct(3)=10, null(3)=629303.857, distinct(9)=2999, null(9)=0, distinct(10)=10, null(10)=0, distinct(11)=10, null(11)=0]
- │    │    ├── project
- │    │    │    ├── save-table-name: consistency_12_project_4
- │    │    │    ├── columns: o_id:1(int!null) o_d_id:2(int!null) o_w_id:3(int!null)
- │    │    │    ├── stats: [rows=90000, distinct(1)=2999, null(1)=0, distinct(2)=10, null(2)=0, distinct(3)=10, null(3)=0]
- │    │    │    ├── key: (1-3)
- │    │    │    ├── ordering: +3,+2,-1
- │    │    │    └── select
- │    │    │         ├── save-table-name: consistency_12_select_5
- │    │    │         ├── columns: o_id:1(int!null) o_d_id:2(int!null) o_w_id:3(int!null) o_carrier_id:6(int)
- │    │    │         ├── stats: [rows=90000, distinct(1)=2999, null(1)=0, distinct(2)=10, null(2)=0, distinct(3)=10, null(3)=0, distinct(6)=1, null(6)=90000]
- │    │    │         ├── key: (1-3)
- │    │    │         ├── fd: ()-->(6)
- │    │    │         ├── ordering: +3,+2,-1 opt(6) [actual: +3,+2,-1]
- │    │    │         ├── scan "order"
- │    │    │         │    ├── save-table-name: consistency_12_scan_6
- │    │    │         │    ├── columns: o_id:1(int!null) o_d_id:2(int!null) o_w_id:3(int!null) o_carrier_id:6(int)
- │    │    │         │    ├── stats: [rows=300000, distinct(1)=2999, null(1)=0, distinct(2)=10, null(2)=0, distinct(3)=10, null(3)=0, distinct(6)=11, null(6)=90000]
- │    │    │         │    │   histogram(3)=  0 29280 0 29310 0 31560 0 30000 0 29220 0 30720 0 31110 0 30510 0 29070 0 29220
- │    │    │         │    │                <---- 0 ----- 1 ----- 2 ----- 3 ----- 4 ----- 5 ----- 6 ----- 7 ----- 8 ----- 9 -
- │    │    │         │    ├── key: (1-3)
- │    │    │         │    ├── fd: (1-3)-->(6)
- │    │    │         │    └── ordering: +3,+2,-1 opt(6) [actual: +3,+2,-1]
- │    │    │         └── filters
- │    │    │              └── o_carrier_id IS NULL [type=bool, outer=(6), constraints=(/6: [/NULL - /NULL]; tight), fd=()-->(6)]
- │    │    ├── project
- │    │    │    ├── save-table-name: consistency_12_project_7
- │    │    │    ├── columns: ol_o_id:9(int!null) ol_d_id:10(int!null) ol_w_id:11(int!null)
- │    │    │    ├── stats: [rows=899134, distinct(9)=2999, null(9)=0, distinct(10)=10, null(10)=0, distinct(11)=10, null(11)=0]
- │    │    │    ├── ordering: +11,+10,-9
- │    │    │    └── select
- │    │    │         ├── save-table-name: consistency_12_select_8
- │    │    │         ├── columns: ol_o_id:9(int!null) ol_d_id:10(int!null) ol_w_id:11(int!null) ol_delivery_d:15(timestamp)
- │    │    │         ├── stats: [rows=899134, distinct(9)=2999, null(9)=0, distinct(10)=10, null(10)=0, distinct(11)=10, null(11)=0, distinct(15)=1, null(15)=899134]
- │    │    │         ├── fd: ()-->(15)
- │    │    │         ├── ordering: +11,+10,-9 opt(15) [actual: +11,+10,-9]
- │    │    │         ├── scan order_line
- │    │    │         │    ├── save-table-name: consistency_12_scan_9
- │    │    │         │    ├── columns: ol_o_id:9(int!null) ol_d_id:10(int!null) ol_w_id:11(int!null) ol_delivery_d:15(timestamp)
- │    │    │         │    ├── stats: [rows=3001222, distinct(9)=2999, null(9)=0, distinct(10)=10, null(10)=0, distinct(11)=10, null(11)=0, distinct(15)=2, null(15)=899134]
- │    │    │         │    │   histogram(11)=  0 3.1213e+05 0 2.7851e+05 0 2.9892e+05 0 3.0732e+05 0 2.9892e+05 0 2.9622e+05 0 3.1363e+05 0 2.8392e+05 0 2.9892e+05 0 3.1273e+05
- │    │    │         │    │                 <------ 0 ---------- 1 ---------- 2 ---------- 3 ---------- 4 ---------- 5 ---------- 6 ---------- 7 ---------- 8 ---------- 9 ----
- │    │    │         │    └── ordering: +11,+10,-9 opt(15) [actual: +11,+10,-9]
- │    │    │         └── filters
- │    │    │              └── ol_delivery_d IS NULL [type=bool, outer=(15), constraints=(/15: [/NULL - /NULL]; tight), fd=()-->(15)]
- │    │    └── filters (true)
- │    └── filters
- │         └── (ol_o_id IS NULL) OR (o_id IS NULL) [type=bool, outer=(1,9)]
- └── aggregations
-      └── count-rows [type=int]
-
-stats table=consistency_12_select_5
-----
-column_names    row_count  distinct_count  null_count
-{o_carrier_id}  90000      1               90000
-{o_d_id}        90000      10              0
-{o_id}          90000      900             0
-{o_w_id}        90000      10              0
-~~~~
-column_names    row_count_est  row_count_err  distinct_count_est  distinct_count_err  null_count_est  null_count_err
-{o_carrier_id}  90000.00       1.00           1.00                1.00                90000.00        1.00
-{o_d_id}        90000.00       1.00           10.00               1.00                0.00            1.00
-{o_id}          90000.00       1.00           2999.00             3.33 <==            0.00            1.00
-{o_w_id}        90000.00       1.00           10.00               1.00                0.00            1.00
-
-stats table=consistency_12_select_8
-----
-column_names     row_count  distinct_count  null_count
-{ol_d_id}        899134     10              0
-{ol_delivery_d}  899134     1               899134
-{ol_o_id}        899134     900             0
-{ol_w_id}        899134     10              0
-~~~~
-column_names     row_count_est  row_count_err  distinct_count_est  distinct_count_err  null_count_est  null_count_err
-{ol_d_id}        899134.00      1.00           10.00               1.00                0.00            1.00
-{ol_delivery_d}  899134.00      1.00           1.00                1.00                899134.00       1.00
-{ol_o_id}        899134.00      1.00           2999.00             3.33 <==            0.00            1.00
-{ol_w_id}        899134.00      1.00           10.00               1.00                0.00            1.00
-
-stats table=consistency_12_merge_join_3
-----
-column_names  row_count  distinct_count  null_count
-{o_d_id}      899134     10              0
-{o_id}        899134     900             0
-{o_w_id}      899134     10              0
-{ol_d_id}     899134     10              0
-{ol_o_id}     899134     900             0
-{ol_w_id}     899134     10              0
-~~~~
-column_names  row_count_est  row_count_err  distinct_count_est  distinct_count_err  null_count_est  null_count_err
-{o_d_id}      899134.00      1.00           10.00               1.00                629304.00       +Inf <==
-{o_id}        899134.00      1.00           2999.00             3.33 <==            629304.00       +Inf <==
-{o_w_id}      899134.00      1.00           10.00               1.00                629304.00       +Inf <==
-{ol_d_id}     899134.00      1.00           10.00               1.00                0.00            1.00
-{ol_o_id}     899134.00      1.00           2999.00             3.33 <==            0.00            1.00
-{ol_w_id}     899134.00      1.00           10.00               1.00                0.00            1.00
-
-stats table=consistency_12_select_2
-----
-column_names  row_count  distinct_count  null_count
-{o_d_id}      0          0               0
-{o_id}        0          0               0
-{o_w_id}      0          0               0
-{ol_d_id}     0          0               0
-{ol_o_id}     0          0               0
-{ol_w_id}     0          0               0
-~~~~
-column_names  row_count_est  row_count_err  distinct_count_est  distinct_count_err  null_count_est  null_count_err
-{o_d_id}      299711.00      +Inf <==       10.00               +Inf <==            209768.00       +Inf <==
-{o_id}        299711.00      +Inf <==       2999.00             +Inf <==            209768.00       +Inf <==
-{o_w_id}      299711.00      +Inf <==       10.00               +Inf <==            209768.00       +Inf <==
-{ol_d_id}     299711.00      +Inf <==       10.00               +Inf <==            0.00            1.00
-{ol_o_id}     299711.00      +Inf <==       2999.00             +Inf <==            0.00            1.00
-{ol_w_id}     299711.00      +Inf <==       10.00               +Inf <==            0.00            1.00
-
-stats table=consistency_12_scalar_group_by_1
-----
-column_names  row_count  distinct_count  null_count
-{count}       1          1               0
-~~~~
-column_names  row_count_est  row_count_err  distinct_count_est  distinct_count_err  null_count_est  null_count_err
-{count}       1.00           1.00           1.00                1.00                0.00            1.00

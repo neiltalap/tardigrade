@@ -331,13 +331,3 @@ build
 SELECT * FROM t OFFSET count(w)
 ----
 error (42703): column "w" does not exist
-
-build
-SELECT sum(v) FROM t GROUP BY k LIMIT count(*) OVER ()
-----
-error (42P20): count_rows(): window functions are not allowed in LIMIT
-
-build
-SELECT sum(v) FROM t GROUP BY k OFFSET count(*) OVER ()
-----
-error (42P20): count_rows(): window functions are not allowed in OFFSET

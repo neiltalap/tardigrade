@@ -37,12 +37,11 @@ default_tablespace                   ·
 default_transaction_isolation        serializable
 default_transaction_read_only        off
 distsql                              off
-enable_zigzag_join                   on
+enable_zigzag_join                   off
 experimental_force_split_at          off
 experimental_optimizer_foreign_keys  off
 experimental_serial_normalization    rowid
 extra_float_digits                   0
-force_savepoint_restart              off
 idle_in_transaction_session_timeout  0
 integer_datetimes                    on
 intervalstyle                        postgres
@@ -69,7 +68,7 @@ transaction_isolation                serializable
 transaction_priority                 normal
 transaction_read_only                off
 transaction_status                   NoTxn
-vectorize                            auto
+vectorize                            off
 vectorize_row_count_threshold        0
 
 query T colnames
@@ -175,10 +174,6 @@ table_statistics
 locations
 role_members
 comments
-replication_constraint_stats
-replication_critical_localities
-replication_stats
-reports_meta
 
 query TT colnames,rowsort
 SELECT * FROM [SHOW TABLES FROM system WITH COMMENT]
@@ -199,10 +194,6 @@ table_statistics                 ·
 locations                        ·
 role_members                     ·
 comments                         ·
-replication_constraint_stats     ·
-replication_critical_localities  ·
-replication_stats                ·
-reports_meta                     ·
 
 query ITTT colnames
 SELECT node_id, user_name, application_name, active_queries
@@ -381,8 +372,3 @@ query T
 SHOW LOCALITY
 ----
 region=test,dc=dc1
-
-query T
-SELECT feature_name FROM crdb_internal.feature_usage WHERE feature_name='sql.show.locality' AND usage_count > 0
-----
-sql.show.locality

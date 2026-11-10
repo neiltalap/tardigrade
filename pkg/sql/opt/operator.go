@@ -133,9 +133,6 @@ var ComparisonOpReverseMap = map[Operator]tree.ComparisonOperator{
 	IsOp:             tree.IsNotDistinctFrom,
 	IsNotOp:          tree.IsDistinctFrom,
 	ContainsOp:       tree.Contains,
-	JsonExistsOp:     tree.JSONExists,
-	JsonSomeExistsOp: tree.JSONSomeExists,
-	JsonAllExistsOp:  tree.JSONAllExists,
 	OverlapsOp:       tree.Overlaps,
 }
 
@@ -194,25 +191,9 @@ var AggregateOpReverseMap = map[Operator]string{
 	AnyNotNullAggOp:   "any_not_null",
 }
 
-// WindowOpReverseMap maps from an optimizer operator type to the name of a
-// window function.
-var WindowOpReverseMap = map[Operator]string{
-	RankOp:        "rank",
-	RowNumberOp:   "row_number",
-	DenseRankOp:   "dense_rank",
-	PercentRankOp: "percent_rank",
-	CumeDistOp:    "cume_dist",
-	NtileOp:       "ntile",
-	LagOp:         "lag",
-	LeadOp:        "lead",
-	FirstValueOp:  "first_value",
-	LastValueOp:   "last_value",
-	NthValueOp:    "nth_value",
-}
-
 // NegateOpMap maps from a comparison operator type to its negated operator
 // type, as if the Not operator was applied to it. Some comparison operators,
-// like Contains and JsonExists, do not have negated versions.
+// like Contains, do not have negated versions.
 var NegateOpMap = map[Operator]Operator{
 	EqOp:           NeOp,
 	LtOp:           GeOp,

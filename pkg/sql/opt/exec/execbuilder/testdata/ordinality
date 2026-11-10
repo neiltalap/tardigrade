@@ -7,7 +7,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT max(ordinality) FROM foo WITH ORDINALITY
 ----
 ·                distributed  false            ·               ·
-·                vectorized   true             ·               ·
+·                vectorized   false            ·               ·
 group            ·            ·                (max)           ·
  │               aggregate 0  max(ordinality)  ·               ·
  │               scalar       ·                ·               ·
@@ -20,7 +20,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM foo WITH ORDINALITY WHERE ordinality > 1 ORDER BY ordinality
 ----
 ·                distributed  false             ·                  ·
-·                vectorized   true              ·                  ·
+·                vectorized   false             ·                  ·
 filter           ·            ·                 (x, "ordinality")  +"ordinality"
  │               filter       "ordinality" > 1  ·                  ·
  └── ordinality  ·            ·                 (x, "ordinality")  ·
@@ -47,7 +47,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM (SELECT * FROM foo WHERE x > 'a') WITH ORDINALITY
 ----
 ·           distributed  false        ·                  ·
-·           vectorized   true         ·                  ·
+·           vectorized   false        ·                  ·
 ordinality  ·            ·            (x, "ordinality")  ·
  └── scan   ·            ·            (x)                ·
 ·           table        foo@primary  ·                  ·
@@ -59,7 +59,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT * FROM foo WITH ORDINALITY WHERE x > 'a'
 ----
 ·                distributed  false        ·                  ·
-·                vectorized   true         ·                  ·
+·                vectorized   false        ·                  ·
 filter           ·            ·            (x, "ordinality")  ·
  │               filter       x > 'a'      ·                  ·
  └── ordinality  ·            ·            (x, "ordinality")  ·

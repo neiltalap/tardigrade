@@ -127,58 +127,6 @@ SELECT bar FROM foo WHERE bar->>'a' = 'b'
 {"a": "b"}
 
 query T
-SELECT bar FROM foo WHERE bar ? 'a'
-----
-{"a": "b"}
-
-query BBBBBBB
-VALUES (
-  '"hello"'::JSONB   ? 'hello',
-  '"hello"'::JSONB   ? 'goodbye',
-  '"hello"'::JSONB   ? 'ello',
-  '"hello"'::JSONB   ? 'h',
-  'true'::JSONB      ? 'true',
-  '1'::JSONB         ? '1',
-  'null'::JSONB      ? 'null'
-)
-----
-true  false  false  false  false  false  false
-
-query T
-SELECT bar FROM foo WHERE bar ? 'hello'
-----
-"hello"
-
-query T
-SELECT bar FROM foo WHERE bar ? 'goodbye'
-----
-
-query T
-SELECT bar FROM foo WHERE bar ?| ARRAY['a','b']
-----
-{"a": "b"}
-
-query T
-SELECT bar FROM foo WHERE bar ?& ARRAY['a','b']
-----
-
-# ?| and ?& ignore NULLs.
-query T
-SELECT bar FROM foo WHERE bar ?| ARRAY['a', null]
-----
-{"a": "b"}
-
-# TODO(justin): #29355
-# query T
-# SELECT bar FROM foo WHERE bar ?| ARRAY[null, null]::STRING[]
-# ----
-
-query T
-SELECT bar FROM foo WHERE bar ?& ARRAY['a', null]
-----
-{"a": "b"}
-
-query T
 SELECT bar FROM foo WHERE bar->'a' = '"b"'::JSON
 ----
 {"a": "b"}
@@ -413,78 +361,6 @@ SELECT '{"a": [null]}'::JSONB#>>'{a,0}'::STRING[]
 ----
 NULL
 
-query BB
-SELECT '{"a": 1}'::JSONB ? 'a', '{"a": 1}'::JSONB ? 'b'
-----
-true false
-
-query BB
-SELECT '{"a": 1, "b": 1}'::JSONB ? 'a', '{"a": 1, "b": 1}'::JSONB ? 'b'
-----
-true true
-
-query BB
-SELECT '{"a": 1}'::JSONB ?| ARRAY['a', 'b'], '{"b": 1}'::JSONB ?| ARRAY['a', 'b']
-----
-true true
-
-query B
-SELECT '{"c": 1}'::JSONB ?| ARRAY['a', 'b']
-----
-false
-
-query BB
-SELECT '{"a": 1}'::JSONB ?& ARRAY['a', 'b'], '{"b": 1}'::JSONB ?& ARRAY['a', 'b']
-----
-false false
-
-query B
-SELECT '{"a": 1, "b": 1, "c": 1}'::JSONB ?& ARRAY['a', 'b']
-----
-true
-
-## Arrays do not `?` their stringified indices.
-query B
-SELECT '[1, 2, 3]'::JSONB ? '0'
-----
-false
-
-## Arrays `?` string elements.
-query B
-SELECT '["foo", "bar", "baz"]'::JSONB ? 'foo'
-----
-true
-
-query B
-SELECT '["foo", "bar", "baz"]'::JSONB ? 'baz'
-----
-true
-
-query B
-SELECT '["foo", "bar", "baz"]'::JSONB ? 'gup'
-----
-false
-
-query B
-SELECT '["foo", "bar", "baz"]'::JSONB ?| ARRAY['foo', 'gup']
-----
-true
-
-query B
-SELECT '["foo", "bar", "baz"]'::JSONB ?| ARRAY['buh', 'gup']
-----
-false
-
-query B
-SELECT '["foo", "bar", "baz"]'::JSONB ?& ARRAY['foo', 'bar']
-----
-true
-
-query B
-SELECT '["foo", "bar", "baz"]'::JSONB ?& ARRAY['foo', 'buh']
-----
-false
-
 query T
 SELECT '{"a": 1}'::JSONB - 'a'
 ----
@@ -512,49 +388,11 @@ SELECT '3'::JSONB - 'b'
 statement error pgcode 22023 cannot delete from object using integer index
 SELECT '{}'::JSONB - 1
 
-query B
-SELECT '[1, 2, 3]'::JSONB <@ '[1, 2]'::JSONB
-----
-false
-
-query B
-SELECT '[1, 2]'::JSONB <@ '[1, 2, 3]'::JSONB
-----
-true
-
-query B
-SELECT '[1, 2]'::JSONB @> '[1, 2, 3]'::JSONB
-----
-false
-
-query B
-SELECT '[1, 2, 3]'::JSONB @> '[1, 2]'::JSONB
-----
-true
-
-query B
-SELECT '{"a": [1, 2, 3]}'::JSONB->'a' @> '2'::JSONB
-----
-true
-
 statement ok
 CREATE TABLE x (j JSONB)
 
 statement ok
 INSERT INTO x VALUES ('{"a": [1,2,3]}')
-
-query B
-SELECT true FROM x WHERE j->'a' @> '2'::JSONB
-----
-true
-
-statement ok
-CREATE INVERTED INDEX ON x (j)
-
-query B
-SELECT true FROM x WHERE j->'a' @> '2'::JSONB
-----
-true
 
 query T
 SELECT '{"foo": {"bar": 1}}'::JSONB #- ARRAY['foo', 'bar']

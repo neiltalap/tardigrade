@@ -941,22 +941,6 @@ vals       (3,1)
 #     pg_index
 # ----
 
-subtest correlated_json_object_keys
-
-statement ok
-CREATE TABLE j(x INT PRIMARY KEY, y JSON);
-  INSERT INTO j VALUES
-     (1, '{"a":123,"b":456}'),
-     (2, '{"c":111,"d":222}')
-
-query IT rowsort
-SELECT x, y->>json_object_keys(y) FROM j
-----
-1  123
-1  456
-2  111
-2  222
-
 subtest correlated_multi_column
 
 query TTI colnames
@@ -973,6 +957,9 @@ vals  woo      1
 vals  woo      2
 
 subtest dbviz_example_query
+
+statement ok
+CREATE TABLE j(x INT PRIMARY KEY)
 
 # DbVisualizer query from #24649 listed in #16971.
 query TTI

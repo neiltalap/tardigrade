@@ -56,7 +56,7 @@ statement ok
 SET save_tables_prefix = ''
 
 query ITI colnames
-SELECT * FROM st_test_merge_join_2 ORDER BY k
+SELECT * FROM st_test_inner_join_2 ORDER BY k
 ----
 k  str    key
 3  three  3
@@ -85,7 +85,7 @@ st_lookup_join_2
 st_project_1
 st_scan_4
 st_select_3
-st_test_merge_join_2
+st_test_inner_join_2
 st_test_project_1
 st_test_scan_3
 st_test_scan_4

@@ -40,35 +40,6 @@ project
       └── filters
            └── k = x [type=bool, outer=(1,5), constraints=(/1: (/NULL - ]; /5: (/NULL - ]), fd=(1)==(5), (5)==(1)]
 
-# Verify that we pick merge join if we force it.
-opt
-SELECT k, x FROM a INNER MERGE JOIN b ON k=x
-----
-inner-join (merge)
- ├── columns: k:1(int!null) x:5(int!null)
- ├── flags: no-lookup-join;no-hash-join
- ├── left ordering: +1
- ├── right ordering: +5
- ├── stats: [rows=990, distinct(1)=99, null(1)=0, distinct(5)=99, null(5)=0]
- ├── cost: 2339.27569
- ├── fd: (1)==(5), (5)==(1)
- ├── scan a
- │    ├── columns: k:1(int!null)
- │    ├── stats: [rows=1000, distinct(1)=1000, null(1)=0]
- │    ├── cost: 1050.02
- │    ├── key: (1)
- │    └── ordering: +1
- ├── sort
- │    ├── columns: x:5(int)
- │    ├── stats: [rows=1000, distinct(5)=100, null(5)=10]
- │    ├── cost: 1259.34569
- │    ├── ordering: +5
- │    └── scan b
- │         ├── columns: x:5(int)
- │         ├── stats: [rows=1000, distinct(5)=100, null(5)=10]
- │         └── cost: 1040.02
- └── filters (true)
-
 # Verify that we pick lookup join if we force it. Note that lookup join is only
 # possible if b is the left table.
 opt

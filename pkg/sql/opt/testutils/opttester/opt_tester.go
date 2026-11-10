@@ -1274,7 +1274,7 @@ func (ot *OptTester) makeStat(
 	columns []string, rowCount, distinctCount, nullCount uint64,
 ) stats.JSONStatistic {
 	return stats.JSONStatistic{
-		Name: stats.AutoStatsName,
+		Name: "__auto__",  // was stats.AutoStatsName; collection removed
 		CreatedAt: tree.AsStringWithFlags(
 			&tree.DTimestamp{Time: timeutil.Now()}, tree.FmtBareStrings,
 		),

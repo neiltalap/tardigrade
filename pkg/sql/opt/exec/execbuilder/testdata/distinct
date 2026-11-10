@@ -12,7 +12,7 @@ query TTT
 EXPLAIN SELECT DISTINCT y, z FROM xyz
 ----
 ·          distributed  false
-·          vectorized   true
+·          vectorized   false
 distinct   ·            ·
  │         distinct on  y, z
  │         order key    y, z
@@ -24,7 +24,7 @@ query TTT
 EXPLAIN SELECT DISTINCT y, z FROM xyz ORDER BY z
 ----
 ·          distributed  false
-·          vectorized   true
+·          vectorized   false
 distinct   ·            ·
  │         distinct on  y, z
  │         order key    y, z
@@ -79,7 +79,7 @@ query TTT
 EXPLAIN SELECT DISTINCT y AS w, z FROM xyz ORDER BY z
 ----
 ·          distributed  false
-·          vectorized   true
+·          vectorized   false
 distinct   ·            ·
  │         distinct on  w, z
  │         order key    w, z
@@ -104,7 +104,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT x FROM xyz
 ----
 ·     distributed  false        ·    ·
-·     vectorized   true         ·    ·
+·     vectorized   false        ·    ·
 scan  ·            ·            (x)  ·
 ·     table        xyz@primary  ·    ·
 ·     spans        ALL          ·    ·
@@ -113,7 +113,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT x, y, z FROM xyz
 ----
 ·     distributed  false        ·          ·
-·     vectorized   true         ·          ·
+·     vectorized   false        ·          ·
 scan  ·            ·            (x, y, z)  ·
 ·     table        xyz@primary  ·          ·
 ·     spans        ALL          ·          ·
@@ -123,7 +123,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT z FROM (SELECT y, z FROM xyz WHERE y > 1)
 ----
 ·               distributed  false    ·       ·
-·               vectorized   true     ·       ·
+·               vectorized   false    ·       ·
 distinct        ·            ·        (z)     weak-key(z); +z
  │              distinct on  z        ·       ·
  │              order key    z        ·       ·
@@ -148,7 +148,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT 1 AS z, d, b FROM abcd ORDER BY d, b
 ----
 ·          distributed  false              ·          ·
-·          vectorized   true               ·          ·
+·          vectorized   false              ·          ·
 render     ·            ·                  (z, d, b)  ·
  │         render 0     1                  ·          ·
  │         render 1     d                  ·          ·
@@ -161,7 +161,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT a, b FROM abcd
 ----
 ·          distributed  false         ·       ·
-·          vectorized   true          ·       ·
+·          vectorized   false         ·       ·
 distinct   ·            ·             (a, b)  weak-key(a,b); +a,+b
  │         distinct on  a, b          ·       ·
  │         order key    a, b          ·       ·
@@ -173,7 +173,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT a, b, c FROM abcd
 ----
 ·     distributed  false         ·          ·
-·     vectorized   true          ·          ·
+·     vectorized   false         ·          ·
 scan  ·            ·             (a, b, c)  ·
 ·     table        abcd@primary  ·          ·
 ·     spans        ALL           ·          ·
@@ -182,7 +182,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT a, b, c, d FROM abcd
 ----
 ·     distributed  false         ·             ·
-·     vectorized   true          ·             ·
+·     vectorized   false         ·             ·
 scan  ·            ·             (a, b, c, d)  ·
 ·     table        abcd@primary  ·             ·
 ·     spans        ALL           ·             ·
@@ -194,7 +194,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT v FROM kv
 ----
 ·          distributed  false   ·    ·
-·          vectorized   true    ·    ·
+·          vectorized   false   ·    ·
 distinct   ·            ·       (v)  weak-key(v); +v
  │         distinct on  v       ·    ·
  │         order key    v       ·    ·
@@ -207,7 +207,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT v FROM kv@idx
 ----
 ·          distributed  false   ·    ·
-·          vectorized   true    ·    ·
+·          vectorized   false   ·    ·
 distinct   ·            ·       (v)  weak-key(v); +v
  │         distinct on  v       ·    ·
  │         order key    v       ·    ·
@@ -220,7 +220,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT v FROM kv@idx WHERE v > 0
 ----
 ·     distributed  false   ·    ·
-·     vectorized   true    ·    ·
+·     vectorized   false   ·    ·
 scan  ·            ·       (v)  ·
 ·     table        kv@idx  ·    ·
 ·     spans        /1-     ·    ·
@@ -233,7 +233,7 @@ query TTTTT
 EXPLAIN (VERBOSE) SELECT DISTINCT v FROM kv2@idx
 ----
 ·     distributed  false    ·    ·
-·     vectorized   true     ·    ·
+·     vectorized   false    ·    ·
 scan  ·            ·        (v)  ·
 ·     table        kv2@idx  ·    ·
 ·     spans        ALL      ·    ·

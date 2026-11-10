@@ -189,13 +189,13 @@ SET CLUSTER SETTING sql.distsql.interleaved_joins.enabled = true;
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM parent1 JOIN child1 USING(pid1) WHERE pid1 >= 3 AND pid1 <= 5]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzMUsFu00AQvfMVq3eKYVC9Dr1YiuSKGnAVnOIUgVR8sLzT1JLrNbtrBKry78jeSDgVVMCpN8-89-b5zc497NcWMbbpOn19JQbTijfF5r24Tj9frs-yXCzOs-3V9sM6EAfKc0_oK8Odk-Jik-Wivm1aJcXHbZa_FYu-UTIQn96lReoL8WUIwyWvxDIQZ_n5vFmvxGlQgtBpxXl1xxbxNSQIEQhLlITe6Jqt1WaE7idipr4jDglN1w_Ot13jWkaModNGsWEFgmJXNe2Il_uSUGvDiH9Rc_1S9yfRAyJBD-4wtiRYV-0YcbSnmbWcWf9mcNY5Ni1X37jgSrG50E3H5iQ8csKabxzGeM1dZX4kh4WCUDS72znitwuCnwNCyzdukcgXwcqM3OkThM3gYpFISiJKXlFyij-lkUdpov9KI59omvDxNAXbXneW_-rVw_FsWO3Y35jVg6n50uh6svHlZtJNDcXWeXTpi6zz0PiDc7F8VBweieVDcfRP4nL_7GcAAAD__-nTPX0=
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8VN1q20wQvf-eYpnvxi5rpNWPCwKDQuM2Cq6c2i4tpLpQpKktULTq7goagt-9WGuIZBLZStzeaXbmzJw5c9AjyF85eLCczqYfVqQSOfm4mH8mt9PvN7OLICSDy2C5Wn6ZDcm-5J0uKGOBhWLkeh6EJNlkecrI12UQfiKDMkvZkHy7mi6mOiA_KtO0cULsIbkIL5uPyYS4wwgoFDzFML5HCd4tMKBgAQUbIgql4AlKycUu9VgXBulv8EwKWVFWSj-rTOUIHlQFFykKTIFCiirO8l0-2kYUEi4QvKfSkI94aYwPCinwSu3bRhSkitcInrOljdGsMfqZxqv4LscFxikKw2y1h1Jk97F48LViQGFZxoX0iGEb_xuua7CR4ey_DMeBNp2nCXcPZBPLTbu3z6Dec0-ZvZay9Tzl_cWbnM9H1nqR7PHT0ldd_yqWm2ueFSgMp00tx59q4LPhRGTrTf0FFOaV8ojvUN-lvkV9G15yit3axDpddnaiUxqSjwxXB9YZndKDsn2qUw45n9Er1r_1ivv3vGJ2C79AWfJC4kn_K3O3BqZr1LJIXokEbwRP6jE6nNe4-iFFqXT2vQ6CQqd2BJtgdghmTbDdArN-4HE32Oox2eoHHneD7U7BzG7azlsE6wYfEcx9i2Dd4COCjXsJFm3_-xMAAP__hRm9yw==
 
 # Swap parent1 and child1 tables.
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM child1 JOIN parent1 USING(pid1) WHERE pid1 >= 3 AND pid1 <= 5]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzMUtFulEAUffcrJuep6DVlIH0h2YTGotKsbGVrNKk8EOZ2S0IZnBmMptl_NzCbyDbaqE--ce855x7OnfsA-6VDgm22zl5di9F04nW5eSdusk9X6_O8ECcX-fZ6-34diAPluSc0d22npLjc5IUYasO9k-LDNi_eiJOhVTIQH99mZeYL8XkMw5hXIg7EeXGxbDYrcRZUIPRacVHfs0VyAwlCBEKMijAY3bC12kzQw0zM1TckIaHth9H5tmtdx0gw9tooNqxAUOzqtpvwal8RGm0YyU9qoV_q4TR6RCTo0R3GVgTr6h0jifa0sJYL618MznvHpuP6K5dcKzaXuu3ZnIZHTljzrcMUr72vzffULxSEst3dLYHDdkHwc0Do-NadpPJFsDITef4EYTO6RKSS0ojSmNIz_C6NPEoT_VMa-Z-mCZ9OU7IddG_5j149nM6G1Y79jVk9moavjG5mG19uZt3cUGydR2Nf5L2Hph9ciuWT4vBILB-Lo78SV_tnPwIAAP__2mo9ew==
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8VN1q20wQvf-eYpnvxi5rpNWPCwKDQuM2Cq6c2i4tpLpQpKktULTq7goagt-9WGuIZBLZStzeaXbmzJw5c9AjyF85eLCczqYfVqQSOfm4mH8mt9PvN7OLICSDy2C5Wn6ZDcm-5J0uSDZZnjJyPQ9CUsYCC8XI12UQfiKDMkvZkHy7mi6mOiA_KtO0cULsIbkIL5uPyYS4wwgoFDzFML5HCd4tMKBgAQUbIgql4AlKycUu9VgXBulv8EwKWVFWSj-rTOUIHlQFFykKTIFCiirO8l0-2kYUEi4QvKfSkI94aYwPCinwSu3bRhSkitcInrOljdGsMfqZxqv4LscFxikKw2y1h1Jk97F48LV8QGFZxoX0iGEb_xuua7CR4ey_DMeBNp2nCXcPZBPLTbu3z6Dec0-ZvZay9Tzl_ZWbnM9H1nqR7PHT0ldd_yqWm2ueFSgMp00tx59q4LPhRGTrTf0FFOaV8ojPqG9R36a-Cy85xW5tYp0uOzvRKQ3JR4arA-uMTulB2T7VKYecz-gV6996xf17XjG7hV-gLHkh8aT_lblbA9M1alkkr0SCN4In9Rgdzmtc_ZCiVDr7XgdBoVM7gk0wOwSzJthugVk_8LgbbPWYbPUDj7vBdqdgZjdt5y2CdYOPCOa-RbBu8BHBxr0Ei7b__QkAAP__aNK9xQ==
 
 # Select over two ranges for parent/child with split at grandchild key.
 # Also, rows with pid1 <= 30 should have 4 rows whereas pid1 > 30 should
@@ -203,7 +203,7 @@ https://cockroachdb.github.io/distsqlplan/decode.html#eJzMUtFulEAUffcrJuep6DVlIH
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM parent1 JOIN child1 ON parent1.pid1 = child1.pid1 WHERE parent1.pid1 >= 29 AND parent1.pid1 <= 31 ORDER BY parent1.pid1]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzUUdFu0zAUfecrru5TywyLU_ZApEoeNIhMJRnpJEAjD1F811nK4mA7CFT131Hsoi2oQ8Abb7n3nONzz8kO7ZcWE9yk6_T1FQymhTdl8Q6u04-X6_Msh9kq21xt3q_ncKA8DYS-NtQ5DhdFlkNzq1rJoch_rp_3SnJYHoAwfXiblinMJozPQxQtaAnxyzmc56tjaLOEBZ9DUa7SEl59mjhUyLDTkvL6jiwm18iR4RlWDHujG7JWm3G986RMfsMkYqi6fnDjumLYaEOY7NAp1xImmHWOTEv1VyqplmQutOrInI7PSnK1ar3Lmm4cjh7qrjbfxeEiZFiq7e1DJMRHhuEdZNjSjZsJfjJfmpHrP5FhMbgEBGciZmLBxAsmzrDaM9SDuz_WunpLmPA9eyTQfQ5tJBmS07MFP8FqfyR1rp_p_jSesB9zjyfu_J_qjP6POo8EKsn2urP0R1VFY9cktxT-jdWDaejS6MbbhLHwOr-QZF1AeRiyzkP-wIdi_lvxYiKOfhXHf-Vc7Z_8CAAA__8HAVEc
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8U11vmzAUfd-vsO5emtWdsQlNghSJbmVqqg46UmmbOh4oeA0SxcwGaVWV_z7x0XVEhJB13RvXvsfnnnM5D6B-JGDC0r6w31-hQibog-d-RNf2l8uLk4WDDk4Xy6vlp4sRalre1A1ZIHmaU3TuLhwUruIkosh1Ho_fZnFE0by5qKvPZ7Zno4NWx7dC03Q-R2w2QifOaddtOEc6HSHXO7U99O5ri8EHDKmIuBPccQXmNVDAYICPIZMi5EoJWR4_VE2L6CeYGoY4zYq8PPYxhEJyMB8gj_OEgwlXwU3CPR5EXJLyrYjnQZxUT2cyvgvkvVVLAgzLLEiViYiukdfEOCaUTLSmmBJKdO2I6LSsDMLAX2MQRd4wPxHe3KNVoFZtKouCv_YxqDy45WDSNf47BXq3gsbB4RKeNT3bOv3TO0UqZMQlj1ov-SVyV0uHBWeBWp2LOOWSGO3REv49P7DoaC7j21X1BRjcIjeRRbHFsKVja4wtY0Pwkxh9n1Ushcy5JJMNe8aHv0lLLvxIvZV0PMDBLnPAoofQ6ZAjjkRGpptud7IbLXY6_O_TBuaHzeqQ0KPt_-E_zM8eCtjQ_LDZS83Ots7-H9IzftH07FhEk57jl0tPB6nHVSZSxQclQyvt49Etr9ehRCFDfilFWNHUpVvhKrERV3l9O6mLRVpflQMOB7N-MN2Dme0HZv1gtgnW_gTrLbC2CdZ7weN-zeNe8Kyf2XjOqvrBO1Z1_JxV9YN3rGrSa9i037DpXqvy169-BQAA__8BkkzS
 
 # Parent-child where pid1 <= 15 have one joined row and pid1 > 15 have no
 # joined rows (since child2 only has 15 rows up to pid1 = 15).
@@ -215,13 +215,13 @@ https://cockroachdb.github.io/distsqlplan/decode.html#eJzUUdFu0zAUfecrru5TywyLU_
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM parent1 JOIN child2 USING(pid1) WHERE pid1 >= 12 ORDER BY pid1]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzMlFFv0zAUhd_5FdZ5atlFi9N0D5EmBViATCUZ6RCgkYcovusiZXFwHASq-t9RkklbEQPWvvTN9j3H536WfNdov1XwsQwX4etL0ZlKvEmT9-Iq_HyxeBnFYnIWLS-XHxZTcSd5Pgqa3HBtpThPolgUN2WlXPFxGcVvxaQplZyKT-_CNBT9WnztHGfGp0K6IknPwlS8-jIUMhBqrTjOb7mFfwUJggvCDAQPhDkyQmN0wW2rTS9ZD4ZI_YDvEMq66Wx_nBEKbRj-Gra0FcNHVFs2FeffOeVcsTnXZc3m2AFBsc3Lakhc8LVFn1He5uZncEcFQlqubh5WRkQQxntAqPjaTgJ5ND01vXZYgpB01heBpMClwKNgTsEJsg1Bd_a-2dbmK4YvN_QI0D2HNooNq-22A3mEbPMH6li_0M3xfEv9WLq7lS53ek55uM_p7gTkHi7QbCeg2eECeTsBeYcL9I-RlHLb6Lrl__qdTv-9Wa14HAet7kzBF0YXQ8y4TQbfcKC4tWNVjpuoHkpDgw_N8q_mky2z87vZ3Sd5to_Z28c8f5I52zz7FQAA__8hjUPy
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8ll9vo0YQwN_7KVbTl6RdC3YN-I90Em3P7fmU2lc7VVtdeeDMNkbyAV2w1FOU714BdhOM2WFD4c0b-LE7M7_J7COkfx9gDtvF3eKHe3KUB_LjZv0z-bj4_cPdd8sVuXm73N5vf7m7JadXvilfSHwpooyR9-vliuz24SHg5NftcvUTuUnCgN2S394tNguS_yZ_Hk1zLN4Qxsl683axId__UTzwgEIUB2LlfxYpzD8CAwocKIyBggUUbPAoJDLeiTSNZf7KYwEsg39gblIIo-SY5X_2KOxiKWD-CFmYHQTM4d7_dBAb4QdCGiZQCETmh4dim0SGn335xT3FABS2iR-lc2IwPjIYN742bNtghs2JHwWEkzjbC5mC90QhPmanPZ-3-vSF7P10X93EZeA9eRTSzH8QMGdP9HVnn10_e5nyF0fn5vnYjjkyeBGEk6_4aTE1mMHLiFgZUaeAeGNAz985RrEMhBRB5UteTmKvXMnKOz_dv4_DSEiDXVT0IP7Kblx2-0aGD_viF1BYH7M5cRl1OXUt6trUdS4ifo5mrFOebSyz_BD2ZYK-bfy-1SJb1xJx-uiVQ6ziUZwY3LxM7dXt7cr2rL19rH3nPHfNyGDWWT_bOi1y_ZjVV0NphGS3bCh2bqFBwuGN4QzRTqzXdkKKc24n57XtxNsXn7f2uankI4M5fVmsEYjT1uJh4uCNcQyhL-9VX6QqZ30nr9V33L7q49b6OiODTf8r_fS0KEo_7UtfjUAmbfUdJg7eGMcQ-o571Repylnf6Wv1tdpX3Wqtb1PJR5V7bl8ia4Q0bSvy0BHxxoiGUNrqVWmkPmelZ__H_fzK9zciTeIoFa2u3maeKhE8iDL1aXyUO_FBxrtim3K5LrjiohSINCuf8nKxjMpH-QHbw5MuMGOdaLsTPVPTTCNnXA-edIEvcqZL253omZrml7T5kh5XYPMSHithS10tSwlzpt7a7tIfahjpDzWM9QdCI_2B0Eh_OF36Qw0j_aGGsf5AaKQ_EBrpj4nS0qla0mmX_ph1MVwNI4arYcxwhEYMR2hsAuiMzfp_Up25qUujQ0BrcmrjiOasNkUqqjKuFp2pxwhiOqvNER3VERpxHaEx2TEcsR3DMd1rM1RLdzWN6a6mUd0RHNMdwTHda4O0qruD6F6bKVq612aKlu5qGtNdTaO6IzimO4JjutfmqZbuahrTXU2juiM4pjuCY7rXpmr1rm2qdee12aLU3Xv66t8AAAD__6BUxwo=
 
 # These rows are all on the same node 1 (gateway).
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM parent1 JOIN child2 USING(pid1) WHERE pid1 IN (1, 11, 21, 31) ORDER BY pid1]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJyMUE2L2zAQvfdXDHOK24FG6cfBUHDbuK2Da6d2SluCD8aaJALHciV52SX4vy-2Art7WNjbzHtP7-nNBe3_FkMs4zT-uoPBtPCtyH_CPv67TT8nGSzWSbkrf6UBXCWvvaCvDXdOwCZPMmhOqpUr-F0m2XdY9EqKAP78iIsYphkmG0EgBMFKELwTAeTFOi7gy79ZUCFhpyVn9ZkthnsUWBH2RjdsrTYTdJkFibzFcEmoun5wE1wRNtowhhd0yrWMISadY9NyfcMF15LNRquOzdslEkp2tWrnhJQPDqcMda7NXXRtg4SFOp4eM74aEnofJGz54BaReBN8MpN2HpEwH1wIkaBoRdF7ij5Q9BGrkVAP7uGz1tVHxlCM9PJCBdted5afFHjOeTlWhCyP7I9m9WAa3hrdzDF-zed3MyDZOs8KvySdp8ZqfHUfAAD__0Q3qDk=
+https://cockroachdb.github.io/distsqlplan/decode.html#eJycklFv0zAQgN_5FafjpQWj1Em3h0hIARZYptKOpAjQlAcTH22kzA62I4Gq_ncUZ2hr1Q66t_P5vvN3J2_Q_mwwxiKdpe-W0JkG3ueLj3CTfr2evcnmMLrIimXxaTaGu5IXQ0ErDCnH4WqRzaFa140M4XORzT_AqK0lH8OXyzRPoY-hb8MZcM4g5AwiPoZFfpHm8PabLyiRodKS5uKWLMY3yLFk2BpdkbXa9KmNL8jkL4wnDGvVdq5PlwwrbQjjDbraNYQxLsX3hnISkkwwQYaSnKgb37Y19a0wv5NBFxkWrVA2hoAHz4Oz84C_-huFIJSECLRbk7FYbhnqzt0_ap1YEcZ8y54mxg-L3S31oZlX-j-b8KjNvUSntJFkSO4IlD35r5IDI10Ku77StSIThLsTNfTDjRI-fm3q1dpHyHDRuRiSM5acsyRkScSS6dFholNWW2jjyATRrkPCXx5tPz2lfU621crS_s4Odp70iyK5omHxVnemomujK__McFx4zickWTfchsMhU_7Kf62HMD8BDvfh8FE42oEn-3D0KDzdg8vtsz8BAAD__2nOYVc=
 
 # Parent-grandchild.
 # We add the pa1 > 0 condition so a lookup join is not considered to be a better plan.
@@ -234,7 +234,7 @@ SELECT url FROM [EXPLAIN (DISTSQL)
     OR pa1 > 0
 ]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzsldFv0zAQxt_5K6x7SsBocdwOFqlSJtZBppKOtAikkYcovnWRsjg4DgJV_d9RnXZLqxRBK5WXvtW-78vV3--km0P1PQcPJsPR8N2U1Con19H4I7kbfr0dXQYhsa6CyXTyaWSTleRlIygThYVm5GYchGSmkkKkD1kuXPJ5EoTviVVmgtnky4dhNCSWZZkz-VY7DscBYcwml-EVad2mA8K4bZNxRLbFF11il9mdat75ac7X6jJZa4ljx0ChkALD5BEr8O6AAQUXKHCg0AMKfYgplEqmWFVSLSVzYwjET_AcCllR1np5HVNIpULw5qAznSN4EBQaVY7JD4wwEahuZFagOnOAgkCdZLnpOMJ7Dcse2WOifvmrWIGaArnOco3KMwn67fw8zwvC6dvVW_12iOvSKp227WKnzX36YoeP727H-ZbPd5_iXVeAQpTNHtrPbA0MUGiSAQo53mvLZ6_sgVoazE-gMK61R3xGfZf6Per3qX9O_TcQLyjIWj8TqHQyQ_DYgu6g9AynLqQSqFBs0IgXHRxD-VqWZ_0tYXdrd6M122tA2GlAjjog7l6U3BOlo1Lie1HiJ0pHpdTbi1LvROm_rcQOShFWpSwq_KuN5yxXJooZNvu1krVK8VbJ1LRpjmPjMxcCK91UWXMIClMyf7BtZn80n2-YnW2ze0hnfoi5d4i5_0_mePHidwAAAP__aOtjjw==
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzsl11v2zYUhu_3K4izG3ugIZGUFFtAABWru7rI7M7OsAGdL1SLiwW4kkbJwIog_32QPxJHUXjEEfZV7vTBR-Qhnxc4uofynw2EsBjfjH--JVu1IR_ms1_Jl_Gfn2_eTaak936yuF38dtMnhyE_7QcUsZJZxcin2WRK7lScJat1ukk4-X0xmf5CekWasD754-N4Pia9Xm93T_7auq6Q14SxPnk3fU9Onq6uCRP9PpnNSXPwqG0wZ_3W0aL100IcRxfxcSxx-0ugkOWJnMbfZAnhF2BAgQMFARQ8oODDkkKh8pUsy1zVQ-53wCT5F0KXQpoV26p-vKSwypWE8B6qtNpICOE2_rqRcxknUjkuUEhkFaeb3TSFSr_F6nt0sm9AYVHEWRmSgcOdHx0_cJjj8f310GEOJ3GWEEHyai1VCcsHCvm2Okz_NOvX72Qdl-vn80UMlg9LCmUV30kI2QP9f2X47WUcXDAtgcKHdFNJFe4EiU71CMNwMr0dHo4yOnXk-Opw-KfY6FWMP36xhROvTydEg4v4oz3HN1ZHwV89iqfvbLNcJVLJ5NmXljWJDWk5z49xuf6Up5lUDmtouZF_V72I9a9VerfeXQGF2bYKSRTQ6IpGnEaCRh6N_EbRTwUJi4JaVjvNB3nhML9Zeuvc3rO5WXevmUE8X1F74Hj1tV8_984VVYOSgo5RNS_nLbbN2LILx5adO7a8u2fcJDonTg2c4FG8YH9dixecKzoGJV11jY5xOW_RaUaHXzg6_NzREd09EybRaddr4AzPFRiDQoZdA9OxiLeYNGMiLhwTce6YeN3t8kxiMhw4zD1a5ruHm1oz5p4rKQa1jLompXsdb2FphsW7cFi8S_5FtaxlLssiz0rZ6R_JrauRyZ3c706Zb9VKflb5ajfN_na243Z9bSLLav-W728m2f5VvcDucGADj2xgZrVu5utpZrBl3AwObOCRDcys1t3Yshc0b9LuKS30-y20MHu-Z26T9mwE18OI4HoYEVwPY4IjNCK4byO4HkYE18OI4HoYExyhEcEDG8GvbBTVw4iiehhRVA9jiiI0oujQRlE9jCiqhxFF9TCmKEIjio5sFGVWfQJCI5IiNGIpQmOaYjjWK9g1C3bdgl27YNkv2DUMzKpjYC9aBiNb9TRmq57GbNXTqK0Ijtlq0iy9PDOTbsmUxmw16peMcczWF82D1tblww__BQAA__8tN9PX
 
 query T
 SELECT url FROM [EXPLAIN (DISTSQL)
@@ -245,7 +245,7 @@ SELECT url FROM [EXPLAIN (DISTSQL)
     OR pa1 > 0
 ]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzslVFv0zAUhd_5FdZ9SsBocdwCi1TJE-sgU0lHWgTSyEMU33WRsjg4DgJV_e-oSbulVYqglbqXvtW-5_g057PkOZQ_MvBgMhwN309JpTNyFY4_kdvht5vRhR8Q69KfTCefRzZZSV42gpmOc5ncp5l0yfXYD0gRa8wNI18mfvCBWEUqmU2-fhyGQ2JZVr0m3yvH4TggjNnkIrgkrd1kQBi3bTIOybb4vEvsMrtTzTuP5nytLuK1ljh2BBRyJTGIH7AE7xYYUHCBAgcKPaDQh4hCoVWCZan0UjKvDb78BZ5DIc2Lyiy3IwqJ0gjeHExqMgQP_NygzjD-iSHGEvW1SnPUZw5QkGjiNKsTR3hnYJmRPsT6t2jVChTCdHbfnq46Xk_IVZoZ1F5dsGjX63meH0zfraoQ7Y7Xo1V5bdv5Tpv7eGKHj--O43zLJ9zH9tcToNBUAxQyvDOWYK_sgV5-YP0TKIwr4xHBqHCp4FT0qOhT8RaiBQVVmScEpYlnCB5b0B2YnuhUudISNcoNHNGiA2SgXqvirL8l7I52N6LZXjeEnW7IcW-Iuxcm94TpuJj4Xpj4CdNxMfX2wtQ7YXq-Z7EDU4hlofIS_-nVc5bPJsoZNm9sqSqd4I1WSR3TLMe1r96QWJpmypqFn9ej-g-2zeyv5jcbZmfb7B6SzA8x9w4x9__LHC1e_AkAAP__Vhplvw==
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzsl9-O4jYUh-_7FNbpDVRGie2EgUgjZdVlu6ymsIWpWmnLRZa4QyQ2SZ0gdTWad69CYIbJZHziWnA1d_njL_axv590cg_FP1sIYDm5mfx8S3ZqSz4s5r-SL5M_P9-8m85I7_10ebv87aZPDkN-qgfcqSiN15tkG3PyaT6dkTxSMi0Z-X05nf1CenkSsz754-NkMSG9Xm9_T_7aua6Q14SxPnk3e09Onq6vCRP9PpkvSHPwuG0wZ_3W0aL100IcR-fRcSxx-yugkGaxnEXfZAHBF2BAgQMFARQ8oODDikKusrUsikxVQ-73wDT-FwKXQpLmu7J6vKKwzpSE4B7KpNxKCOA2-rqVCxnFUjkuUIhlGSXb_TS5Sr5F6nt4solAYZlHaRGQgcOdHx1_6DDH4_X1yGEOJ1EaE0GyciNVAasHCtmuPEz_NOvX72QTFZvn84UMVg8rCkUZ3UkI2AP9f2X47WUcjt60BAofkm0pVbAXJDzVIwiC6ex2dDjK8NSR46vD4Z9i41cx_vjFFk68Pp0QDS7kj_Yc31gdBX_1KJ6-s0szFUsl42dfWlUkNqTlPD9GxeZTlqRSOayh5Vb-XfZC1r9Wyd1mfwUU5rsyICGjIaehoKFHQ5-GV42inwoSFgW1rHaWDbLcYX6z9Na5vWdzs-5eM4N4vqL2wPGqa7967p0rqgYlDTtG1byct9g2Y8suHFt27tjy7p5xk-icODVwho_iDevrSrzhuaJjUNJV1-gYl_MWnWZ0-IWjw88dHdHdM2ESnXa9Bs7oXIExKGTUNTAdi3iLSTMm4sIxEeeOidfdLs8kJqOBw9yjZb57uKk0Y-65kmJQy7hrUrrX8RaWZli8C4fFu-RfVMtaFrLIs7SQnf6R3KoaGd_JeneKbKfW8rPK1vtp6tv5ntv3tbEsyvotr2-maf2qWmB3eGgDj21gZrVu5utpZrBl3Awe2sBjG5hZrbuxZS9o3qTdU1ro91toYfZ8z9wm7dkIrocRwfUwIrgexgRHaERw30ZwPYwIrocRwfUwJjhCI4IPbQS_slFUDyOK6mFEUT2MKYrQiKIjG0X1MKKoHkYU1cOYogiNKDq2UZRZ9QkIjUiK0IilCI1piuFYr2DXLNh1C3btgmW_YNcwMKuOgb1oGYxs1dOYrXoas1VPo7YiOGarSbP08sxMuiVTGrPVqF8yxjFbXzQPWltXDz_8FwAA__8tu9O-
 
 query TTT
 EXPLAIN SELECT * FROM grandchild2 JOIN parent1 USING(pid1) WHERE
@@ -254,21 +254,20 @@ EXPLAIN SELECT * FROM grandchild2 JOIN parent1 USING(pid1) WHERE
   OR pid1 >= 31 AND pid1 <= 33
   OR pa1 > 0
 ----
-·                distributed         true
-·                vectorized          false
-render           ·                   ·
- └── merge-join  ·                   ·
-      │          type                inner
-      │          equality            (pid1) = (pid1)
-      │          right cols are key  ·
-      │          mergeJoinOrder      +"(pid1=pid1)"
-      ├── scan   ·                   ·
-      │          table               grandchild2@primary
-      │          spans               ALL
-      └── scan   ·                   ·
-·                table               parent1@primary
-·                spans               ALL
-·                filter              ((((pid1 >= 11) AND (pid1 <= 13)) OR ((pid1 >= 19) AND (pid1 <= 21))) OR ((pid1 >= 31) AND (pid1 <= 33))) OR (pa1 > 0)
+·               distributed         true
+·               vectorized          false
+render          ·                   ·
+ └── hash-join  ·                   ·
+      │         type                inner
+      │         equality            (pid1) = (pid1)
+      │         right cols are key  ·
+      ├── scan  ·                   ·
+      │         table               grandchild2@primary
+      │         spans               ALL
+      └── scan  ·                   ·
+·               table               parent1@primary
+·               spans               ALL
+·               filter              ((((pid1 >= 11) AND (pid1 <= 13)) OR ((pid1 >= 19) AND (pid1 <= 21))) OR ((pid1 >= 31) AND (pid1 <= 33))) OR (pa1 > 0)
 
 # Join on multiple interleaved columns with an overarching ancestor (parent1).
 # Note there are 5 nodes because the filter cid2 >= 12 AND cid2 <= 14
@@ -285,7 +284,7 @@ SELECT url FROM [EXPLAIN (DISTSQL)
     OR gcid2 >= 49 AND gcid2 <= 51
 ]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzslU9r20wQxu_vp1jmZL2ZNl5Jzh-BYUPjUAVXTp1AC6kOQjtRBIrWXa1KS_B3L5KsWHLc0jqQXnyzZp6fZ_d5FuYRiq8ZeHA9mU7e3bBSZ-xiPvvAbiefr6ZnfsAG5_71zfXHqcVWkv8bQXyfZtJmlzM_YImOcrkqzAI2GDS_3y5Sydm4265LFjsLzlkrilNpb4iqkvVM5TxXORb79H4yn7BBf-aXcjh0aMxG_T9Z9-IxO7YsNpuvD1ufowW5veWQLcldq2WTHuWerqikpx9xywoBIVeSguiBCvBugQOCDQgOILiAMIIQYaFVTEWhdCV5rAFffgdviJDmi9JU5RAhVprAewSTmozAAz83pDOKvtGcIkn6UqU56cMhIEgyUZrVE6d0Z6CakT5E-odobgYI8zS57zY6HrdddpFmhrRX-Sw69nqe5wc3J6tbi465bWflk-hau0F1jX3CWs7tmLvBuR2DnzhAaG4PCBndmYHgByjsAxTOgTXW1WV6JUCYlcZjgqOwUTgoXBQjFEcojlGcoDiFcImgSrO2vzBRQuDxJf4ionUyZa60JE2yF0W43BJioN6oxeFoQ7h9tN0bzXd6HXz_Ol7vddg7RWTvI3q9iJydInL2Eb1eRO5OEbn7iP7NGtwS0ZyKhcoL-qMtN6zWJMmEmp1aqFLHdKVVXI9pPmc1VxckFabp8ubDz-tWfcAuzH8LH_Xg4SZsv2Sy8xLYfQk8-is4XP73MwAA__8gC4Cq
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzkl9-O4jYUh-_7FNbpDalME-ffQKSRsuqyWlZT2DIjtdKWiyxxIRKbUCdIXY3m3asQMiSB8YnrzszF3CW2P-zjfD_pcA_531sI4HZyM_nljuzFlnxYzH8lXyZ_fL55N52Rwfvp7d3tbzcGOS75qVqw2iTb2Caf5tMZWYsojY8D8xkZDKrnn3dJzMh1c_owZJB3s_ekXrRKYruzqBwyzlY556scg_z-cbKYkEF7zz_3luXwa-K1f-Q0t7omV4ZB5ovTYQ_nqEFmXzhkTTLXqNl1i3LHR2rdWu8xw1gChTSL-Sz6xnMIvgADCjZQcICCCxQ8WFLYiWzF8zwT5ZL7AzCN_4HAopCku31RDi8prDLBIbiHIim2HAK4i75u-YJHMRemBRRiXkTJ9rDNTiTfIvE9rOoACre7KM0DMjRt80fT801munb1PDKZaZMojYlDsmLDRQ7LBwrZvjjufNrw63eyifJNe6uQ0dCmoQPLhyWFvIjWHAL2QP9bHd7lOhoCqBZD4UOyLbgISlvChiRBEExnd6PjtwsbitQzx68dNgXpUE09HrGacxuKdDi3ockj9z9cvP3kxZ9-bZ9mIuaCx63fW5YktuTC1_sY5ZtPWZJyYbKOhVv-VzGoj2lci2S9abwDhfm-CEg9QEOXhh4NfRpe0XBEw3HnPk5VOhpVXihhlg2zncm87n1c3Ntt7c36q836RfQJqYemWz575bj7vHFVqMlXiKt6YW85uuyFo8teJbp2f9XsnvFp2DQ0_Ufl_Oq5VM5_3vgo1HSlEh_lwt5yfOwXjo_9KvFx-qvm9IzPZbGG5uh5Q6NQyUglND3LectRcV44Ks6rRMXtL5jbMyqjocms2i_POr6UgjHredOiUMxYJS39K3rLgXFfODDuq_-runDABc93WZrzXv-ZrLJEHq95dWV5thcr_llkq8M21ev8wB0a35jnRTVrVy_TtJoqD9gf9nXgsQ7MtM7NPDnNFK7MVoN9HXisAzOtc3eu7Iy2u7TVpB35fTtSmLXvzOrSro7gchgRXA4jgsthTHCERgT3dASXw4jgchgRXA5jgiM0IrivI_iVjqJyGFFUDiOKymFMUYRGFB3pKCqHEUXlMKKoHMYURWhE0bGOokyrT0BoRFKERixFaExTDMd6Bb1mQa9b0GsXNPsFvYaBaXUM7KxlULJVTmO2ymnMVjmN2orgmK0qzdL5N1PpllRpzFalfkkZx2w9ax6kti4ffvg3AAD__74r968=
 
 query TTT
 EXPLAIN
@@ -298,20 +297,19 @@ EXPLAIN
     OR child2.cid2 >= 12 AND child2.cid2 <= 14
     OR gcid2 >= 49 AND gcid2 <= 51
 ----
-·           distributed        true
-·           vectorized         false
-merge-join  ·                  ·
- │          type               inner
- │          equality           (pid1, cid2, cid3) = (pid1, cid2, cid3)
- │          left cols are key  ·
- │          mergeJoinOrder     +"(pid1=pid1)",+"(cid2=cid2)",+"(cid3=cid3)"
- ├── scan   ·                  ·
- │          table              child2@primary
- │          spans              ALL
- └── scan   ·                  ·
-·           table              grandchild2@primary
-·           spans              ALL
-·           filter             (((pid1 >= 5) AND (pid1 <= 7)) OR ((cid2 >= 12) AND (cid2 <= 14))) OR ((gcid2 >= 49) AND (gcid2 <= 51))
+·          distributed        true
+·          vectorized         false
+hash-join  ·                  ·
+ │         type               inner
+ │         equality           (pid1, cid2, cid3) = (pid1, cid2, cid3)
+ │         left cols are key  ·
+ ├── scan  ·                  ·
+ │         table              child2@primary
+ │         spans              ALL
+ └── scan  ·                  ·
+·          table              grandchild2@primary
+·          spans              ALL
+·          filter             (((pid1 >= 5) AND (pid1 <= 7)) OR ((cid2 >= 12) AND (cid2 <= 14))) OR ((gcid2 >= 49) AND (gcid2 <= 51))
 
 # Aggregation over parent and child keys.
 query T
@@ -320,7 +318,7 @@ SELECT url FROM [EXPLAIN (DISTSQL)
     pid1 >= 10 AND pid1 <= 39
 ]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzUlVFv2j4Uxd__n8K6T0R_q40ToBAJCbSyLRWFDlptUpeHKLlNI4WYOc60CfHdJ8d0Dah1JuCFt9j3nvzuOY7iNRQ_MvBgMZ6MP9yTUmTk43x2Sx7H3-4mI39KWtf-4n7xZWKRbUtRLlurUGAu2cUqjZlFq63oOc1idhGpHf2KbRO5mflTosvkYeFPP5FWpSNfP4_nY70g30vbdnFAmG2R0fS6vhsNiNu3AqCQ8xin4RIL8B6BAQUHKLhAoQ0UOhBQWAkeYVFwoVrWlcCPf4FnU0jzVSnVdkAh4gLBW4NMZYbggZ9LFBmGP3GOYYzihqc5ikuFiFGGaVYRJ_gkQTHSZSh-D7f-gFYFMiulR4ZqOU-T53qj9v5SeGmkQzW9JgGFDJ9ka8j-twZCdVWPQOFvswvBhgIv5auLQoYJgsc29N-djpJEYBJKLi67u-4WD7etIVPM6smx3gU67wJfOWXORYwC4x1IsDGPxOxDZ3J3ZmIHHbdzhsfd4LSW7dVpjts5KFr3DKNtcFqLtneaaN2Dom2fYbQNTmvR9k8TbfugaO0zjLbBaS3azun__28A51iseF7g3j3w9pttdT9gnKC-TApeigjvBI8qjF7OKl21EWMhdZXphZ_rkhqwLmZGsbMjZvtix0xuQLtGddssbh8zd8co7prJ3WPIV0Zxz0zuHUPum8_KbvhMzB_ZPjvY_PcnAAD__4AGlMA=
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8l19vo0YQwN_7KVbTl1jCB7uAjZEiOeq5PZ9yzjXOqZWuPHBmayM54C4gNYr83U_8UWIbe4c12G9Z4MfO7PwmY14h-W8NLswn95Pfnkgm1uT3x4cv5Pvk76_3d9MZufk4nT_N_7zvkeqRJHu-2fiCRyn9sAkD2tOKS4tVuA7oh0V-pXxF9RD5_DCdkfI2-Tafzv4gNwVH_vo0eZyUC_JPZhgmvyXU6JG72cfdq4tbYo56HmgQxQGf-c88Afc7UNCAgQYmaGCBBjZ4GmxEvOBJEov8kdcCmAb_g2toEEabLM0vexosYsHBfYU0TNccXHjyf6z5I_cDLvT8vQFP_XBdbLMR4bMvXsZlAqDBfONHiUt0aui_6vZAp7ptVAtHpzo1-jpl-crObzHiRwFhJE5XXCSgwUOWumRMtTEDb6tBnKVVWO_R_HghKz9Z7ccxpuBtPQ2S1F9ycOlWOy-9wfH0qmJ1ll-r5NjJ5N7fk0WxCLjgwd6bvJzEHjlyQp_8ZPU5DqO8_gcCrPm_6c2Y9m5FuFwVf71ladar-J6EqVKhu-VS8KWfxkKnBxWaf_tSbVr8xXond7RaHJs8JmacG5O9FxNt7ilr2oY7LvZ1ar1Ja1WLQlrrKm2okN6wcRu2yq_DNqRXbkN2iTZEKrTbhsNu2pA1d8JsqvwpCfo6HVxFdIWknMain5FVh3qzK-ttXkJvpC67ejvd6G02N8Fqqvegr1PnTQanWhQyOFfRWyGpUWO9z8iqQ73NK-ttXUJvpC67eo-60dtqboKh9N1g67R_-id24YN5YcsVcrObfzSoZ9Wh5daVLTcuYTlSl13L7e4_FY7s-MiTTRwl_PD4jr7ZyM-MB0te1iCJM7HgX0W8KLYplw8FV_waC3iSlnfpqFxNo_JeHmFzmrWBh21gSlvRtpymKmfG1GjWBh62gQ_OTJW25TQ7pI1d2tyDjUPYlMKWvFqWFGZUvrXdqj_kNNIfchjpDyRupD8QGumPQav-kNNIf8hhpD-QuJH-QGikP4ZSSx25pE6b_hi1MlxOI4bLYcRwJG7EcITGJoDS2Kz_K1WZm6o0NgSUJqcyjmhOa1NkT1XK5KJT-RhBTKe1OaKkOoIjriM0IjsWOmI7hmO612aomu5yHNNdTmO6I6FjuiM4pnttkO7rPkB0r80UJd1rM0VNdzmO6S6nMd2R0DHdERzTvTZP1XSX45juchrTHQkd0x3BMd1rU3X_t7Yh153VZotUd2_7y88AAAD__1gLB5A=
 
 ###############
 # Outer joins #
@@ -391,22 +389,22 @@ NULL       /0       {5}       5
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM outer_p1 FULL OUTER JOIN outer_c1 USING (pid1)]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzclM9q20AQxu99imVOdjslXknOQVBQcJWioEqpZEMhiCK0E1egaNXdVWkwfveiVUrqNP1n33TbnZlvvvnNYXagvzTgQx7G4WrNetWwyyx9z27Cj9fxRZSw2dsoX-cf4jl7KHk5FsjekPrUcXa5iWN2lUbJQ6jibJNHyTs262rB5wUgtFJQUt6RBv8GOCA4gOACggcISygQOiUr0lqqoWRnBZH4Bv4CoW673gzhAqGSisDfgalNQ-BD1BpSDZVfKaNSkLqSdUvqbLAQZMq6sY4x3RoYPOq7Ut0HPyYHhKzefv41VQ2psRUgrO878kfKdLMOM8sKCA3dmlnAX83fqKGLfQ4tqRWkfLZKL-IwX4WzgGPgzpEFDrLAQxYskQXnUOwRZG8e2bQptwQ-3-Nv-B-x-1YqQYrEAWexf2ZDiXwtu7Plk8LnrZ0Da37U6p3JrN45it-dDL97FL83GX7vKP7FZPj_cnoz0p1sNf3TZVkMp4nElsY7pmWvKrpWsrI24ze1OhsQpM2Y5eMnam3KDvizmP9RfH4gXjwVO6c4u6eIvVPEy_8SF_sX3wMAAP__E6R9Gg==
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzMllFv2jwUhu-_X2GdK_hklNghtESalKqjGxWDDqg0qYqmlHgFicaZE6RVFf99gnTqoMXHmQFxVxI_9nt8HqXnGfKfcwhg1Ol1Lsdkoebkajj4Qu463256F90-qX3sjsajr706eVnyf7lALgqhvmeMXN32euR60O2_PJowcjvq9j-RWjZLWD0CCqlMRD9-FDkEd8CAAgcKHlBoAgUfIgqZkhOR51KtljyvgW7yCwKXwizNFsXqcURhIpWA4BmKWTEXEMA4vp-LoYgToZzVvoko4tl8fUymZo-xegr_5AQKoyxO84A4bsPxSZwmhBFZTIWCaElBLoqXc163v38i0zifbm4cMoiWEYW8iB8EBGxJ_y1vS5d3crC8fGfe130WqVSJUCLZ2ClakdiSd4r-HOfTazlLVz3aatL4KRNBadDgdtwZrj0CCnPxo6iFrP5BzR6m67-AwlCkiVABuRxc9Dqjy04tZDT06pSEnJKwSUnoUxK2tm7ntXLPovJ3yurLhswc5m_f0btnNzfOZuaWcGOr_YbD3ANpXSHwmbHW-w3MdwY-htf8ZLzm5q3yjN1ibsNhh_pmVkh8bizXnhPznYmPYZd3MnZ55r1qmtvlNxx-qE9XhcRtc7v2m5jvTHwMu5onY1fTvFeuqV0N51BmVUjrm5q1z7R8Z9pjWOWejFXITD4UeSbTXBjNce6qbJE8iPIac7lQE3Gj5GR9TPlzsObWM0gi8qJ8y_zyVzct360SmtPcBm7ZwG0bmCG5WZUr49VobgO3bOC2DcyQ3Hybdv-mPf19e1qYbVbtbtNNK8H1NCKKHkYE18OI4EjRSG7fSnA9jYiihxHB9TAiOFI0krtlI_iZlaJ6Gmm1HkYU1cOIokjRSO5zK0X1NNJqPYwoqocRRZGikdxtG0WZ3ZyA4Ng_XKtJAaERTbHCseiWw4LdtGA3LtjNC3YDA7OaGNibkaGarXoca7mexmzV05itSOFY9ErD0tumVZmWqtKYrVXmpao0auub4UFra7T873cAAAD__1rgwqM=
 
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM outer_gc1 FULL OUTER JOIN outer_c1 USING (pid1, cid1, cid2)]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzklU9r20AQxe_9FMuc7HpKvJKctoLCBlcpCqqUSjYUgihCO3EFilZdrUqD8XcvktImStN_9tEXw76Zt8_zWxhtoflSgguJF3jLFWt1yc7j6D278j5eBmd-yCZv_WSVfAim7K7l-dCgWkP60ybn7HwdBOwi8sM7LedsnfjhOzapC8mR5T9-rWkKCJWSFGY31IB7BRwQLECwAcEBhAWkCLVWOTWN0l3Ltjf48hu4c4SiqlvTySlCrjSBuwVTmJLABb8ypEvKvlJMmSR9oYqK9EkXIclkRdknBnRtoMsobjJ9K36OAQhxsfn8a60vDXcBwuq2JncYOVqvvLgfHBBKujYTwWcorBkKezZ9o7vbRlIXQZUk7bJldBZ4ydKbCI7idIoPBAvFy5Fgo3g1RSYcZGKBTLyGdIegWnOPojHZhsDlO_wNrntKbaW0JE1yhCXdPQE0VC9UfbJ41Ph0tDWK5nu9lHWsL2Xthcs-Vlz2XricY8Xl7IVrfqy4_vKViampVdXQP23FebdWSW5o2MGNanVOl1rlfcxwjHpfL0hqzFDlw8Gv-lL_Bx-a-R_NpyPz_LHZOiTZPsTsHGJe_Jc53T37HgAA__8UBrYr
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzUl19v2jwUh-_fT2Gdq_LKKLFDaIk0KVVHNyoGHVBpUhVNKfEAicaZE6RVFd99ImnXQotPMi9I3FTKn8f-2edxeniE9OcSPBh3-92LCVmpJbkcDb-Q2-636_55b0BOPvbGk_HXfoM8vfJ_8YJcZUJ9n00Zubzp98nVsDd4ujdl5GbcG3wiJ8kiYpRMn__yRgAUYhmJQXgvUvBugQEFDhQcoNACCi4EFBIlpyJNpdq88pgDvegXeDaFRZysss3tgMJUKgHeI2SLbCnAg0l4txQjEUZCWZtxI5GFi2U-TaIW96F68P-EBgrjJIxTj1h203JJGEeEEZnNhYJgTUGusqeJXsa_eyDzMJ1vj-wz6nPqOxCsAwppFs4EeGxN_y52Wxe77tR8b-qX0VaxVJFQItoaL9iQ2CvvLP1zmM6v5CLeFGynYpOHRHiFWsObSXeUCwYUluJHdvIcv_FBLWbzV9dAYSTiSCiPXAzP-93xRTd_2G7QVzc49U-3bjjUP2tQ4rco8V1K_M7Obr7skWOwR-9swEA2ZWIxd3c33527tTU3K28VL38Y3KbF7FpPQ4Xcp6VPQx2x-d7YhzgO_AiPAy9fWqe8ksxuWqzeL3SF4GelnawlN9-b-xBSOkcopVO-tq0KUrpNi9f7oawQvFNeyjpy8725DyFl6wilbJWvrV1ayqZVr5AVQrtlhfz3mfnezIeQ0T5CGZHfJyORJjJORake1d5skIhmotjwVK7UVFwrOc2nKS6HOZe3VJFIs-Ipc4urXlw82yQsT3MTuG0Cd0xghuRmVbaMV6O5Cdw2gTsmMENy813afk07-v12tDDbXrW9S7eMBNfTiCh6GBFcDyOCI4tGcrtGgutpRBQ9jAiuhxHBkUUjudsmgp8aKaqnkVLrYURRPYwoiiwayX1mpKieRkqthxFF9TCiKLJoJHfHRFFm1icgOPYP16hTQGhEU2zhWHTDZsGsWzBrF8z6BbOGgRl1DOxNy1DNVj2OlVxPY7bqacxWZOFY9ErN0tuiVemWqtKYrVX6pao0auub5kFra7D-73cAAAD__zHmBMk=
 
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM outer_c1 LEFT OUTER JOIN outer_p1 USING (pid1) WHERE pid1 >= 0 AND pid1 < 40]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzUVF1vlEAUffdXTM7TomPKAPpA0oTGUqVBqCyNJpUYArcrCWVwGIzNZv-7Yahpt9aPbp_2jXvPPfdwTnJnjeFbCx_LMA7f5GxULTvJ0vfsIvx0Fh9FCVscR8t8-SG22M3I83lAjprUl0qwODzJ2WkaJTetXrDzZZS8ZYu-qYXFPr4Ls3Au2OfRtl06ZLbFjpLju82KebZVgKOTNSXlFQ3wLyDA4YDDBYeHgqNXsqJhkGqC12Y4qn_Atzmarh_11C44KqkI_hq60S3BR9RpUi2V3ymjsiZ1KpuO1IENjpp02bRGLaZLjUmjuSrVdfDLITiyZvX1d6ifoHkVOPLrnvw5jfQ8DzOTCThautSLQLywDtW0xXyCIx21zwLBA4cHLg88HrxGseGQo771MehyRfDFhv_B663FsZOqJkX1lqdi80AaiXwp-wPv3uDD0s6WtNgpZrGXMTs7eXX20qu7k1d3L73-46nIaOhlN9B_XYc9nRfVK5pvcZCjquhMycrIzGVqeKZR06BnVMxF1BnI_OBdsvgr-dUW2b5Pdp6i7D6F7D2KXGye_QwAAP__qyUQHg==
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzElVFv2jwUhu-_X2Gd76ZMRrEdoCVSpVRrulIx6IBqk7poSolXItE4sxNpVcV_n0g6tSCww0zLHUn8-LzHPPJ5AvVrDh6Mg37wcYIKOUcXo-FndBt8u-6f9Qbo6Lw3noy_9BvoecmHaoEoci5_TCnqBxcTdDXsDZ5fZRTdjHuDT-goS2LaQF8vg1FQPaDvBSEuP0Wkgc4G569fTlGLNELAkIqYD6IHrsC7BQoYGGBwAUMLQgyZFFOulJDLz0_l4l78GzyCIUmzIl--DjFMheTgPUGe5HMOHkyiuzkf8Sjm0iGAIeZ5lMzLEplMHiL56P_tBzCMsyhVHnKI87_TIQ5tOm0UpTGiSOQzLiFcYBBF_lzupcrdI5pFara6v08hXIQYVB7dc_DoAv9b7JYudrYSe5952da8L_sUqZAxlzxe2SlckqYlG5q-jNTsSiQpl87JarTJY8a9yrfhzSQYldYBhjn_mR_5tHEqk_tZ-QswDIvcQz7FPsO-i_0W9jtrB_HSpGvR5IYOBqIpMoey9ePYWLu1UpvWF4LW9rjddCh5I4N3CNyubfB-A7Otgd9B4e5BFGb1_xVWWyNKmg59q5twh8Sd2h7tOTHbmvgdRKLkICa59f8Xt75J7abD3upG2iHxcX2T9puYbU38HibRg4_VDQFHXGUiVbzW0CTLFnl8z6sjU6KQU34txbQsUz0OS6688GOu8uorqx56afVpGbA-3LGBuzYwNeSmOzTNdoM7NnDXBqaG3GydJq9pV39irhamqzRZp1s2kulhg2R62CCZHjZJ1raRTA8bJNPDBsn0sEmyjo1kxzaa6GGDJnrYoIkeNmlyYqOJHjZooocNmuhhkyZdG02o1cwy0AZRDLTBFANtHFt2c8tucNlNLrvRRXebXeHivz8BAAD__3VvbZw=
 
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM outer_p1 RIGHT OUTER JOIN outer_gc1 USING (pid1) WHERE pid1 >= 1 AND pid1 <= 20]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzUVO9rnEAQ_d6_YplPsZ0SVy8tCAeGxiaGq6aeoYVUirgTKxjX7q6l4bj_vbheSS5Nf10-3Tdn3rx5vgezK9BfWwhgGS2iNzkbVMveZuk7dhV9vFgcxwk7OImX-fL9wmGbkefTgBwMqc89Z1l8epaz8zRONr264uxyGSen7KBvBHfYh7Moi6aCfRpc16c54w47Tk7uN6s581ynAIROCkrKG9IQXAEHBA8QfECYQYHQK1mR1lKN8MoOx-I7BC5C0_WDGdsFQiUVQbAC05iWIIC4M6RaKr9RRqUgdS6bjtShCwiCTNm0Vm1B1wZGjeamVLfhT5OAkDX1l1-huhqxaRcg5Lc9BZtE0ss8ymwugNDStTkI-QtnrsY99hMQ0sEELPQx9DCcYXiE4SsMX0OxRpCDuTOjTVkTBHyNvzF853PopBKkSGwZK9aPRJLIl7I_nD0YfFza25LmO2XN9zdrbyfD3v4a9ncy7O-v4b88HxnpXnaa_ulY3PHaSNQ0naaWg6roQsnKykxlanm2IUibCeVTEXcWsj94n8z_SD7aIrsPyd5TlP2nkGf_RS7Wz34EAAD__3H4Fpg=
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzMlVFvmzwUhu-_X2Gd76aZHIFNkjZIlahW2lJlSZdQbVKHJhq8BCnFzIC0qsp_nwLVWqLEhrlKdxewn5z3mEc-T5D9XIENM3fkfvRRIVboYjr5hO7crzejM2-Mjs69mT_7POqg5y0fqg28yJn4nhI09S6vfHQ98cbP7xZzgm5n3vgSHaVxRDroy5U7dasH9K0wTYudItJBZ-Pz1y_np4ianQAwJDxi4_CBZWDfAQEMFDBYgKEHAYZU8DnLMi42y0_lZi_6BbaJIU7SIt-8DjDMuWBgP0Ee5ysGNvjh_YpNWRgxYZiAIWJ5GK_KEqmIH0Lx6PyJDxhmaZhkNjKI8b8xMA3SNfooTCJEEM-XTECwxsCL_LneS5n7R7QMs2W9gEMgWAcYsjxcMLDJGv9d7p4sd1qL_ZZ56d68L_9TJFxETLCo9k_BhlRt2dH0VZgtr3mcMGGc1KP5jymz0ci98NHk1nenpXiAYcV-5EcO6ZyKeLEsfwGGSZHbyCHYOcYOxY6FnR52-ltn8dKnpdHnjibGvMtTg9DtE9lZu1erTZo7QZq73O8axHxDc1uk7Dc2Vz8k3RvyALoO30tX2vxj0BbXn9k1yHYEHWdaxBw0v-30U9K9KQ8gDTHfyxqr-eewWljT7xr0LW-aFjGPm1ujn5LuTXkIa8i_MBp3ZJyyLOVJxhoNPnPTJYsWrDq1jBdizm4En5dlqsdJyZV3ecSyvFql1YOXVEubgM3hgQ481IGJIjdp0TRtBw904KEOTBS56TZtvqYt-YlZUpjUaXOb7ulIJocVkslhhWRyWCVZX0cyOayQTA4rJJPDKskGOpId62gihxWayGGFJnJYpcmJjiZyWKGJHFZoIodVmgx1NCFaM0tBK0RR0ApTFLRybOnNLb3BpTe59EYXaTe7gvV_vwMAAP__0YZbVA==
 
 ########################
 # Non-interleaved joins #
@@ -417,13 +415,13 @@ https://cockroachdb.github.io/distsqlplan/decode.html#eJzUVO9rnEAQ_d6_YplPsZ0SVy
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM child1 JOIN child2 USING(pid1)]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJy8lk1v2zgQhu_7K4jZS7KhQZH6iC1gAS22aeEgsdM4BQoEPigWawtwJJeSgQaB_3shK20Sf3CoEtKNkvho-HKewzxD8X0JIUwuri7-vyNrtSQfb8fX5P7i683Vf8MROfkwnNxNPl-dkpct_9QbZot0mXByOR6O6rUgXybD0SdyskoTfjoFClmeyFH8KAsI74EDBQEUXKDgAQUfphRWKp_JoshVteV5CwyTHxA6FNJstS6r11MKs1xJCJ-hTMulhBDu4oelvJVxIhVzgEIiyzhdbsusVPoYq6eoPh5QmKzirAhJjwn2N_MDxpkn6nWfcSZInCXEJXm5kKqA6YZCvi5fKr8WfHgii7hYvC8VcZhuphSKMp5LCPmG_lkCX5NAdJlAHE3w-p9cJVLJZPc_Z1Vho10HLuNaqrm8zNNMKsZ3-rmU38qTiJ-d_qvS-aJeAoXxugxJxGkkaOTSyKdRQKPznfSvyVyDZOvs0KkPHniU9_IV4_7OzsO1vXe1ubkX3MzsI1r0mFet_eq915blDdIEZpZ3m0YcTdOh8bx944V5n4ShdW_60WPB76YF9bpqWtCWdQ3SnBta12kacTRNh9aJ9q1zzfvkGlp3uDU91m_LtQYZ-oaudZBBHM3QoWFu-4Z55t3xDA3r9xh3fnXId14eqhZxpy3JGsQYGErWTQxxNEaHnnndTowHjnMri1WeFdJoHnSqQDKZy_qainytZvJG5bNtmfpxvOW2E0kii7L-KuqHYVZ_qg5oDgc28MAG5lbn5r6e5g2uTDSDAxt4YANzq3PvXNkeLXZp5y3t6u_b1cL8_Z05u7RnI7geRgTXw4jgehgTHKERwX0bwfUwIrgeRgTXw5jgCI0IHtgIfm6jqB5GFNXDiKJ6GFMUoRFF-zaK6mFEUT2MKKqHMUURGlF0YKMot5oTEBqRFKERSxEa0xTDsVnBbliwmxbsxgXLecFuYOBWEwPfGxka2aqnMVv1NGarnkZtRXDM1ibD0n7PmkxLTWnM1kbzUmMcs3VveNDaOt389TMAAP__xGu2hQ==
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8ll1r2zwYhs_fXyGe96QdCrLkjyaGgcfWbSld0jUdDIoP3FhrDKmdyQ6slPz34bhbmy898kR8Jie-LN16roP7Ccqfcwhhcn55_v6GLNWcfLwefyG359-vLt8NR-Tkw3ByM_l6eUqeX3nTvDCdZfOUk4vxcNSsBfk2GY4-kZNFlvLTGCjkRSpHyYMsIbwFDhQEUHCBggcUfIgpLFQxlWVZqPqVpzUwTH9B6FDI8sWyqn-OKUwLJSF8giqr5hJCuEnu5vJaJqlUzAEKqaySbL7eZqGyh0Q9Rs3xgMJkkeRlSHpMsP-ZHzDOPNGs-4wzQZI8JS4pqplUJcQrCsWyet75ZcO7RzJLytnmVhGHeBVTKKvkXkLIV_TfEviaBKLLBOJggpfvLPNCpVLJdONLcU1ir-y5hs9JObsoslwqxrcGOZc_qpOIn75V2f1svQIK42UVkojTSNDIpZFPo4BGZ1uhXwK5FoH2nHZU9IoF4_529L17ext7c3MduJnQB2zoMa9e-_Xv3rHkbpEmMJO72zTiYJouROfHFl2Yj0cYyvZqDD0W_J1V0KzrWQXHkq1FmjND2TpNIw6m6UI2cWzZXPPxuIay7Z9Ij_WPpViLDH1DxTrIIA5m6EIs99hieeZD8QzF6vcYd_4MxneeH-rJcOdYbrWIMTB0q5sY4mCMLvTyumyDe85yLctFkZfSqOs5dRqZ3svmdspiqabyShXT9TbN43jNrdtGKsuq-Vc0D8O8-as-oDkc2MADG5hbnZv7epq3uDLRDg5s4IENzK3OvXVlO7TYpp3XtKu_b1cL8807c7Zpz0ZwPYwIrocRwfUwJjhCI4L7NoLrYURwPYwIrocxwREaETywEfzMRlE9jCiqhxFF9TCmKEIjivZtFNXDiKJ6GFFUD2OKIjSi6MBGUW7VExAakRShEUsRGtMUw7GuYFcW7NqCXV2w7At2hYFbNQa-Uxla2aqnMVv1NGarnkZtRXDM1jZlaXdmbdpSWxqztVVfao1jtu6UB62t8eq_3wEAAP__dqCy2Q==
 
 # Join on non-interleaved tables (with key) uses merge joiner.
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM parent1 JOIN parent2 ON pid1=pid2]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJy8lVFr2z4Uxd__n0Lc_0u7KsiSHdc1FDy2DlLapGv6MCh-cOO7xJBanuzASsl3H46zpQmJ5CCcp0i2fr4651xy36H8NYcQxjd3N1-eyELNybfH0T15vvnxcPd5MCRnXwfjp_H3u3OyPvKpOVAkCvOKk9vRYLjeCDIakiJLObmuf0QMFHKZ4jB5xRLCZ-BAQQAFFyh4QKEPMYVCyQmWpVT1kfcVMEh_Q-hQyPJiUdWPYwoTqRDCd6iyao4QwlPyMsdHTFJUzAEKKVZJNl-VKVT2mqi3aH1FoDAukrwMSY8J9j_r-4wzTzTrgHEmSJKnxCWymqEqIV5SkItqXXpT8eWNzJJytl0r4hAvYwpllUwRQr6kByRsviNVigrT3e9c1IU3pxb5vnOrWrtW3KOa4q3MclTM3_7sHH9WZxG_OL9W2XTWLIHCaFGFJOI0EjRyaeTtaN7ocVvoOeKmQ9mTBeN85-T-2t5Wbd6-HXjLdjjQDT3m1et-_dzrqjX46VvjssvWEO3jEW3j-RBDj_n_svKbdZ2V31U84vTxBF3G47aPx20bz_5EeizoKhT39KFcdRmK1z4Ur20oQY9x528wfWe9qZPhTle5HKGjr9MhPkxqq-uJg9c7Udtw51RjeM9FHrEsZF5iqyHr1FIwnWLjTikXaoIPSk5WZZrtaMWtZlaKZdW8XW8GefOqvmB72LOBfRs4sIG5QTTfpZ2PtNDDQgvzbdrZpV2bsPSwISw9bAhLDxvCMmg2iPZswurb2K2HDXbrYYPdethgt0GzQbRvY_eljd162GC3HjbYrYcNdhs0G0QHNnZf2dithw1262GD3XrYYLdBs-mf_5hhKY6kPSvat6IDK5qbhB83MePlf38CAAD___svEUg=
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8lV9r2zwUxu_fTyHOe9MOBVmy47qGgsfWsZQu6ZpeDIov3FhrDK7lSTaslHz34T9bm5BKDsK5imTr53Oe5zlEL6B-5RDC8vL68tMdqmWOvtwuvqH7yx831x9nc3Tyeba8W36_PkX9kQ_dgTKRvKgoulrM5v2GocUclVlK0UXzw2LAUIiUz5MnriC8BwoYGGBwAYMHGKYQYyilWHGlhGyOvLTALP0NoYMhK8q6ah7HGFZCcghfoMqqnEMId8lDzm95knJJHMCQ8irJ8rZMKbOnRD5HfYuAYVkmhQrRhDDyP5n6hBKPdeuAUMJQUqTIRaJac6kg3mAQddWXfq348IzWiVpv14ooxJsYg6qSRw4h3eB3JLx-py6ETLnk6daX4oY0Hdnjw9dEra9EVnBJ_O3Wcv6zOono6YXMHtftCjAs6ipEEcURw5GLI29H7asS10LJnjbnYiJKQumu5r21va3adPgg0IGD8M4cTIjXrKfNc2-soaDHHYqz8YaCDQ-GDQ3mTQAT4v9Lye_WTUr-WMGw4wYTjBeMOzwYd2gw-7OYkGCsONzjxnE-Xhze8Di8oXEEE0Kdv5FMnX7TZEKdsRI5QMdUp4O9uZGt2mPvtneEgaHOca7bPV3cclWKQvFBl6nT6ODpI-98UaKWK34jxaot020XLdfeTSlXVfe238yK7lXT4HDYs4F9GziwgalBNN2lnbc008NMC9Nt2tmlXZuw9LAhLD1sCEsPG8IyaDaI9mzCmtrYrYcNduthg9162GC3QbNBtG9j95mN3XrYYLceNtithw12GzQbRAc2dp_b2K2HDXbrYYPdethgt0Gz6Z__kMuSHUh7VrRvRQdWNDUJP-zGjDf__QkAAP__mKANjQ==
 
 # Join on non-interleaved column uses hash joiner.
 query T
@@ -435,7 +433,7 @@ https://cockroachdb.github.io/distsqlplan/decode.html#eJy8ll1r2zAUhu_3K8TZTTsUZM
 query T
 SELECT url FROM [EXPLAIN (DISTSQL) SELECT * FROM child2 JOIN grandchild2 USING(pid1, cid2)]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzElt9v2joUx9_vX2Gd-9LeGiV2fhQiXSlXd91E1UJXOmlSxUNKPIhEE-YEaVXF_z6FsNFC8IlnEd6S4A_295yPpfMK-fc5BDC6urn6_4Es5Zx8vB_ekserr3c3__UH5OxDf_Qw-nxzTjZL_qkWTGbJPObketgfkKmM0njz4cuoP_hEzhZJzCiZJDE_HwOFNIvFIHoWOQSPwIACBwoOUHCBggdjCguZTUSeZ7Jc8roG-vEPCGwKSbpYFuXnMYVJJgUEr1AkxVxAAA_R01zciygW0rKBQiyKKJmvt1nI5DmSL2F1MKAwWkRpHpCOxa2_Lc-3mOXy6rlrMYuTKI2JQ7JiJmQO4xWFbFlsdt5u-PRCZlE-e79VyGjIYbwaU8iLaCogYCv6ZyG8-hBvStxyEn4wyfavMhkLKeLdv7qgIb8o92-8sqY4t0JOxXWWpEJabKfFc_GtONvQ5__KZDrbvgKF4bIIyDoRDR0aujS8pGGXhr2dmmzDOg3CLtO6ELVnH2SdbGExb2dl_d7uu71Zc2VYM-8PyNKx3PLZK7-7R7wDGoF8jTvQeip-MNUJ7gNr9T7w5i3kDZ1806WO5f9upV89l630j-ikRqBLHSfbTsUPpjqBk7xVJ53mLXQaOlnfsI7VPaKJGjG6Oia2k4UfzHIC_5xW_XObN85t6F-3YzH7V988e_NSNo7ZR1RQI0lPR8HW4vCDcU5goXuySbXmZPciX2RpLhrNoXaZTcRTUVUuz5ZyIu5kNllvU70O19x6_IlFXlS_8uqln1Y_lQdsDvsmcM8EZkbnZp6aZhol43qwbwL3TGBmdO6dku3RfJe239KOut6OEmbva2bv0q6J4GoYEVwNI4KrYUxwhEYE90wEV8OI4GoYEVwNY4IjNCK4byL4pYmiahhRVA0jiqphTFGERhTtmiiqhhFF1TCiqBrGFEVoRNGeiaLMaE5AaERShEYsRWhMUwzHZgWzYcFsWjAbFwznBbOBgRlNDGxvZNCyVU1jtqppzFY1jdqK4JitOsPSfs90piVdGrNVa17SxjFb94YHpa3j1V8_AwAA__-sid2f
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzElk1v2zgQhu_7K4jZS7KgIZH6iC1gAS22aesgtdM4BQoEOigWawtwJJeSgQaB_3shyWniL45YwupNlPiIfGeewzxD8X0BAUwury__vyMruSDvb8efyP3l15vr_4YjcvZuOLmbfL4-J5st_zQbpvN0kXByNR6OyEzGWbJ58WUyHH0gZ8s0YZRM04SfR0AhyxMxih9FAcE9MKDAgYIDFFyg4EFEYSnzqSiKXFZbnmtgmPyAwKaQZstVWb2OKExzKSB4hjItFwICuIsfFuJWxImQlg0UElHG6aI-ZinTx1g-hc3FgMJkGWdFQHoWt_62PN9ilsub577FLE7iLCEOycu5kAVEawr5qtyc_HrgwxOZx8V8-6iQ0ZBDtI4oFGU8ExCwNf29EN7hEG9K3HESfjTJ669WWS4TIUWy9bOoIrEtB8rxMS7mV3maCWmxnZ4uxLfyrL7j-b8ync1fFkBhvCoDUq9o6NDQpeEFDfs0HOwU4DWZY5DswLVHeS9fWszbrcHBs92ts1l7P1g7yY-Y0bPc6tmr3rsnFF4jkK8hfOep-NFUXcjPOpOft-8Xbyngm5b0LP9X3_zmueqbf0IBNQJd6AjYdSp-NFUXAvLOBHTa98tpKeDh7vSs_gm104jR19Gumyz8aJYuZHM6k81t3yW3pWz9nsXslyZ59mZRdYnZJ_RNI8lAx7fO4vCjcbpQzv0j0-WBS92KYplnhWg1O9pVLJHMRFOmIl_JqbiR-bQ-plmOa64eWRJRlM1X3iyGWfOpumB72DeBByYwM7o389Q00ygZ14N9E3hgAjOje--UbI_mu7T9lnbU9XaUMNuumb1LuyaCq2FEcDWMCK6GMcERGhHcMxFcDSOCq2FEcDWMCY7QiOC-ieAXJoqqYURRNYwoqoYxRREaUbRvoqgaRhRVw4iiahhTFKERRQcmijKjOQGhEUkRGrEUoTFNMRybFcyGBbNpwWxcMJwXzAYGZjQxsL2RQctWNY3ZqqYxW9U0aiuCY7bqDEv7PdOZlnRpzFateUkbx2zdGx6Utkbrv34GAAD__z-u0Gs=
 
 # Subset join on interleaved columns uses hash joiner.
 query T
@@ -453,7 +451,7 @@ SELECT url FROM[EXPLAIN (DISTSQL)
 ORDER BY pid1
 ]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzUVU1r20wQvr-_YplT_GZKvJJsJ4LCto1bFFw7lVNoCToI7cRRq2jV1aq0BP_3IitNpGBLwQYX3zyaefx8zMLcQ_4jARfm48n43RUrdMLe-7OP7Hr85XLyxpuyo3NvfjX_NOmxh5H_q4GFDlMZ3caJ5Oxi5k3Zw-_Pc2_6gR1lseTIoljyXtXOQk2pafR7bOafj3329isrywAQUiVpGt5RDu41cECwAMEGBAcQBhAgZFpFlOdKlyP3K4Anf4HbR4jTrDDl5wAhUprAvQcTm4TABS81pBMKf5JPoSR9oeKU9EkfECSZME5WjBO6MVByxHeh_i1qHgHBjxe39e5jo_ovQEjoxhwJfozCOu691uX8YwkIs8K4THAUFgobhYNigGKIYgTBEkEV5kl-bsIFgcuX-HKLpYzK3Mmgaeuv4ocdAMJEqe9Fxr6pOGUqLVWt1TdCcbZRnLVR3JMmpSVpkk05gh9DsFzjYKpeqeyEN5eyid5u0POt1s8Paf0dFmvrH-5__dZW-VuHlH-HxVr-o_3nb2-Vv31I-XdYrOV_uv_8na3ydw4p_w6LtfzP_u35WSPOpzxTaU4vuiz98jaRXFB1y3JV6IgutYpWNFU5W-FWHyTlpuryqvDSqlUKrIN5K9hqgPlzsNXO3EFtt6KddrCzi-5BK3jYzjzchXnUCj5tZz7dhfmsfVf9jmfS_siecwfL__4EAAD__7LjvSk=
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8l99v2zYQx9_3V3CXl2ajQZH6EcfAAG9rtrnw7M5OgQ2FH1SLi7W5okfJwIog__sg_1hkV-KJYeW3MNSXd6e7D7_WI-T_rGEA87vx3Y_3ZKvX5KfZ9Ffy_u73t-PvRxPy6vVofj__bXxNDo98s3_gQcdZslyl64STN9PRhBz-fjcfTX4mrzZpwilZpgm_3m9vYi2z4mT_mkxnr-9m5Ic_SLlcAIVMJXISf5Q5DN4DBwoCKPhAIQAKISwobLRayjxXunzkcScYJf_CwKOQZpttUf57QWGptITBIxRpsZYwgPv4w1rOZJxIzTygkMgiTte7MBudfoz1p2GlIqAw38RZPiA9JtgVCyPGWSCYYF9P3o3HLOwzzgSJs4T4RBUrqXNYPFFQ2-KQwnPkD5_IKs5XpzGHnA4FLJ4WFPIifpAw4E_0ZdWE9dVghVx1UYRoLOL5qG2mdCK1TE4OW5RK7JGaN_FLnK_eqDSTmvGzvq7ln8WrXY7X3-n0YXVcAIXpthiQ3YoOfToM6DCkw4gOb85ewHNlvk17yoQO3eEN7TngABTGSv293ZC_VJoRlZVp1SZ4Q4e3jdkFNtnNlS6kZsI77-a3jeeHLfpa17LDoTVJTFRPbZgIz4egNnx0Ep63Z4NbkG4AvceCci8s94IOqbeoLGpHfQP03RUkGgu6xA3AL3YDIK2q3gANreryBkCyO94A_KU3gGg_qMIGwcpU9lj0_-hGLKryGHWIoEVlNy0RNBR11UVBorGgSyAoLoYg0qoqgg2t6hJBJLsjguKlCPrtB9W3QbCZuh7rdwieRT39luDVs_alyxCNZVwCN_9iuCENquLW0KAucUOyO-LmvxS3oP14Bja49XuMe8c5Db1yUWGOex0SZ1HSbUviaqq56qQS0VjJJaALLgYd0qMqdA096hI6JLsjdMGX-NCsOX8m843KctnqG9IrmyqTB7kfklxt9VK-1Wq5C7NfTne63c_nRObFflfsF6Nsv1Um2F7cdxFz30ntFFsgsbnFOxN24r6L-Oyd2aqdYgsktjhXe1X1qdg7F_tGcWAWB0ZxaG51aBSLyBw6coHLLEYG3CzG4ELUTrExuG5c4DKLkQE3izG4ELVTbAyuvnFKb81DemsUc8-s5p9dpTZ4cZur1FaNjCmixhjB5G7RUQv67D618iCzGjMCsxp1IUTuFh1DhZu9hCNmws1uwkNEbvYTjBYnP0HU2Ly6OQomd4uO0uJkKogam1c3W8HkbtFRWszOwhFr4WZvEYi3CCdvEU7egqiReUXUGC2Y3C06Rotw8hZEjcwrosZoweRu0dFvHLO3CMRbhNlbBOItws5bFk9f_RcAAP__DCZHrg==
 
 # Multi-table join with parent1 and child1 at the bottom uses interleaved
 # joiner but induces a hash joiner on the higher join.
@@ -464,19 +462,19 @@ SELECT url FROM [EXPLAIN (DISTSQL)
   JOIN grandchild1 USING (pid1, cid1)
 ]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJzUll2P4jYUhu_7K9zTm5nWyLHzsRCpUqp22rKisIVZqdIqF1nihUjZhDqh6mjEf69CmBI-xmeCRSTuCPZj-9jPkd5nKP5OwYfZw-jh50eyVin5dTr5g3x6-OvD6KfhmNz9Mpw9zv4c3ZPdlO_rCatIyazk5P1kOCbzZZLGnHycDce_kbtVEvP7emChoiw-HaVkXs0JgUKWx3IcfZUF-J-AAwUBFGyg4AAFF0IKK5XPZVHkqpryvAWG8b_gWxSSbLUuq79DCvNcSfCfoUzKVIIPw6yUKpXRP3Iqo1iq93mSScUsoBDLMkrS7Y4j-aWEao_ka6Segl1VQGGaLJbNkboIoFCvAxRS-aW8C_gP9z-qau72J1CYrEufBJwGggY2DRwauBBuKOTrcnfY_Rk_P5FlVCwPj1SxDoSbkEJRRgsJPt_Qt9f9GH1OdyUz93Dll1oarwIUZqsoK3zSY4J9x1yPceYIJti344-jEXP7jDNBoiwmNsnLpVRF-2rEQTXi1Wr2S62zXMVSyfhgsbAisSlnruT3qFjunp8fvf_uEWng7J-RBuLgIZ3tW7o06NNgcFT9vizboKwzZx7nvXzFuHt8AWf3dg725hc1Br_5xkDqbjaG16IxNH3RY0415lZjzhWbhHfcJLybJhEXiSpuXlSk7qao79qI2pCxx7z_rfWY17TWu6KoomNRRTei2heJat-8qEjdTVH7bUR93c0e619RT7tjPe1u9HQu0tO5eT2Rupt6Dtro2e8xbr0o6lrVR8NRbl3RUKdjQ53u4_CZE01lscqzQr4p7FpVTTJeyPqOinyt5vKDyufbberPyZbbBqdYFmU9KuqPYVYPVQd8O-yZwAMTmBudm7t6mre4MtEO9kzggQnMjc59dGUntDimrSZt6-_b1sL88M6sY9oxEVwPI4LrYURwPYwJjtCI4K6J4HoYEVwPI4LrYUxwhEYE90wEf2eiqB5GFNXDiKJ6GFMUoRFF-yaK6mFEUT2MKKqHMUURGlF0YKIoN8oJCI1IitCIpQiNaYrhWFYwCwtmacEsLhjmBbPAwI0SAz-JDK1s1dOYrXoas1VPo7YiOGZrm7B0-mZt0lJbGrO1VV5qjWO2noQHra3h5pv_AgAA___wPy5O
+https://cockroachdb.github.io/distsqlplan/decode.html#eJzMmF9v4kYUxd_7KdzpS1INMnNtswSpkqs2bVmlZBuyUqUVD148DUisTW0jdRXlu1fGacMfe45nL3jzBsG_XO6c-KcTP4r875UYien1zfVP984mWzm_3N3-7ny4_vPdzY_jiXPx83h6P_3j5tJ5vuT76oJ1lOmkUM7b2_HEmS-Wq1g576fjya_OxXoZq8vqg4csSuLjT6UzL6-ZCSmSNNaT6JPOxeiDUEIKElJ4QgpfSBGImRTrLJ3rPE-z8pLHLTCO_xGjvhTLZL0pyh_PpJinmRajR1Esi5UWI3EffVzpOx3FOnP7QopYF9FytR2zzpafouxz-LyDkGK6jpJ85PRccr9zg4GrXJ-q10NXueRESex4TlosdJaL2ZMU6aZ4Hv0y8eNnZxHli_1ZoRKzp5kUeRE9aDFST_LLVgjqV6jOtssNqHGDl9-zSdIs1pmO937TrCTRJTXH8FuUL96my0RnrjpIcqX_Ki5CdflDtnxYbF8JKW43xcgJlQxJhp4MfRkGthvL0N9b2vvS2FRDbjs3RnN4307e39ycIkAZ0t46_tfMkOozlKH_EqMMaS9JfxtmIMOhDK8Otn9ZK2CsVfOdJ2kvXbsUHB5A7ezB3mxl8RfS0k0NN3bP9cvXQflz_1yeslhn0M5T3W5Djdt04Sz1Gpxl8xfZkGGtswzKOl2YZn91nCfV53lyf1H7xKitQ3YC6bmD_5MbVK_L1AbncojFOm9aOqTTbahxmy4cQq_BIRYRqoYM6x1iCHJHKLwwzQ7pOE-qz_PkDvHaJ-a1dUj9jdZzh-cyh8USw5bm6GAHatyhC194r8EXFsGphuTqfdGsCG6EZkt0nCLVp3hyS_jtc_LbWmLYc1X_v5iC_vObMiPVP5coLPa4aimKbtagxjW6cIX_GlxhkZ1qCK_eFTUJ7giDmaJZFx0HSfVBnvXBSs03utP5Ok1y3eqxSb_cSccPujqjPN1kc_0uS-fbMdXb2y23_T8v1nlRfUrVm3FSfVR-wfbwkAMrj0WzZhOYrSzOjOzgIQc-ODNbmjWbwGwy0r75wM2w6rPogEMTazaB2Z7FoR2duBk-ODRbOuDQxJpNYLZ_SPd3aXDigRGmwR7dP6QHHJmaYSA0M4xkCmjWbCTTNxyZmmEgNDOMZApo1mwk0yFHpmYYyRTQ4PYy00imgAazrzgyNcNIpoAGQjPTSKaABrPVUVOysamyaUq2NLASoJESEc6bDhsm6A0gNDONeh7oS6hkApw3HZlR2VSm42O36kzWOLpbrFqTNY6mH_UmGz8CGgkS4chSZhwpEuFourk0onNnlUZAI0vxaiPCedOhI1nNEdDIUrzuiHDedOhIVn0ENHQkr0ACHDqSVyEVq0MCGjqS1yIBDh3J65HE6pHE6pGABpYCNHIkwnnTkSOJ1SMBDSwFaORIhPOmw8eVrB4JaPjAktcjAQ4fWfJ6JLF6JKCRIxGOLMXrkQhH0-165Ozpm38DAAD__wbMsUM=
 
 # If there are Limits, interleaved joins should not be used.
 query T
 SELECT url FROM [
-  EXPLAIN (DISTSQL) SELECT * FROM (SELECT * FROM parent1 ORDER BY pid1 LIMIT 2) AS parent1 INNER MERGE JOIN child1 USING(pid1)
+  EXPLAIN (DISTSQL) SELECT * FROM (SELECT * FROM parent1 ORDER BY pid1 LIMIT 2) AS parent1 INNER HASH JOIN child1 USING(pid1)
 ]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJy8lV1v2joYx-_Pp7CecwOnRo6dhJdIR0q3sioVLx0waVOVi5R4EIkmmROkVRXffQqhL1Bqh1nhzgb_bD__n5XnCbJfK3Bg2h_0P8_QWqzQl8l4iO76328Hl94INa686Wz6ddBEuyX_lQsa-9M0EDzOKRpPrvoT9OkHSqOQooE39GaINdHl9GWFNxr1J2jYn1z30c3YG6H5MlqFFH2beqNr1Ci4pg8Y4iTko-CBZ-DcAQUMDDCYgMECDDb4GFKRzHmWJaJY8rQFvPA3OAaGKE7XefGzj2GeCA7OE-RRvuLgwCy4X_EJD0IuiAEYQp4H0Wp7TCqih0A8uru7AoZpGsSZg1qAYRA9RDli4G8wJOt8d8DrvvePaBlky_0dXQr-xseQ5cGCg0M3-O8uSo9ftMzuzT0JI_8Su00osVg57hJKGAriEJkoyZdcZFoVsA8reN1nHSci5IKHezv5Bfm85NgCcOlFedZhEkMuFvwmiWIuSHufWfGfecOlF83_RbRYlkPAMF7nDnIpdhl2LezaBzW_1mNq1HPkpqOklaSE0sPKj55t7Z1Nq78GVu01fPAYWsQqxnbxu1XXy6DnfxmdOl8Gq27HrGjnjYUWab-oapfjQlW7Ljvs_Ha6ddoxq9uxKto5LqRFunU5Mc_vpFenE6u6E7uik26LUOPZi23sJoUYatSlxTq_Fmqcq8cduciEZ2kSZ7xSBzOKUni44GU6WbIWc34rkvn2mHI63nLbjhDyLC__ZeXEi8u_igtWh20duKMD93RgSuU0PSExdhps68AdHbinAx8k9o5mh7TxljblcZtSmO7nbRzSlo4sOayQJYcVsuSwQpYcVsmydWS1deKWw4q45bAibjmsiFsOq-Lu6MTd1YlbDivilsOKuOWwIm45rIq7pxM3PaVZvv-GntItT6VVH_9T-uWptCpz-q57SEP3N__8CQAA__-JnSC4
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8ld9u2jAUh-_3FNbZDUxGjp2EP5Em0a1sTUWhAyZtqnKREq9ESpPMCdKqinefQlhbKLWTWeHOBn_2Ob_Pih8h-x2BA_PRePR5gdYiQl9m0yt0M_pxPT5zJ6h17s4X82_jNtot-VAuaO1PU1_wOKdoOjsfzdCnnygNA4rG7pW7QKyNzuZPK9zJZDRDF2fzC3Q5dSdouQqjgKLvc3fyFbUKrO0BhjgJ-MS_5xk4N0ABAwMMJmCwAIMNHoZUJEueZYkoljxuATf4A46BIYzTdV787GFYJoKD8wh5mEccHFj4txGfcT_gghiAIeC5H0bbY1IR3vviYbgrFTDMUz_OHNQBDOPwPswRA2-DIVnnuwOe9719QCs_W-3vOKTgbTwMWe7fcXDoBv9fofR4oWV2L-okjLwndpdQYrFy3CeUMOTHATJRkq-4yLQ6YG928LzPOk5EwAUP9nbyClK15EgMF362ukzCmAvS3S8t4r_y1pC2P4rwbrUdAYbpOnfQkOIhw0MLD-2Dbp87MTU6OVLmJOkkKaH0sOejZ1t7Z9Pq94BVuwdvXIMOsYqxXfxuNXUn6GnvRK-5O8GqezErenmRf4d0nyR1y3EhqduUF3ZaL_3mvJjVvVgVvRxX0SH9pmyYp7UxaM6GVd2GXdFGv0Oo8c-IbewmhRJqNCXEOq0QapzmLTtSxYxnaRJnvNJLZRR98OCOl7lkyVos-bVIlttjyul0y22__AHP8vJfVk7cuPyrKLA6bOvAPR14oANTKqdpjcRYPdjWgXs68EAHPkjsFc0OaeMlbcrjNqUw3c_bOKQtHVlyWCFLDitkyWGFLDmskmXryOrqxC2HFXHLYUXcclgRtxxWxd3TibuvE7ccVsQthxVxy2FF3HJYFfdAJ25a57F8_Q2t81rWpVUf_zrvZV1alTl99XpIQ_c27_4GAAD___UfHLE=
 
 query T
 SELECT url FROM [
-  EXPLAIN (DISTSQL) SELECT * FROM parent1 INNER MERGE JOIN (SELECT * FROM child1 ORDER BY pid1 LIMIT 10) AS child1 USING(pid1)
+  EXPLAIN (DISTSQL) SELECT * FROM parent1 INNER HASH JOIN (SELECT * FROM child1 ORDER BY pid1 LIMIT 10) AS child1 USING(pid1)
 ]
 ----
-https://cockroachdb.github.io/distsqlplan/decode.html#eJy8lVtvozoQx9_Pp7DmvDSnjoy55IJ0pPScshVVLl2SlXZV8UCDN0GiwBoibVXlu68I6aahqU3XIm8Gz88z8_-PNM-Q_4jBhrkzdv5foA2P0SdvNkH3zte78ZU7RRfX7nwx_zzuoH3IP1VAFnCWFBS506njoYnj3TjodlYCx3HLdRSHFM28a8dD_31DWRRSNHYn7gJRrYOu5i8RX-bu9AZdlPcdHzAkacimwSPLwb4HChh0wGAABhMwWOBjyHi6ZHme8jLkeQe44U-wNQxRkm2K8rePYZlyBvYzFFERM7BhETzEzGNByDjRAEPIiiCKd2kyHj0G_Gm0bw4wzLMgyW3UJTr5m1g9QompV-cBoURHQRIiA6XFmvEc_C2GdFPsUx8yPjyhdZCvj3ONKPhbH0NeBCsGNt3iP2vBOt1CpeqrDgDDOHqMCkQ1pUL1dws9vJPykHEW1t-5LBMfojbJqbhdrnrDE8ZX7DaNEsZJ7_jZmH0vLkb0svMvj1br6ggYZpvCRiOKRzoemXhk1Xo-9GM06OcDlU7TbpoRSmuRp3ObR7lpc9Npw7l9Z2y7xCzPVvnfbGuG6flHo9_maOjN7dGb2vPKhi7p_faqV51Lr3pt2aOf355Bm_YYze0xmtpz2pEuGbRlinF-U4ZtmmI2N8VsasqgS6j2Yoyl7T9KZ6jWli_m-X2h2rn23IlCPJZnaZKzRltMK1th4YpV6uTphi_ZHU-XuzTV52zH7ZZCyPKiutWrDzeprsoCm8OWCtxXgYcqMKVimn5AMf1jsKUC91XgoQpcU-wNrddp7TVtiOU2hDA91lur06bKeIthyXiLYcl4i2HJeIth2XhbKmb1VOQWwxK5xbBEbjEskVsMy-Tuq8g9UJFbDEvkFsMSucWwRG4xLJN7qCI3VVqWEloiuISWKC6hJZJLaOnCfLM9hKL7279-BQAA___BmiKQ
+https://cockroachdb.github.io/distsqlplan/decode.html#eJy8ld9v2jAQx9_3V1i3lzIZOc4PfkSalG5layoKHWHSpioPKfFKpDTJ7CCtqvjfpxC6FkrtdFZ4s_F9cnff74l7APE7BReC0Xj0eY5WPEVfZtNLdD36cTU-9Sfo5MwP5sG3cQdtQz7UAUXEWVZS5E8moxk6Pw3O0cW0it8NWyyTNKZoOjsbzdCnn6hIYorG_qU_R9TooNPgMeJ74E--opPqvRMChiyP2SS6YwLca6CAwQQMFmCwAYMDIYaC5wsmRM6rkIcN4Md_wDUwJFmxKqufQwyLnDNwH6BMypSBC_PoJmUzFsWMEwMwxKyMknSTpuDJXcTvvW1vgCEooky4qEtM8p44PUKJbdbnAaHERFEWIwvl5ZJxAeEaQ74qt6mfMt7co2Uklru5PArhOsQgyuiWgUvX-P9acA63UKv6rAPAME7ukhJRQ6tQ89VCn76zynIeM87inS-FFakKOdDteSSWF3mSMU56u6Wl7Fd54tHOR57cLjcnwDBdlS7yKPZM7NnYc_a6ferE0ujkQJmTvJsXhNL9ng_mtndy0-Z204YT-8rAdoldnZ3qd7ut6aXHHYp-e0NhNjfGbGrMMwO6pPfPpV59rlzqtWWMeVxjBu0ZYzU3xmpqzGEvumTQlh3Wce0YtmeH3dwOu6kdgy6hxqMljrG9VJ5Qoy1H7OM6Qo3j7LMDVcyYKPJMsEbbyqj6YPEtq3UR-Yov2BXPF5s09XW64TZ__jETZf1q1hc_q5-qApvDjg7c14GHOjClcpq-QTHzbbCjA_d14KEOvKfYC9rcp43ntCWX25LCdFdvY5-2dcZbDivGWw4rxlsOK8ZbDqvG29Exq6cjtxxWyC2HFXLLYYXcclgld19H7oGO3HJYIbccVsgthxVyy2GV3EMduanWslTQCsEVtEJxBa2QXEErF-aL7SEVPVy_-xsAAP__v54eiQ==

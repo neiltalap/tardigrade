@@ -136,7 +136,7 @@ query TTT
 EXPLAIN SELECT * FROM p1 WHERE b <= 3
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p1@b
 ·     spans        -/4
@@ -146,7 +146,7 @@ query TTT
 EXPLAIN SELECT * FROM p1 WHERE a <= 3
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p1@primary
 ·     spans        -/4
@@ -156,7 +156,7 @@ query TTT
 EXPLAIN SELECT * FROM p1 WHERE a <= 3 AND b <= 3
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p1@primary
 ·     spans        -/3/3/#
@@ -166,7 +166,7 @@ query TTT
 EXPLAIN SELECT * FROM p1 WHERE a <= 3 AND b < 4
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p1@primary
 ·     spans        -/3/3/#
@@ -177,7 +177,7 @@ query TTT
 EXPLAIN SELECT * FROM p1 WHERE a >= 2 AND b <= 3
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p1@primary
 ·     spans        /2-
@@ -189,7 +189,7 @@ query TTT
 EXPLAIN SELECT * FROM p1 WHERE a <= 0 AND b <= 0
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p1@primary
 ·     spans        -/0/0/#
@@ -199,7 +199,7 @@ query TTT
 EXPLAIN SELECT * FROM p1 WHERE a <= -1 AND b <= -1
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p1@primary
 ·     spans        -/-1/-1/#
@@ -209,7 +209,7 @@ query TTT
 EXPLAIN SELECT * FROM p1 WHERE a = 1 AND b <= -9223372036854775808
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p1@primary
 ·     spans        /1-/1/-9223372036854775808/#
@@ -218,7 +218,7 @@ query TTT
 EXPLAIN SELECT * FROM p1 WHERE a = 1 AND b <= 9223372036854775807
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p1@primary
 ·     spans        /1-/1/9223372036854775807/#
@@ -231,7 +231,7 @@ query TTT
 EXPLAIN SELECT * FROM c1 WHERE a <= 3
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        c1@primary
 ·     spans        -/4
@@ -241,7 +241,7 @@ query TTT
 EXPLAIN SELECT * FROM c1 WHERE a <= 3 AND b <= 3
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        c1@primary
 ·     spans        -/3/3/#/54/1/#
@@ -256,7 +256,7 @@ query TTT
 EXPLAIN SELECT * FROM p2 WHERE i >= 2
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p2@primary
 ·     spans        /2-
@@ -267,7 +267,7 @@ query TTT
 EXPLAIN SELECT * FROM p2 WHERE i <= 5
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p2@primary
 ·     spans        -/5/#
@@ -281,7 +281,7 @@ query TTT
 EXPLAIN SELECT * FROM p2@p2_id WHERE i >= 1 AND d >= 2
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p2@p2_id
 ·     spans        /1/#/55/2/2-
@@ -293,7 +293,7 @@ query TTT
 EXPLAIN SELECT * FROM p2@p2_id WHERE i <= 6 AND d <= 5
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p2@p2_id
 ·     spans        -/6/#/55/2/6
@@ -305,7 +305,7 @@ query TTT
 EXPLAIN SELECT * FROM p2@p2_id WHERE i >= 1 AND d IS NULL
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p2@p2_id
 ·     spans        /1/#/55/2/NULL-
@@ -317,7 +317,7 @@ query TTT
 EXPLAIN SELECT * FROM p2@p2_id WHERE i >= 1 AND d IS NOT NULL
 ----
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        p2@p2_id
 ·     spans        /1/#/55/2/!NULL-
@@ -330,7 +330,7 @@ EXPLAIN SELECT * FROM bytes_t WHERE a = 'a'
 ----
 tree  field        description
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        bytes_t@primary
 ·     spans        /"a"-/"a"/#
@@ -342,7 +342,7 @@ EXPLAIN SELECT * FROM bytes_t WHERE a < 'aa'
 ----
 tree  field        description
 ·     distributed  true
-·     vectorized   true
+·     vectorized   false
 scan  ·            ·
 ·     table        bytes_t@primary
 ·     spans        -/"aa"

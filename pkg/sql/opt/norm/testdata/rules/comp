@@ -287,11 +287,7 @@ WHERE
     null::string !~ 'foo' OR 'foo' !~ null::string OR
     null::string ~* 'foo' OR 'foo' ~* null::string OR
     null::string !~* 'foo' OR 'foo' !~* null::string OR
-    null::string[] && ARRAY['foo'] OR ARRAY['foo'] && null::string[] OR
-    null::jsonb @> '"foo"' OR '"foo"' <@ null::jsonb OR
-    null::jsonb ? 'foo' OR '{}' ? null::string OR
-    null::jsonb ?| ARRAY['foo'] OR '{}' ?| null::string[] OR
-    null::jsonb ?& ARRAY['foo'] OR '{}' ?& null::string[]
+    null::string[] && ARRAY['foo'] OR ARRAY['foo'] && null::string[]
 ----
 values
  ├── columns: k:1(int!null) i:2(int!null) f:3(float!null) s:4(string!null) j:5(jsonb!null) d:6(date!null)

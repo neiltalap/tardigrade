@@ -47,7 +47,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/row"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
-	"github.com/podomy/tardigrade/pkg/sql/stats"
 	"github.com/podomy/tardigrade/pkg/storage"
 	"github.com/podomy/tardigrade/pkg/testutils"
 	"github.com/podomy/tardigrade/pkg/testutils/physicalplanutils"
@@ -384,8 +383,6 @@ type testClusterConfig struct {
 	overrideDistSQLMode string
 	// if non-empty, overrides the default vectorize mode.
 	overrideVectorize string
-	// if non-empty, overrides the default automatic statistics mode.
-	overrideAutoStats string
 	// if set, queries using distSQL processors that can fall back to disk do
 	// so immediately, using only their disk-based implementation.
 	distSQLUseDisk bool
@@ -415,20 +412,17 @@ var logicTestConfigs = []testClusterConfig{
 		name:                "local",
 		numNodes:            1,
 		overrideDistSQLMode: "off",
-		overrideAutoStats:   "false",
 	},
 	{
 		name:                "local-vec-off",
 		numNodes:            1,
 		overrideDistSQLMode: "off",
-		overrideAutoStats:   "false",
 		overrideVectorize:   "off",
 	},
 	{
 		name:                "local-mixed-19.1-19.2",
 		numNodes:            1,
 		overrideDistSQLMode: "off",
-		overrideAutoStats:   "false",
 		bootstrapVersion:    cluster.ClusterVersion{Version: roachpb.Version{Major: 19, Minor: 1}},
 		serverVersion:       roachpb.Version{Major: 19, Minor: 2},
 		disableUpgrade:      true,
@@ -437,7 +431,6 @@ var logicTestConfigs = []testClusterConfig{
 		name:                "local-v1.1@v1.0-noupgrade",
 		numNodes:            1,
 		overrideDistSQLMode: "off",
-		overrideAutoStats:   "false",
 		bootstrapVersion: cluster.ClusterVersion{
 			Version: roachpb.Version{Major: 1},
 		},
@@ -447,7 +440,6 @@ var logicTestConfigs = []testClusterConfig{
 	{
 		name:              "local-vec",
 		numNodes:          1,
-		overrideAutoStats: "false",
 		overrideVectorize: "experimental_on",
 	},
 	{
@@ -455,14 +447,12 @@ var logicTestConfigs = []testClusterConfig{
 		numNodes:            3,
 		useFakeSpanResolver: true,
 		overrideDistSQLMode: "on",
-		overrideAutoStats:   "false",
 	},
 	{
 		name:                "fakedist-vec-off",
 		numNodes:            3,
 		useFakeSpanResolver: true,
 		overrideDistSQLMode: "on",
-		overrideAutoStats:   "false",
 		overrideVectorize:   "off",
 	},
 	{
@@ -470,7 +460,6 @@ var logicTestConfigs = []testClusterConfig{
 		numNodes:            3,
 		useFakeSpanResolver: true,
 		overrideDistSQLMode: "on",
-		overrideAutoStats:   "false",
 		overrideVectorize:   "experimental_on",
 	},
 	{
@@ -478,7 +467,6 @@ var logicTestConfigs = []testClusterConfig{
 		numNodes:                   3,
 		useFakeSpanResolver:        true,
 		overrideDistSQLMode:        "on",
-		overrideAutoStats:          "false",
 		distSQLMetadataTestEnabled: true,
 		skipShort:                  true,
 	},
@@ -487,7 +475,6 @@ var logicTestConfigs = []testClusterConfig{
 		numNodes:            3,
 		useFakeSpanResolver: true,
 		overrideDistSQLMode: "on",
-		overrideAutoStats:   "false",
 		distSQLUseDisk:      true,
 		skipShort:           true,
 	},
@@ -495,20 +482,17 @@ var logicTestConfigs = []testClusterConfig{
 		name:                "5node-local",
 		numNodes:            5,
 		overrideDistSQLMode: "off",
-		overrideAutoStats:   "false",
 	},
 	{
 		name:                "5node-dist",
 		numNodes:            5,
 		overrideDistSQLMode: "on",
-		overrideAutoStats:   "false",
 	},
 	{
 		name:                "5node-dist-vec",
 		numNodes:            5,
 		overrideDistSQLMode: "on",
 		overrideVectorize:   "experimental_on",
-		overrideAutoStats:   "false",
 	},
 	{
 		name:                       "5node-dist-metadata",
@@ -516,7 +500,6 @@ var logicTestConfigs = []testClusterConfig{
 		overrideDistSQLMode:        "on",
 		distSQLMetadataTestEnabled: true,
 		skipShort:                  true,
-		overrideAutoStats:          "false",
 	},
 	{
 		name:                "5node-dist-disk",
@@ -524,7 +507,6 @@ var logicTestConfigs = []testClusterConfig{
 		overrideDistSQLMode: "on",
 		distSQLUseDisk:      true,
 		skipShort:           true,
-		overrideAutoStats:   "false",
 	},
 }
 
@@ -1103,23 +1085,13 @@ func (t *logicTest) setup(cfg testClusterConfig) {
 		params.ServerArgsPerNode = paramsPerNode
 	}
 
-	// Update the defaults for automatic statistics to avoid delays in testing.
-	// Avoid making the DefaultAsOfTime too small to avoid interacting with
-	// schema changes and causing transaction retries.
-	// TODO(radu): replace these with testing knobs.
-	stats.DefaultAsOfTime = 10 * time.Millisecond
-	stats.DefaultRefreshInterval = time.Millisecond
+	// Automatic statistics collection has been removed, so there are no
+	// collection tunables to set here.
 
 	t.cluster = serverutils.StartTestCluster(t.rootT, cfg.numNodes, params)
 	if cfg.useFakeSpanResolver {
 		fakeResolver := physicalplanutils.FakeResolverForTestCluster(t.cluster)
 		t.cluster.Server(t.nodeIdx).SetDistSQLSpanResolver(fakeResolver)
-	}
-
-	if _, err := t.cluster.ServerConn(0).Exec(
-		"SET CLUSTER SETTING sql.stats.automatic_collection.min_stale_rows = $1::int", 5,
-	); err != nil {
-		t.Fatal(err)
 	}
 
 	if cfg.overrideDistSQLMode != "" {
@@ -1171,33 +1143,6 @@ func (t *logicTest) setup(cfg testClusterConfig) {
 
 	}
 
-	if cfg.overrideAutoStats != "" {
-		if _, err := t.cluster.ServerConn(0).Exec(
-			"SET CLUSTER SETTING sql.stats.automatic_collection.enabled = $1::bool", cfg.overrideAutoStats,
-		); err != nil {
-			t.Fatal(err)
-		}
-	} else {
-		// Background stats collection is enabled by default, but we've seen tests
-		// flake with it on. When the issue manifests, it seems to be around a
-		// schema change transaction getting pushed, which causes it to increment a
-		// table ID twice instead of once, causing non-determinism.
-		//
-		// In the short term, we disable auto stats by default to avoid the flakes.
-		//
-		// In the long run, these tests should be running with default settings as
-		// much as possible, so we likely want to address this. Two options are
-		// either making schema changes more resilient to being pushed or possibly
-		// making auto stats avoid pushing schema change transactions. There might
-		// be other better alternatives than these.
-		//
-		// See #37751 for details.
-		if _, err := t.cluster.ServerConn(0).Exec(
-			"SET CLUSTER SETTING sql.stats.automatic_collection.enabled = false",
-		); err != nil {
-			t.Fatal(err)
-		}
-	}
 
 	// db may change over the lifetime of this function, with intermediate
 	// values cached in t.clients and finally closed in t.close().
