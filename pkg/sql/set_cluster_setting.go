@@ -12,17 +12,13 @@ package sql
 
 import (
 	"context"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/podomy/tardigrade/pkg/internal/client"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
-	"github.com/podomy/tardigrade/pkg/sql/stats"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/humanizeutil"
 	"github.com/podomy/tardigrade/pkg/util/log"
@@ -149,24 +145,6 @@ func (n *setClusterSettingNode) startExec(params runParams) error {
 			); err != nil {
 				return err
 			}
-		}
-
-		// Report tracked cluster settings via telemetry.
-		// TODO(justin): implement a more general mechanism for tracking these.
-		switch n.name {
-		case stats.AutoStatsClusterSettingName:
-			switch expectedEncodedValue {
-			case "true":
-				telemetry.Inc(sqltelemetry.TurnAutoStatsOnUseCounter)
-			case "false":
-				telemetry.Inc(sqltelemetry.TurnAutoStatsOffUseCounter)
-			}
-		case ReorderJoinsLimitClusterSettingName:
-			val, err := strconv.ParseInt(expectedEncodedValue, 10, 64)
-			if err != nil {
-				break
-			}
-			sqltelemetry.ReportJoinReorderLimit(int(val))
 		}
 
 		return MakeEventLogger(params.extendedEvalCtx.ExecCfg).InsertEventRecord(

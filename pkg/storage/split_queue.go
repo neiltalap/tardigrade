@@ -19,7 +19,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/gossip"
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
 	"github.com/podomy/tardigrade/pkg/util/humanizeutil"
@@ -52,8 +51,6 @@ type splitQueue struct {
 	db       *client.DB
 	purgChan <-chan time.Time
 
-	// loadBasedCount counts the load-based splits performed by the queue.
-	loadBasedCount telemetry.Counter
 }
 
 // newSplitQueue returns a new instance of splitQueue.
@@ -67,9 +64,8 @@ func newSplitQueue(store *Store, db *client.DB, gossip *gossip.Gossip) *splitQue
 	}
 
 	sq := &splitQueue{
-		db:             db,
-		purgChan:       purgChan,
-		loadBasedCount: telemetry.GetCounter("kv.split.load"),
+		db:       db,
+		purgChan: purgChan,
 	}
 	sq.baseQueue = newBaseQueue(
 		"split", sq, store, gossip,
@@ -221,7 +217,6 @@ func (sq *splitQueue) processAttempt(
 			return errors.Wrapf(pErr, "unable to split %s at key %q", r, splitByLoadKey)
 		}
 
-		telemetry.Inc(sq.loadBasedCount)
 
 		// Reset the splitter now that the bounds of the range changed.
 		r.loadBasedSplitter.Reset()

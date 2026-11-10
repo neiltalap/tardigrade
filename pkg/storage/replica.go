@@ -29,10 +29,8 @@ import (
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/storage/abortspan"
 	"github.com/podomy/tardigrade/pkg/storage/batcheval"
-	"github.com/podomy/tardigrade/pkg/storage/closedts/ctpb"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
-	"github.com/podomy/tardigrade/pkg/storage/rangefeed"
 	"github.com/podomy/tardigrade/pkg/storage/spanlatch"
 	"github.com/podomy/tardigrade/pkg/storage/spanset"
 	"github.com/podomy/tardigrade/pkg/storage/split"
@@ -357,9 +355,6 @@ type Replica struct {
 		// we know that the replica has caught up.
 		lastReplicaAdded     roachpb.ReplicaID
 		lastReplicaAddedTime time.Time
-		// initialMaxClosed is the initial maxClosed timestamp for the replica as known
-		// from its left-hand-side upon creation.
-		initialMaxClosed hlc.Timestamp
 
 		// The most recently updated time for each follower of this range. This is updated
 		// every time a Raft message is received from a peer.
@@ -459,19 +454,6 @@ type Replica struct {
 		// transfers due to a lease change will be attempted even if the target does
 		// not have all the log entries.
 		draining bool
-	}
-
-	rangefeedMu struct {
-		syncutil.RWMutex
-		// proc is an instance of a rangefeed Processor that is capable of
-		// routing rangefeed events to a set of subscribers. Will be nil if no
-		// subscribers are registered.
-		//
-		// Requires Replica.rangefeedMu be held when mutating the pointer.
-		// Requires Replica.raftMu be held when providing logical ops and
-		//  informing the processor of closed timestamp updates. This properly
-		//  synchronizes updates that are linearized and driven by the Raft log.
-		proc *rangefeed.Processor
 	}
 
 	// Throttle how often we offer this Replica to the split and merge queues.
@@ -935,16 +917,6 @@ func (r *Replica) raftStatusRLocked() *raft.Status {
 func (r *Replica) State() storagepb.RangeInfo {
 	var ri storagepb.RangeInfo
 
-	// NB: this acquires an RLock(). Reentrant RLocks are deadlock prone, so do
-	// this first before RLocking below. Performance of this extra lock
-	// acquisition is not a concern.
-	ri.ActiveClosedTimestamp, _ = r.maxClosed(context.Background())
-
-	// NB: numRangefeedRegistrations doesn't require Replica.mu to be locked.
-	// However, it does require coordination between multiple goroutines, so
-	// it's best to keep it out of the Replica.mu critical section.
-	ri.RangefeedRegistrations = int64(r.numRangefeedRegistrations())
-
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	ri.ReplicaState = *(protoutil.Clone(&r.mu.state)).(*storagepb.ReplicaState)
@@ -964,24 +936,6 @@ func (r *Replica) State() storagepb.RangeInfo {
 		}
 	}
 	ri.RangeMaxBytes = *r.mu.zone.RangeMaxBytes
-	if desc := ri.ReplicaState.Desc; desc != nil {
-		// Learner replicas don't serve follower reads, but they still receive
-		// closed timestamp updates, so include them here.
-		for _, replDesc := range desc.Replicas().All() {
-			r.store.cfg.ClosedTimestamp.Storage.VisitDescending(replDesc.NodeID, func(e ctpb.Entry) (done bool) {
-				mlai, found := e.MLAI[r.RangeID]
-				if !found {
-					return false // not done
-				}
-				if ri.NewestClosedTimestamp.ClosedTimestamp.Less(e.ClosedTimestamp) {
-					ri.NewestClosedTimestamp.NodeID = replDesc.NodeID
-					ri.NewestClosedTimestamp.MLAI = int64(mlai)
-					ri.NewestClosedTimestamp.ClosedTimestamp = e.ClosedTimestamp
-				}
-				return true // done
-			})
-		}
-	}
 	return ri
 }
 

@@ -22,8 +22,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/keys"
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
-	"github.com/podomy/tardigrade/pkg/storage/closedts"
-	"github.com/podomy/tardigrade/pkg/storage/closedts/ctpb"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/storage/storagepb"
 	"github.com/podomy/tardigrade/pkg/util/contextutil"
@@ -53,8 +51,6 @@ var (
 	// someone else has already incremented the epoch to the desired
 	// value.
 	ErrEpochAlreadyIncremented = errors.New("epoch already incremented")
-
-	errLiveClockNotLive = errors.New("not live")
 )
 
 type errRetryLiveness struct {
@@ -1031,23 +1027,6 @@ func (nl *NodeLiveness) numLiveNodes() int64 {
 		}
 	}
 	return liveNodes
-}
-
-// AsLiveClock returns a closedts.LiveClockFn that takes a current timestamp off
-// the clock and returns it only if node liveness indicates that the node is live
-// at that timestamp and the returned epoch.
-func (nl *NodeLiveness) AsLiveClock() closedts.LiveClockFn {
-	return func(nodeID roachpb.NodeID) (hlc.Timestamp, ctpb.Epoch, error) {
-		now := nl.clock.Now()
-		liveness, err := nl.GetLiveness(nodeID)
-		if err != nil {
-			return hlc.Timestamp{}, 0, err
-		}
-		if !liveness.IsLive(now, nl.clock.MaxOffset()) {
-			return hlc.Timestamp{}, 0, errLiveClockNotLive
-		}
-		return now, ctpb.Epoch(liveness.Epoch), nil
-	}
 }
 
 // GetNodeCount returns a count of the number of nodes in the cluster,

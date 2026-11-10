@@ -67,8 +67,6 @@ func getPlanColumns(plan planNode, mut bool) sqlbase.ResultColumns {
 		return n.columns
 	case *explainPlanNode:
 		return n.run.results.columns
-	case *windowNode:
-		return n.columns
 	case *showTraceNode:
 		return n.columns
 	case *zeroNode:
@@ -92,31 +90,20 @@ func getPlanColumns(plan planNode, mut bool) sqlbase.ResultColumns {
 	case *zigzagJoinNode:
 		return n.columns
 
-	// Nodes with a fixed schema.
-	case *scrubNode:
-		return n.getColumns(mut, sqlbase.ScrubColumns)
 	case *explainDistSQLNode:
 		return n.getColumns(mut, sqlbase.ExplainDistSQLColumns)
-	case *explainVecNode:
-		return n.getColumns(mut, sqlbase.ExplainVecColumns)
 	case *relocateNode:
 		return n.getColumns(mut, sqlbase.AlterTableRelocateColumns)
 	case *scatterNode:
 		return n.getColumns(mut, sqlbase.AlterTableScatterColumns)
-	case *showFingerprintsNode:
-		return n.getColumns(mut, sqlbase.ShowFingerprintsColumns)
 	case *splitNode:
 		return n.getColumns(mut, sqlbase.AlterTableSplitColumns)
 	case *unsplitNode:
 		return n.getColumns(mut, sqlbase.AlterTableUnsplitColumns)
 	case *unsplitAllNode:
 		return n.getColumns(mut, sqlbase.AlterTableUnsplitColumns)
-	case *showTraceReplicaNode:
-		return n.getColumns(mut, sqlbase.ShowReplicaTraceColumns)
 	case *sequenceSelectNode:
 		return n.getColumns(mut, sqlbase.SequenceSelectColumns)
-	case *exportNode:
-		return n.getColumns(mut, sqlbase.ExportColumns)
 
 	// The columns in the hookFnNode are returned by the hook function; we don't
 	// know if they can be modified in place or not.

@@ -68,7 +68,7 @@ func TestAggregatesMonitorMemory(t *testing.T) {
 	statements := []string{
 		`SELECT length(concat_agg(a)) FROM d.t`,
 		`SELECT array_length(array_agg(a), 1) FROM d.t`,
-		`SELECT json_typeof(json_agg(A)) FROM d.t`,
+		`SELECT length(json_agg(A)::STRING) FROM d.t`,
 	}
 
 	for _, statement := range statements {

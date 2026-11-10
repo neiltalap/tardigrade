@@ -19,7 +19,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/base"
 	"github.com/podomy/tardigrade/pkg/sql"
 	"github.com/podomy/tardigrade/pkg/sql/tests"
-	"github.com/podomy/tardigrade/pkg/sqlmigrations"
 	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
 	"github.com/podomy/tardigrade/pkg/util/leaktest"
 )
@@ -52,10 +51,6 @@ func TestIndexBackfiller(t *testing.T) {
 				// Wait until we get a signal to begin backfill.
 				<-moveToBackfill
 			},
-		},
-		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
 		},
 	}
 

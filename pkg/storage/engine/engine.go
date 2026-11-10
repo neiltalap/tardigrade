@@ -427,7 +427,7 @@ type Stats struct {
 	L0FileCount                    int64
 }
 
-// EnvStats is a set of RocksDB env stats, including encryption status.
+// EnvStats is a set of RocksDB env stats.
 type EnvStats struct {
 	// TotalFiles is the total number of files reported by rocksdb.
 	TotalFiles uint64
@@ -437,22 +437,6 @@ type EnvStats struct {
 	ActiveKeyFiles uint64
 	// ActiveKeyBytes is the size of files using the active data key.
 	ActiveKeyBytes uint64
-	// EncryptionType is an enum describing the active encryption algorithm.
-	// See: ccl/storageccl/engineccl/enginepbccl/key_registry.proto
-	EncryptionType int32
-	// EncryptionStatus is a serialized enginepbccl/stats.proto::EncryptionStatus protobuf.
-	EncryptionStatus []byte
-}
-
-// EncryptionRegistries contains the encryption-related registries:
-// Both are serialized protobufs.
-type EncryptionRegistries struct {
-	// FileRegistry is the list of files with encryption status.
-	// serialized storage/engine/enginepb/file_registry.proto::FileRegistry
-	FileRegistry []byte
-	// KeyRegistry is the list of keys, scrubbed of actual key data.
-	// serialized ccl/storageccl/engineccl/enginepbccl/key_registry.proto::DataKeysRegistry
-	KeyRegistry []byte
 }
 
 // PutProto sets the given key to the protobuf-serialized byte string

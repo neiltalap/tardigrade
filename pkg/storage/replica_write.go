@@ -17,13 +17,13 @@ import (
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/storage/batcheval"
 	"github.com/podomy/tardigrade/pkg/storage/batcheval/result"
-	"github.com/podomy/tardigrade/pkg/storage/closedts/ctpb"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
 	"github.com/podomy/tardigrade/pkg/storage/spanset"
 	"github.com/podomy/tardigrade/pkg/storage/storagebase"
 	"github.com/podomy/tardigrade/pkg/storage/storagepb"
 	"github.com/podomy/tardigrade/pkg/util"
+	"github.com/podomy/tardigrade/pkg/util/hlc"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/timeutil"
 	"github.com/pkg/errors"
@@ -116,14 +116,11 @@ func (r *Replica) executeWriteBatch(
 	}
 	r.limitTxnMaxTimestamp(ctx, ba, status)
 
-	minTS, untrack := r.store.cfg.ClosedTimestamp.Tracker.Track(ctx)
-	defer untrack(ctx, 0, 0, 0) // covers all error returns below
-
 	// Examine the read and write timestamp caches for preceding
 	// commands which require this command to move its timestamp
 	// forward. Or, in the case of a transactional write, the txn
 	// timestamp and possible write-too-old bool.
-	if bumped := r.applyTimestampCache(ctx, ba, minTS); bumped {
+	if bumped := r.applyTimestampCache(ctx, ba, hlc.Timestamp{}); bumped {
 		// If we bump the transaction's timestamp, we must absolutely
 		// tell the client in a response transaction (for otherwise it
 		// doesn't know about the incremented timestamp). Response
@@ -157,12 +154,6 @@ func (r *Replica) executeWriteBatch(
 		return nil, pErr
 	}
 	// A max lease index of zero is returned when no proposal was made or a lease was proposed.
-	// In both cases, we don't need to communicate a MLAI. Furthermore, for lease proposals we
-	// cannot communicate under the lease's epoch. Instead the code calls EmitMLAI explicitly
-	// as a side effect of stepping up as leaseholder.
-	if maxLeaseIndex != 0 {
-		untrack(ctx, ctpb.Epoch(lease.Epoch), r.RangeID, ctpb.LAI(maxLeaseIndex))
-	}
 
 	// If the command was accepted by raft, wait for the range to apply it.
 	ctxDone := ctx.Done()
@@ -369,43 +360,6 @@ func (r *Replica) evaluateWriteBatchWithLocalRetries(
 			batch.Close()
 		}
 		batch = r.store.Engine().NewBatch()
-		var opLogger *engine.OpLoggerBatch
-		if RangefeedEnabled.Get(&r.store.cfg.Settings.SV) {
-			// TODO(nvanbenschoten): once we get rid of the RangefeedEnabled
-			// cluster setting we'll need a way to turn this on when any
-			// replica (not just the leaseholder) wants it and off when no
-			// replicas want it. This turns out to be pretty involved.
-			//
-			// The current plan is to:
-			// - create a range-id local key that stores all replicas that are
-			//   subscribed to logical operations, along with their corresponding
-			//   liveness epoch.
-			// - create a new command that adds or subtracts replicas from this
-			//   structure. The command will be a write across the entire replica
-			//   span so that it is serialized with all writes.
-			// - each replica will add itself to this set when it first needs
-			//   logical ops. It will then wait until it sees the replicated command
-			//   that added itself pop out through Raft so that it knows all
-			//   commands that are missing logical ops are gone.
-			// - It will then proceed as normal, relying on the logical ops to
-			//   always be included on the raft commands. When its no longer
-			//   needs logical ops, it will remove itself from the set.
-			// - The leaseholder will have a new queue to detect registered
-			//   replicas that are no longer live and remove them from the
-			//   set to prevent "leaking" subscriptions.
-			// - The condition here to add logical logging will be:
-			//     if len(replicaState.logicalOpsSubs) > 0 { ... }
-			//
-			// An alternative to this is the reduce the cost of the including
-			// the logical op log to a negligible amount such that it can be
-			// included on all raft commands, regardless of whether any replica
-			// has a rangefeed running or not.
-			//
-			// Another alternative is to make the setting table/zone-scoped
-			// instead of a fine-grained per-replica state.
-			opLogger = engine.NewOpLoggerBatch(batch)
-			batch = opLogger
-		}
 		if util.RaceEnabled {
 			batch = spanset.NewBatch(batch, spans)
 		}
@@ -420,11 +374,6 @@ func (r *Replica) evaluateWriteBatchWithLocalRetries(
 			}
 			ba.Timestamp = wtoErr.ActualTimestamp
 			continue
-		}
-		if opLogger != nil {
-			res.LogicalOpLog = &storagepb.LogicalOpLog{
-				Ops: opLogger.LogicalOps(),
-			}
 		}
 		break
 	}

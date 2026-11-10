@@ -216,35 +216,6 @@ func TestTrace(t *testing.T) {
 				"noop",
 			},
 		},
-		{
-			name: "ShowTraceForVectorized",
-			getRows: func(_ *testing.T, sqlDB *gosql.DB) (*gosql.Rows, error) {
-				if _, err := sqlDB.Exec("SET distsql = off"); err != nil {
-					t.Fatal(err)
-				}
-				if _, err := sqlDB.Exec("SET vectorize = experimental_on"); err != nil {
-					t.Fatal(err)
-				}
-				if _, err := sqlDB.Exec("SET tracing = on; SELECT * FROM test.foo; SET tracing = off"); err != nil {
-					t.Fatal(err)
-				}
-				return sqlDB.Query(
-					"SELECT DISTINCT operation AS op FROM [SHOW TRACE FOR SESSION] " +
-						"WHERE operation IS NOT NULL ORDER BY op")
-			},
-			expSpans: []string{
-				"session recording",
-				"sql txn",
-				"exec stmt",
-				"flow",
-				"materializer",
-				"operator for processor 0",
-				"consuming rows",
-				"txn coordinator send",
-				"dist sender send",
-				"/cockroach.roachpb.Internal/Batch",
-			},
-		},
 	}
 
 	// Create a cluster. We'll run sub-tests using each node of this cluster.

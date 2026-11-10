@@ -41,8 +41,6 @@ func buildOpaque(
 	var plan planNode
 	var err error
 	switch n := stmt.(type) {
-	case *tree.AlterIndex:
-		plan, err = p.AlterIndex(ctx, n)
 	case *tree.AlterTable:
 		plan, err = p.AlterTable(ctx, n)
 	case *tree.AlterSequence:
@@ -64,7 +62,8 @@ func buildOpaque(
 	case *tree.CreateSequence:
 		plan, err = p.CreateSequence(ctx, n)
 	case *tree.CreateStats:
-		plan, err = p.CreateStatistics(ctx, n)
+		plan, err = nil, errors.New("CREATE STATISTICS is not supported: " +
+			"the table statistics subsystem has been removed")
 	case *tree.Deallocate:
 		plan, err = p.Deallocate(ctx, n)
 	case *tree.Discard:
@@ -95,8 +94,6 @@ func buildOpaque(
 		plan, err = p.Revoke(ctx, n)
 	case *tree.Scatter:
 		plan, err = p.Scatter(ctx, n)
-	case *tree.Scrub:
-		plan, err = p.Scrub(ctx, n)
 	case *tree.SetClusterSetting:
 		plan, err = p.SetClusterSetting(ctx, n)
 	case *tree.SetZoneConfig:
@@ -119,8 +116,6 @@ func buildOpaque(
 		plan, err = p.ShowTrace(ctx, n)
 	case *tree.ShowZoneConfig:
 		plan, err = p.ShowZoneConfig(ctx, n)
-	case *tree.ShowFingerprints:
-		plan, err = p.ShowFingerprints(ctx, n)
 	case *tree.Truncate:
 		plan, err = p.Truncate(ctx, n)
 	case tree.CCLOnlyStatement:
@@ -145,7 +140,6 @@ func buildOpaque(
 func init() {
 	for _, stmt := range []tree.Statement{
 		&tree.AlterUserSetPassword{},
-		&tree.AlterIndex{},
 		&tree.AlterTable{},
 		&tree.AlterSequence{},
 		&tree.CommentOnColumn{},
@@ -171,7 +165,6 @@ func init() {
 		&tree.RenameTable{},
 		&tree.Revoke{},
 		&tree.Scatter{},
-		&tree.Scrub{},
 		&tree.SetClusterSetting{},
 		&tree.SetZoneConfig{},
 		&tree.SetVar{},
@@ -183,19 +176,9 @@ func init() {
 		&tree.ShowTableStats{},
 		&tree.ShowTraceForSession{},
 		&tree.ShowZoneConfig{},
-		&tree.ShowFingerprints{},
 		&tree.Truncate{},
 
 		// CCL statements (without Export which has an optimizer operator).
-		&tree.Backup{},
-		&tree.ShowBackup{},
-		&tree.Restore{},
-		&tree.CreateChangefeed{},
-		&tree.CreateRole{},
-		&tree.DropRole{},
-		&tree.GrantRole{},
-		&tree.RevokeRole{},
-		&tree.Import{},
 	} {
 		typ := optbuilder.OpaqueReadOnly
 		if tree.CanModifySchema(stmt) {

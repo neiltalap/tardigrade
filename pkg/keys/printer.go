@@ -24,6 +24,8 @@ import (
 
 // PrettyPrintTimeseriesKey is a hook for pretty printing a timeseries key. The
 // timeseries key prefix will already have been stripped off.
+// It is nil when the time series subsystem is not linked in; callers must
+// use decodeTimeseriesKey, which falls back to raw printing.
 var PrettyPrintTimeseriesKey func(key roachpb.Key) string
 
 // DictEntry contains info on pretty-printing and pretty-scanning keys in a
@@ -529,6 +531,9 @@ func decodeKeyPrint(valDirs []encoding.Direction, key roachpb.Key) string {
 }
 
 func decodeTimeseriesKey(_ []encoding.Direction, key roachpb.Key) string {
+	if PrettyPrintTimeseriesKey == nil {
+		return print(nil, key)
+	}
 	return PrettyPrintTimeseriesKey(key)
 }
 

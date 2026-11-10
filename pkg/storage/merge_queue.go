@@ -13,7 +13,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/podomy/tardigrade/pkg/config"
@@ -25,9 +24,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
 	"github.com/podomy/tardigrade/pkg/storage/storagebase"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
-	"github.com/podomy/tardigrade/pkg/util/humanizeutil"
-	"github.com/podomy/tardigrade/pkg/util/log"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -155,39 +151,10 @@ func (mq *mergeQueue) mergesDisabledForRange(desc *roachpb.RangeDescriptor) bool
 func (mq *mergeQueue) shouldQueue(
 	ctx context.Context, now hlc.Timestamp, repl *Replica, sysCfg *config.SystemConfig,
 ) (shouldQ bool, priority float64) {
-	if !mq.enabled() {
-		return false, 0
-	}
-
-	desc := repl.Desc()
-
-	if desc.EndKey.Equal(roachpb.RKeyMax) {
-		// The last range has no right-hand neighbor to merge with.
-		return false, 0
-	}
-
-	if sysCfg.NeedsSplit(desc.StartKey, desc.EndKey.Next()) {
-		// This range would need to be split if it extended just one key further.
-		// There is thus no possible right-hand neighbor that it could be merged
-		// with.
-		return false, 0
-	}
-
-	if mq.mergesDisabledForRange(desc) {
-		return false, 0
-	}
-
-	sizeRatio := float64(repl.GetMVCCStats().Total()) / float64(repl.GetMinBytes())
-	if math.IsNaN(sizeRatio) || sizeRatio >= 1 {
-		// This range is above the minimum size threshold. It does not need to be
-		// merged.
-		return false, 0
-	}
-
-	// Invert sizeRatio to compute the priority so that smaller ranges are merged
-	// before larger ranges.
-	priority = 1 - sizeRatio
-	return true, priority
+	// The background merge queue has been removed. Ranges are never
+	// automatically queued for merging; manual AdminMerge requests continue
+	// to work through the normal admin path.
+	return false, 0
 }
 
 // rangeMergePurgatoryError wraps an error that occurs during merging to
@@ -222,159 +189,9 @@ func (mq *mergeQueue) requestRangeStats(
 func (mq *mergeQueue) process(
 	ctx context.Context, lhsRepl *Replica, sysCfg *config.SystemConfig,
 ) error {
-	if !mq.enabled() {
-		log.VEventf(ctx, 2, "skipping merge: queue has been disabled")
-		return nil
-	}
-
-	lhsDesc := lhsRepl.Desc()
-	if mq.mergesDisabledForRange(lhsDesc) {
-		log.VEventf(ctx, 2, "skipping merge: merges are temporarily disabled for this table")
-		return nil
-	}
-
-	lhsStats := lhsRepl.GetMVCCStats()
-	minBytes := lhsRepl.GetMinBytes()
-	if lhsStats.Total() >= minBytes {
-		log.VEventf(ctx, 2, "skipping merge: LHS meets minimum size threshold %d with %d bytes",
-			minBytes, lhsStats.Total())
-		return nil
-	}
-
-	lhsQPS := lhsRepl.GetSplitQPS()
-	rhsDesc, rhsStats, rhsQPS, err := mq.requestRangeStats(ctx, lhsDesc.EndKey.AsRawKey())
-	if err != nil {
-		return err
-	}
-	if rhsStats.Total() >= minBytes {
-		log.VEventf(ctx, 2, "skipping merge: RHS meets minimum size threshold %d with %d bytes",
-			minBytes, lhsStats.Total())
-		return nil
-	}
-
-	// Range was manually split and not expired, so skip merging.
-	now := mq.store.Clock().Now()
-	if now.Less(rhsDesc.GetStickyBit()) {
-		log.VEventf(ctx, 2, "skipping merge: ranges were manually split and sticky bit was not expired")
-		// TODO(jeffreyxiao): Consider returning a purgatory error to avoid
-		// repeatedly processing ranges that cannot be merged.
-		return nil
-	}
-
-	mergedDesc := &roachpb.RangeDescriptor{
-		StartKey: lhsDesc.StartKey,
-		EndKey:   rhsDesc.EndKey,
-	}
-	mergedStats := lhsStats
-	mergedStats.Add(rhsStats)
-
-	var mergedQPS float64
-	if lhsRepl.SplitByLoadEnabled() {
-		mergedQPS = lhsQPS + rhsQPS
-	}
-
-	// Check if the merged range would need to be split, if so, skip merge.
-	// Use a lower threshold for load based splitting so we don't find ourselves
-	// in a situation where we keep merging ranges that would be split soon after
-	// by a small increase in load.
-	loadBasedSplitPossible := lhsRepl.SplitByLoadQPSThreshold() < 2*mergedQPS
-	if ok, _ := shouldSplitRange(mergedDesc, mergedStats, lhsRepl.GetMaxBytes(), sysCfg); ok || loadBasedSplitPossible {
-		log.VEventf(ctx, 2,
-			"skipping merge to avoid thrashing: merged range %s may split "+
-				"(estimated size, estimated QPS: %d, %v)",
-			mergedDesc, mergedStats.Total(), mergedQPS)
-		return nil
-	}
-
-	{
-		store := lhsRepl.store
-		// AdminMerge errors if there is a learner or joint config on either
-		// side and AdminRelocateRange removes any on the range it operates on.
-		// For the sake of obviousness, just fix this all upfront.
-		var err error
-		lhsDesc, err = removeNonFullVoters(ctx, store, lhsDesc)
-		if err != nil {
-			log.VEventf(ctx, 2, `%v`, err)
-			return err
-		}
-
-		rhsDesc, err = removeNonFullVoters(ctx, store, rhsDesc)
-		if err != nil {
-			log.VEventf(ctx, 2, `%v`, err)
-			return err
-		}
-	}
-	lhsReplicas, rhsReplicas := lhsDesc.Replicas().All(), rhsDesc.Replicas().All()
-
-	// Defensive sanity check that everything is now a voter.
-	for i := range lhsReplicas {
-		if lhsReplicas[i].GetType() != roachpb.VOTER_FULL {
-			return errors.Errorf(`cannot merge non-voter replicas on lhs: %v`, lhsReplicas)
-		}
-	}
-	for i := range rhsReplicas {
-		if rhsReplicas[i].GetType() != roachpb.VOTER_FULL {
-			return errors.Errorf(`cannot merge non-voter replicas on rhs: %v`, rhsReplicas)
-		}
-	}
-
-	if !replicaSetsEqual(lhsReplicas, rhsReplicas) {
-		var targets []roachpb.ReplicationTarget
-		for _, lhsReplDesc := range lhsReplicas {
-			targets = append(targets, roachpb.ReplicationTarget{
-				NodeID: lhsReplDesc.NodeID, StoreID: lhsReplDesc.StoreID,
-			})
-		}
-		// AdminRelocateRange moves the lease to the first target in the list, so
-		// sort the existing leaseholder there to leave it unchanged.
-		lease, _ := lhsRepl.GetLease()
-		for i := range targets {
-			if targets[i].NodeID == lease.Replica.NodeID && targets[i].StoreID == lease.Replica.StoreID {
-				if i > 0 {
-					targets[0], targets[i] = targets[i], targets[0]
-				}
-				break
-			}
-		}
-		// TODO(benesch): RelocateRange can sometimes fail if it needs to move a replica
-		// from one store to another store on the same node.
-		if err := mq.store.DB().AdminRelocateRange(ctx, rhsDesc.StartKey, targets); err != nil {
-			return err
-		}
-	}
-
-	log.VEventf(ctx, 2, "merging to produce range: %s-%s", mergedDesc.StartKey, mergedDesc.EndKey)
-	reason := fmt.Sprintf("lhs+rhs has (size=%s+%s qps=%.2f+%.2f --> %.2fqps) below threshold (size=%s, qps=%.2f)",
-		humanizeutil.IBytes(lhsStats.Total()),
-		humanizeutil.IBytes(rhsStats.Total()),
-		lhsQPS,
-		rhsQPS,
-		mergedQPS,
-		humanizeutil.IBytes(mergedStats.Total()),
-		mergedQPS,
-	)
-	_, pErr := lhsRepl.AdminMerge(ctx, roachpb.AdminMergeRequest{
-		RequestHeader: roachpb.RequestHeader{Key: lhsRepl.Desc().StartKey.AsRawKey()},
-	}, reason)
-	switch err := pErr.GoError(); err.(type) {
-	case nil:
-	case *roachpb.ConditionFailedError:
-		// ConditionFailedErrors are an expected outcome for range merge
-		// attempts because merges can race with other descriptor modifications.
-		// On seeing a ConditionFailedError, don't return an error and enqueue
-		// this replica again in case it still needs to be merged.
-		log.Infof(ctx, "merge saw concurrent descriptor modification; maybe retrying")
-		mq.MaybeAddAsync(ctx, lhsRepl, now)
-	default:
-		// While range merges are unstable, be extra cautious and mark every error
-		// as purgatory-worthy.
-		return rangeMergePurgatoryError{err}
-	}
-	if testingAggressiveConsistencyChecks {
-		if err := mq.store.consistencyQueue.process(ctx, lhsRepl, sysCfg); err != nil {
-			log.Warning(ctx, err)
-		}
-	}
+	// The background merge queue has been removed. This is a no-op;
+	// manual AdminMerge requests continue to work through the normal admin
+	// path.
 	return nil
 }
 

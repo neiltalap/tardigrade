@@ -14,13 +14,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgwirebase"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/cockroachdb/errors"
 	"github.com/lib/pq/oid"
 )
@@ -205,7 +203,7 @@ func (r *commandResult) SetColumns(ctx context.Context, cols sqlbase.ResultColum
 	}
 	r.oids = make([]oid.Oid, len(cols))
 	for i, col := range cols {
-		r.oids[i] = mapResultOid(col.Typ.Oid())
+		r.oids[i] = col.Typ.Oid()
 	}
 }
 
@@ -411,7 +409,6 @@ func (r *limitedCommandResult) moreResultsNeeded(ctx context.Context) error {
 			// the cleanup. We are in effect peeking to see if the
 			// next message is a delete portal.
 			if c.Type != pgwirebase.PreparePortal || c.Name != r.portalName {
-				telemetry.Inc(sqltelemetry.InterleavedPortalRequestCounter)
 				return errors.WithDetail(sql.ErrLimitedResultNotSupported,
 					"cannot close a portal while a different one is open")
 			}
@@ -423,7 +420,6 @@ func (r *limitedCommandResult) moreResultsNeeded(ctx context.Context) error {
 		case sql.ExecPortal:
 			// The happy case: the client wants more rows from the portal.
 			if c.Name != r.portalName {
-				telemetry.Inc(sqltelemetry.InterleavedPortalRequestCounter)
 				return errors.WithDetail(sql.ErrLimitedResultNotSupported,
 					"cannot execute a portal while a different one is open")
 			}
@@ -444,7 +440,6 @@ func (r *limitedCommandResult) moreResultsNeeded(ctx context.Context) error {
 			}
 		default:
 			// We got some other message, but we only support executing to completion.
-			telemetry.Inc(sqltelemetry.InterleavedPortalRequestCounter)
 			return errors.WithSafeDetails(sql.ErrLimitedResultNotSupported,
 				"cannot perform operation %T while a different portal is open",
 				errors.Safe(c))

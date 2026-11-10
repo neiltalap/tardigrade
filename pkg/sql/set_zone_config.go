@@ -26,7 +26,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/privilege"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/protoutil"
 	"github.com/cockroachdb/errors"
@@ -303,7 +302,6 @@ func (n *setZoneConfigNode) startExec(params runParams) error {
 	// of them.
 	var specifiers []tree.ZoneSpecifier
 	if n.zoneSpecifier.TargetsPartition() && n.allIndexes {
-		sqltelemetry.IncrementPartitioningCounter(sqltelemetry.AlterAllPartitions)
 		for _, idx := range table.AllNonDropIndexes() {
 			if p := idx.FindPartitionByName(string(n.zoneSpecifier.Partition)); p != nil {
 				zs := n.zoneSpecifier

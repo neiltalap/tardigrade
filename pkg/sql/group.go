@@ -510,10 +510,7 @@ func (v *extractAggregatesVisitor) VisitPre(expr tree.Expr) (recurse bool, newEx
 				// don't contain invalid functions. This really would want to
 				// be checked on the return path of the recursion.
 				// See issue #26425.
-				if v.planner.txCtx.WindowFuncInExpr(argExpr) {
-					v.err = sqlbase.NewWindowInAggError()
-					return false, expr
-				} else if v.planner.txCtx.AggregateInExpr(argExpr, v.planner.SessionData().SearchPath) {
+				if v.planner.txCtx.AggregateInExpr(argExpr, v.planner.SessionData().SearchPath) {
 					v.err = sqlbase.NewAggInAggError()
 					return false, expr
 				}

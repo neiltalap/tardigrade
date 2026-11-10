@@ -138,7 +138,6 @@ type planNodeFastPath interface {
 	FastPathResults() (int, bool)
 }
 
-var _ planNode = &alterIndexNode{}
 var _ planNode = &alterSequenceNode{}
 var _ planNode = &alterTableNode{}
 var _ planNode = &bufferNode{}
@@ -148,7 +147,6 @@ var _ planNode = &changePrivilegesNode{}
 var _ planNode = &createDatabaseNode{}
 var _ planNode = &createIndexNode{}
 var _ planNode = &createSequenceNode{}
-var _ planNode = &createStatsNode{}
 var _ planNode = &createTableNode{}
 var _ planNode = &CreateUserNode{}
 var _ planNode = &createViewNode{}
@@ -165,7 +163,6 @@ var _ planNode = &dropViewNode{}
 var _ planNode = &errorIfRowsNode{}
 var _ planNode = &explainDistSQLNode{}
 var _ planNode = &explainPlanNode{}
-var _ planNode = &explainVecNode{}
 var _ planNode = &filterNode{}
 var _ planNode = &groupNode{}
 var _ planNode = &hookFnNode{}
@@ -188,7 +185,6 @@ var _ planNode = &scanNode{}
 var _ planNode = &scatterNode{}
 var _ planNode = &serializeNode{}
 var _ planNode = &sequenceSelectNode{}
-var _ planNode = &showFingerprintsNode{}
 var _ planNode = &showTraceNode{}
 var _ planNode = &sortNode{}
 var _ planNode = &splitNode{}
@@ -201,7 +197,6 @@ var _ planNode = &updateNode{}
 var _ planNode = &upsertNode{}
 var _ planNode = &valuesNode{}
 var _ planNode = &virtualTableNode{}
-var _ planNode = &windowNode{}
 var _ planNode = &zeroNode{}
 
 var _ planNodeFastPath = &CreateUserNode{}
@@ -339,7 +334,7 @@ func startExec(params runParams, plan planNode) error {
 	o := planObserver{
 		enterNode: func(ctx context.Context, _ string, p planNode) (bool, error) {
 			switch p.(type) {
-			case *explainPlanNode, *explainDistSQLNode, *explainVecNode:
+			case *explainPlanNode, *explainDistSQLNode:
 				// Do not recurse: we're not starting the plan if we just show its structure with EXPLAIN.
 				return false, nil
 			case *showTraceNode:
@@ -414,8 +409,6 @@ func (p *planner) newPlan(
 	}
 
 	switch n := stmt.(type) {
-	case *tree.AlterIndex:
-		return p.AlterIndex(ctx, n)
 	case *tree.AlterTable:
 		return p.AlterTable(ctx, n)
 	case *tree.AlterSequence:
@@ -434,8 +427,6 @@ func (p *planner) newPlan(
 		return p.CommentOnTable(ctx, n)
 	case *tree.ControlJobs:
 		return p.ControlJobs(ctx, n)
-	case *tree.Scrub:
-		return p.Scrub(ctx, n)
 	case *tree.CreateDatabase:
 		return p.CreateDatabase(ctx, n)
 	case *tree.CreateIndex:
@@ -449,7 +440,10 @@ func (p *planner) newPlan(
 	case *tree.CreateSequence:
 		return p.CreateSequence(ctx, n)
 	case *tree.CreateStats:
-		return p.CreateStatistics(ctx, n)
+		// The statistics subsystem has been removed. CREATE STATISTICS
+		// errors honestly instead of planning.
+		return nil, errors.New("CREATE STATISTICS is not supported: " +
+			"the table statistics subsystem has been removed")
 	case *tree.Deallocate:
 		return p.Deallocate(ctx, n)
 	case *tree.Delete:
@@ -515,8 +509,6 @@ func (p *planner) newPlan(
 		return p.ShowTrace(ctx, n)
 	case *tree.ShowZoneConfig:
 		return p.ShowZoneConfig(ctx, n)
-	case *tree.ShowFingerprints:
-		return p.ShowFingerprints(ctx, n)
 	case *tree.Split:
 		return p.Split(ctx, n)
 	case *tree.Unsplit:

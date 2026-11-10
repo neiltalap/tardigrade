@@ -79,13 +79,6 @@ func (s *Store) MustForceRaftLogScanAndProcess() {
 	mustForceScanAndProcess(context.TODO(), s, s.raftLogQueue.baseQueue)
 }
 
-// ForceTimeSeriesMaintenanceQueueProcess iterates over all ranges, enqueuing
-// any that need time series maintenance, then processes the time series
-// maintenance queue.
-func (s *Store) ForceTimeSeriesMaintenanceQueueProcess() error {
-	return forceScanAndProcess(s, s.tsMaintenanceQueue.baseQueue)
-}
-
 // ForceRaftSnapshotQueueProcess iterates over all ranges, enqueuing
 // any that need raft snapshots, then processes the raft snapshot
 // queue.
@@ -93,10 +86,12 @@ func (s *Store) ForceRaftSnapshotQueueProcess() error {
 	return forceScanAndProcess(s, s.raftSnapshotQueue.baseQueue)
 }
 
-// ForceConsistencyQueueProcess runs all the ranges through the consistency
-// queue.
+// ForceConsistencyQueueProcess is a no-op retained for compatibility with
+// callers outside pkg/storage (e.g. pkg/cli tests). The background
+// consistency checker queue has been removed; the CheckConsistency admin RPC
+// (Replica.CheckConsistency) remains available.
 func (s *Store) ForceConsistencyQueueProcess() error {
-	return forceScanAndProcess(s, s.consistencyQueue.baseQueue)
+	return nil
 }
 
 // The methods below can be used to control a store's queues. Stopping a queue
@@ -123,14 +118,8 @@ func (s *Store) SetReplicateQueueActive(active bool) {
 func (s *Store) setSplitQueueActive(active bool) {
 	s.splitQueue.SetDisabled(!active)
 }
-func (s *Store) setTimeSeriesMaintenanceQueueActive(active bool) {
-	s.tsMaintenanceQueue.SetDisabled(!active)
-}
 func (s *Store) setRaftSnapshotQueueActive(active bool) {
 	s.raftSnapshotQueue.SetDisabled(!active)
-}
-func (s *Store) setConsistencyQueueActive(active bool) {
-	s.consistencyQueue.SetDisabled(!active)
 }
 func (s *Store) setScannerActive(active bool) {
 	s.scanner.SetDisabled(!active)

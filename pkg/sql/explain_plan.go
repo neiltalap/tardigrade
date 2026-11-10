@@ -16,11 +16,8 @@ import (
 	"fmt"
 
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/sql/colflow"
-	"github.com/podomy/tardigrade/pkg/sql/flowinfra"
 	"github.com/podomy/tardigrade/pkg/sql/rowexec"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
-	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
 	"github.com/podomy/tardigrade/pkg/util/treeprinter"
 )
@@ -208,41 +205,13 @@ func (p *planner) populateExplain(
 	ctx := params.ctx
 	e.populateEntries(ctx, plan, subqueryPlans, postqueryPlans, explainSubqueryFmtFlags)
 
-	var isDistSQL, isVec bool
+	var isDistSQL bool
+	// The vectorized execution engine has been removed; all plans run through
+	// the row-based engine, so isVec is always false. It is still reported in
+	// the output for compatibility.
+	isVec := false
 	distSQLPlanner := params.extendedEvalCtx.DistSQLPlanner
 	isDistSQL, _ = willDistributePlan(distSQLPlanner, plan, params)
-	outerSubqueries := params.p.curPlan.subqueryPlans
-	planCtx := makeExplainVecPlanningCtx(distSQLPlanner, params, stmtType, subqueryPlans, isDistSQL)
-	defer func() {
-		planCtx.planner.curPlan.subqueryPlans = outerSubqueries
-	}()
-	physicalPlan, err := makePhysicalPlan(planCtx, distSQLPlanner, plan)
-	if err == nil {
-		// There might be an issue making the physical plan, but that should not
-		// cause an error or panic, so swallow the error. See #40677 for example.
-		distSQLPlanner.FinalizePlan(planCtx, &physicalPlan)
-		flows := physicalPlan.GenerateFlowSpecs(params.extendedEvalCtx.NodeID)
-		flowCtx := makeFlowCtx(planCtx, physicalPlan, params)
-
-		ctxSessionData := flowCtx.EvalCtx.SessionData
-		vectorizedThresholdMet := physicalPlan.MaxEstimatedRowCount >= ctxSessionData.VectorizeRowCountThreshold
-		isVec = true
-		if ctxSessionData.VectorizeMode == sessiondata.VectorizeOff {
-			isVec = false
-		} else if !vectorizedThresholdMet && ctxSessionData.VectorizeMode == sessiondata.VectorizeAuto {
-			isVec = false
-		} else {
-			thisNodeID := distSQLPlanner.nodeDesc.NodeID
-			for nodeID, flow := range flows {
-				fuseOpt := flowinfra.FuseNormally
-				if nodeID == thisNodeID && !isDistSQL {
-					fuseOpt = flowinfra.FuseAggressively
-				}
-				_, err := colflow.SupportsVectorized(params.ctx, flowCtx, flow.Processors, fuseOpt, nil /* output */)
-				isVec = isVec && (err == nil)
-			}
-		}
-	}
 
 	if err := appendExecutionDetails(ctx, v, e.showMetadata, isDistSQL, isVec); err != nil {
 		return err

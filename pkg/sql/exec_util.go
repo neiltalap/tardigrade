@@ -37,7 +37,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/server/status/statuspb"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
-	"github.com/podomy/tardigrade/pkg/sql/colexec"
 	"github.com/podomy/tardigrade/pkg/sql/distsql"
 	"github.com/podomy/tardigrade/pkg/sql/execinfra"
 	"github.com/podomy/tardigrade/pkg/sql/opt"
@@ -137,8 +136,8 @@ var ReorderJoinsLimitClusterValue = settings.RegisterValidatedIntSetting(
 
 var zigzagJoinClusterMode = settings.RegisterBoolSetting(
 	"sql.defaults.zigzag_join.enabled",
-	"default value for enable_zigzag_join session setting; allows use of zig-zag join by default",
-	true,
+	"default value for enable_zigzag_join session setting; the zigzag join executor has been removed, so this must stay off",
+	false,
 )
 
 var optDrivenFKClusterMode = settings.RegisterBoolSetting(
@@ -148,11 +147,13 @@ var optDrivenFKClusterMode = settings.RegisterBoolSetting(
 )
 
 // VectorizeClusterMode controls the cluster default for when automatic
-// vectorization is enabled.
+// vectorization is enabled. The vectorized execution engine has been removed,
+// so the default is off and the setting has no effect on execution; it is
+// retained for compatibility.
 var VectorizeClusterMode = settings.RegisterEnumSetting(
 	"sql.defaults.vectorize",
 	"default vectorize mode",
-	"auto",
+	"off",
 	map[int64]string{
 		int64(sessiondata.VectorizeOff):            "off",
 		int64(sessiondata.VectorizeAuto):           "auto",
@@ -160,13 +161,19 @@ var VectorizeClusterMode = settings.RegisterEnumSetting(
 	},
 )
 
+// defaultVectorizeRowCountThreshold is the default row count threshold. It was
+// previously defined as colexec.DefaultVectorizeRowCountThreshold; the
+// constant is inlined here since the vectorized engine has been removed.
+const defaultVectorizeRowCountThreshold = 1000
+
 // VectorizeRowCountThresholdClusterValue controls the cluster default for the
-// vectorize row count threshold. When it is met, the vectorized execution
-// engine will be used if possible.
+// vectorize row count threshold. The vectorized execution engine has been
+// removed, so the setting has no effect on execution; it is retained for
+// compatibility.
 var VectorizeRowCountThresholdClusterValue = settings.RegisterValidatedIntSetting(
 	"sql.defaults.vectorize_row_count_threshold",
 	"default vectorize row count threshold",
-	colexec.DefaultVectorizeRowCountThreshold,
+	defaultVectorizeRowCountThreshold,
 	func(v int64) error {
 		if v < 0 {
 			return pgerror.Newf(pgcode.InvalidParameterValue,
@@ -503,7 +510,6 @@ type ExecutorConfig struct {
 	VirtualSchemas    *VirtualSchemaHolder
 	DistSQLPlanner    *DistSQLPlanner
 	TableStatsCache   *stats.TableStatisticsCache
-	StatsRefresher    *stats.Refresher
 	ExecLogger        *log.SecondaryLogger
 	AuditLogger       *log.SecondaryLogger
 	InternalExecutor  *InternalExecutor
@@ -865,7 +871,7 @@ func ParseHLC(s string) (hlc.Timestamp, error) {
 // that requires the transaction to be started already. If the returned
 // timestamp is not nil, it is the timestamp to which a transaction
 // should be set. The statements that will be checked are Select,
-// ShowTrace (of a Select statement), Scrub, Export, and CreateStats.
+// ShowTrace (of a Select statement), Export, and CreateStats.
 func (p *planner) isAsOf(stmt tree.Statement) (*hlc.Timestamp, error) {
 	var asOf tree.AsOfClause
 	switch s := stmt.(type) {
@@ -886,13 +892,6 @@ func (p *planner) isAsOf(stmt tree.Statement) (*hlc.Timestamp, error) {
 		}
 
 		asOf = sc.From.AsOf
-	case *tree.Scrub:
-		if s.AsOf.Expr == nil {
-			return nil, nil
-		}
-		asOf = s.AsOf
-	case *tree.Export:
-		return p.isAsOf(s.Query)
 	case *tree.CreateStats:
 		if s.Options.AsOf.Expr == nil {
 			return nil, nil
@@ -1817,10 +1816,6 @@ func (m *sessionDataMutator) SetDefaultReadOnly(val bool) {
 
 func (m *sessionDataMutator) SetDistSQLMode(val sessiondata.DistSQLExecMode) {
 	m.data.DistSQLMode = val
-}
-
-func (m *sessionDataMutator) SetForceSavepointRestart(val bool) {
-	m.data.ForceSavepointRestart = val
 }
 
 func (m *sessionDataMutator) SetForceSplitAt(val bool) {

@@ -88,14 +88,6 @@ func (s *Store) ComputeMVCCStats() (enginepb.MVCCStats, error) {
 	return totalStats, err
 }
 
-// ConsistencyQueueShouldQueue invokes the shouldQueue method on the
-// store's consistency queue.
-func (s *Store) ConsistencyQueueShouldQueue(
-	ctx context.Context, now hlc.Timestamp, r *Replica, cfg *config.SystemConfig,
-) (bool, float64) {
-	return s.consistencyQueue.shouldQueue(ctx, now, r, cfg)
-}
-
 // LogReplicaChangeTest adds a fake replica change event to the log for the
 // range which contains the given key.
 func (s *Store) LogReplicaChangeTest(
@@ -188,18 +180,6 @@ func (s *Store) ReservationCount() int {
 	return len(s.snapshotApplySem)
 }
 
-// ClearClosedTimestampStorage clears the closed timestamp storage of all
-// knowledge about closed timestamps.
-func (s *Store) ClearClosedTimestampStorage() {
-	s.cfg.ClosedTimestamp.Storage.Clear()
-}
-
-// RequestClosedTimestamp instructs the closed timestamp client to request the
-// relevant node to publish its MLAI for the provided range.
-func (s *Store) RequestClosedTimestamp(nodeID roachpb.NodeID, rangeID roachpb.RangeID) {
-	s.cfg.ClosedTimestamp.Clients.Request(nodeID, rangeID)
-}
-
 // AssertInvariants verifies that the store's bookkeping is self-consistent. It
 // is only valid to call this method when there is no in-flight traffic to the
 // store (e.g., after the store is shut down).
@@ -272,11 +252,6 @@ func (r *Replica) LastAssignedLeaseIndex() uint64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.mu.proposalBuf.LastAssignedLeaseIndexRLocked()
-}
-
-// MaxClosed returns the maximum closed timestamp known to the Replica.
-func (r *Replica) MaxClosed(ctx context.Context) (_ hlc.Timestamp, ok bool) {
-	return r.maxClosed(ctx)
 }
 
 // SetQuotaPool allows the caller to set a replica's quota pool initialized to

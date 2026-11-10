@@ -31,7 +31,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/execinfra"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
 	"github.com/podomy/tardigrade/pkg/sql/tests"
-	"github.com/podomy/tardigrade/pkg/sqlmigrations"
 	"github.com/podomy/tardigrade/pkg/testutils"
 	"github.com/podomy/tardigrade/pkg/testutils/jobutils"
 	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
@@ -928,9 +927,6 @@ func TestDropTableWhileUpgradingFormat(t *testing.T) {
 			},
 			AsyncExecQuickly: true,
 		},
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 
 	s, sqlDBRaw, kvDB := serverutils.StartServer(t, params)
@@ -1217,9 +1213,6 @@ func TestDropNameReuse(t *testing.T) {
 				tscc.ClearSchemaChangers()
 			},
 			AsyncExecQuickly: true,
-		},
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
 		},
 	}
 

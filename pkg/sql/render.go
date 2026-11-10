@@ -50,7 +50,6 @@ type renderNode struct {
 	// sortNode adds extra renderNode renders for sort columns not requested as select targets.
 	// groupNode copies/extends the render array defined by initTargets() and
 	// will add extra renderNode renders for the aggregation sources.
-	// windowNode also adds additional renders for the window functions.
 	render []tree.TypedExpr
 
 	// Common properties for all expressions mentioned as select target
@@ -231,7 +230,7 @@ func (p *planner) SelectClause(
 		return nil, err
 	}
 
-	// NB: orderBy, window, and groupBy are passed and can modify the
+	// NB: orderBy and groupBy are passed and can modify the
 	// renderNode, but must do so in that order.
 	// Note that this order is exactly the reverse of the order of how the
 	// plan is constructed i.e. a logical plan tree might look like
@@ -241,10 +240,6 @@ func (p *planner) SelectClause(
 	//       |
 	//       v
 	//    sortNode
-	//       |
-	//       |
-	//       v
-	//   windowNode
 	//       |
 	//       |
 	//       v
@@ -289,10 +284,6 @@ func (p *planner) SelectClause(
 		}
 	}
 
-	window, err := p.window(ctx, parsed, r)
-	if err != nil {
-		return nil, err
-	}
 	groupComplex, group, err := p.groupBy(ctx, parsed, r)
 	if err != nil {
 		return nil, err
@@ -318,10 +309,6 @@ func (p *planner) SelectClause(
 	if groupComplex != nil {
 		// group.plan is already r.
 		result = groupComplex
-	}
-	if window != nil {
-		window.plan = result
-		result = window
 	}
 	if sort != nil {
 		sort.plan = result
@@ -536,7 +523,7 @@ func (r *renderNode) addRenderColumn(
 }
 
 // resetRenderColumns resets all the render expressions. This is used e.g. by
-// aggregation and windowing (see group.go / window.go). The method also
+// aggregation (see group.go). The method also
 // asserts that both the render and columns array have the same size.
 func (r *renderNode) resetRenderColumns(exprs []tree.TypedExpr, cols sqlbase.ResultColumns) {
 	if len(exprs) != len(cols) {

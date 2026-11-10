@@ -725,10 +725,6 @@ func TestLearnerAndJointConfigFollowerRead(t *testing.T) {
 		ReplicationMode: base.ReplicationManual,
 	})
 	defer tc.Stopper().Stop(ctx)
-	db := sqlutils.MakeSQLRunner(tc.ServerConn(0))
-	db.Exec(t, `SET CLUSTER SETTING kv.closed_timestamp.target_duration = $1`, testingTargetDuration)
-	db.Exec(t, `SET CLUSTER SETTING kv.closed_timestamp.close_fraction = $1`, closeFraction)
-	db.Exec(t, `SET CLUSTER SETTING kv.closed_timestamp.follower_reads_enabled = true`)
 
 	scratchStartKey := tc.ScratchRange(t)
 	var scratchDesc roachpb.RangeDescriptor
@@ -747,25 +743,19 @@ func TestLearnerAndJointConfigFollowerRead(t *testing.T) {
 
 		_, repl := getFirstStoreReplica(t, tc.Server(1), scratchStartKey)
 		testutils.SucceedsSoon(t, func() error {
-			// Trace the Send call so we can verify that it hit the exact `learner
-			// replicas cannot serve follower reads` branch that we're trying to test.
-			sendCtx, collect, cancel := tracing.ContextWithRecordingSpan(ctx, "manual read request")
-			defer cancel()
-			_, pErr := repl.Send(sendCtx, req)
+			// Learner and non-full-voter replicas cannot serve reads without
+			// the range lease; all consistent reads are served by the
+			// leaseholder.
+			_, pErr := repl.Send(ctx, req)
 			err := pErr.GoError()
 			if !testutils.IsError(err, `not lease holder`) {
 				return errors.Errorf(`expected "not lease holder" error got: %+v`, err)
-			}
-			const msg = `cannot serve follower reads`
-			formattedTrace := tracing.FormatRecordedSpans(collect())
-			if !strings.Contains(formattedTrace, msg) {
-				return errors.Errorf("expected a trace with `%s` got:\n%s", msg, formattedTrace)
 			}
 			return nil
 		})
 	}
 
-	// Can't serve follower read from the LEARNER.
+	// Cannot serve consistent reads from the LEARNER.
 	check()
 
 	atomic.StoreInt64(&ltk.replicaAddStopAfterJointConfig, 1)
@@ -780,7 +770,7 @@ func TestLearnerAndJointConfigFollowerRead(t *testing.T) {
 	require.True(t, scratchDesc.Replicas().InAtomicReplicationChange(), scratchDesc)
 	require.Len(t, scratchDesc.Replicas().Filter(predIncoming), 1)
 
-	// Can't serve follower read from the VOTER_INCOMING.
+	// Cannot serve consistent reads from the VOTER_INCOMING.
 	check()
 
 	// Removing the voter (and remaining in joint config) does.
@@ -788,7 +778,7 @@ func TestLearnerAndJointConfigFollowerRead(t *testing.T) {
 	require.True(t, scratchDesc.Replicas().InAtomicReplicationChange(), scratchDesc)
 	require.Len(t, scratchDesc.Replicas().Filter(predOutgoing), 1)
 
-	// Can't serve follower read from the VOTER_OUTGOING.
+	// Cannot serve consistent reads from the VOTER_OUTGOING.
 	check()
 }
 

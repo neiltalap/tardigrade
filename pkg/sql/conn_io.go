@@ -725,7 +725,6 @@ type RestrictedCommandResult interface {
 	// DisableBuffering can be called during execution to ensure that
 	// the results accumulated so far, and all subsequent rows added
 	// to this CommandResult, will be flushed immediately to the client.
-	// This is currently used for sinkless changefeeds.
 	DisableBuffering()
 }
 

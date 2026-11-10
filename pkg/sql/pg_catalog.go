@@ -73,36 +73,27 @@ var pgCatalog = virtualSchema{
 		"pg_authid",
 		"pg_available_extension_versions",
 		"pg_available_extensions",
-		"pg_cast",
 		"pg_class",
 		"pg_collation",
 		"pg_config",
 		"pg_constraint",
-		"pg_conversion",
 		"pg_cursors",
 		"pg_database",
 		"pg_db_role_setting",
-		"pg_default_acl",
 		"pg_depend",
 		"pg_description",
-		"pg_enum",
 		"pg_event_trigger",
-		"pg_extension",
 		"pg_file_settings",
 		"pg_foreign_data_wrapper",
 		"pg_foreign_server",
-		"pg_foreign_table",
 		"pg_group",
 		"pg_hba_file_rules",
 		"pg_index",
 		"pg_indexes",
-		"pg_inherits",
 		"pg_init_privs",
 		"pg_language",
 		"pg_largeobject",
 		"pg_largeobject_metadata",
-		"pg_locks",
-		"pg_matviews",
 		"pg_namespace",
 		"pg_opclass",
 		"pg_operator",
@@ -112,27 +103,21 @@ var pgCatalog = virtualSchema{
 		"pg_policies",
 		"pg_policy",
 		"pg_prepared_statements",
-		"pg_prepared_xacts",
 		"pg_proc",
 		"pg_publication",
 		"pg_publication_rel",
 		"pg_publication_tables",
-		"pg_range",
 		"pg_replication_origin",
 		"pg_replication_origin_status",
 		"pg_replication_slots",
-		"pg_rewrite",
 		"pg_roles",
 		"pg_rules",
-		"pg_seclabel",
 		"pg_seclabels",
 		"pg_sequence",
 		"pg_sequences",
 		"pg_settings",
 		"pg_shadow",
-		"pg_shdepend",
 		"pg_shdescription",
-		"pg_shseclabel",
 		"pg_stat_activity",
 		"pg_stat_all_indexes",
 		"pg_stat_all_tables",
@@ -173,7 +158,6 @@ var pgCatalog = virtualSchema{
 		"pg_timezone_abbrevs",
 		"pg_timezone_names",
 		"pg_transform",
-		"pg_trigger",
 		"pg_ts_config",
 		"pg_ts_config_map",
 		"pg_ts_dict",
@@ -181,7 +165,6 @@ var pgCatalog = virtualSchema{
 		"pg_ts_template",
 		"pg_type",
 		"pg_user",
-		"pg_user_mapping",
 		"pg_user_mappings",
 		"pg_views",
 	),
@@ -191,48 +174,31 @@ var pgCatalog = virtualSchema{
 		sqlbase.PgCatalogAttributeTableID:           pgCatalogAttributeTable,
 		sqlbase.PgCatalogAuthMembersTableID:         pgCatalogAuthMembersTable,
 		sqlbase.PgCatalogAvailableExtensionsTableID: pgCatalogAvailableExtensionsTable,
-		sqlbase.PgCatalogCastTableID:                pgCatalogCastTable,
 		sqlbase.PgCatalogClassTableID:               pgCatalogClassTable,
 		sqlbase.PgCatalogCollationTableID:           pgCatalogCollationTable,
 		sqlbase.PgCatalogConstraintTableID:          pgCatalogConstraintTable,
-		sqlbase.PgCatalogConversionTableID:          pgCatalogConversionTable,
 		sqlbase.PgCatalogDatabaseTableID:            pgCatalogDatabaseTable,
-		sqlbase.PgCatalogDefaultACLTableID:          pgCatalogDefaultACLTable,
 		sqlbase.PgCatalogDependTableID:              pgCatalogDependTable,
 		sqlbase.PgCatalogDescriptionTableID:         pgCatalogDescriptionTable,
 		sqlbase.PgCatalogSharedDescriptionTableID:   pgCatalogSharedDescriptionTable,
-		sqlbase.PgCatalogEnumTableID:                pgCatalogEnumTable,
-		sqlbase.PgCatalogExtensionTableID:           pgCatalogExtensionTable,
 		sqlbase.PgCatalogForeignDataWrapperTableID:  pgCatalogForeignDataWrapperTable,
 		sqlbase.PgCatalogForeignServerTableID:       pgCatalogForeignServerTable,
-		sqlbase.PgCatalogForeignTableTableID:        pgCatalogForeignTableTable,
 		sqlbase.PgCatalogIndexTableID:               pgCatalogIndexTable,
 		sqlbase.PgCatalogIndexesTableID:             pgCatalogIndexesTable,
-		sqlbase.PgCatalogInheritsTableID:            pgCatalogInheritsTable,
 		sqlbase.PgCatalogLanguageTableID:            pgCatalogLanguageTable,
-		sqlbase.PgCatalogLocksTableID:               pgCatalogLocksTable,
-		sqlbase.PgCatalogMatViewsTableID:            pgCatalogMatViewsTable,
 		sqlbase.PgCatalogNamespaceTableID:           pgCatalogNamespaceTable,
 		sqlbase.PgCatalogOperatorTableID:            pgCatalogOperatorTable,
-		sqlbase.PgCatalogPreparedXactsTableID:       pgCatalogPreparedXactsTable,
 		sqlbase.PgCatalogProcTableID:                pgCatalogProcTable,
-		sqlbase.PgCatalogRangeTableID:               pgCatalogRangeTable,
-		sqlbase.PgCatalogRewriteTableID:             pgCatalogRewriteTable,
 		sqlbase.PgCatalogRolesTableID:               pgCatalogRolesTable,
 		sqlbase.PgCatalogSecLabelsTableID:           pgCatalogSecLabelsTable,
 		sqlbase.PgCatalogSequencesTableID:           pgCatalogSequencesTable,
 		sqlbase.PgCatalogSettingsTableID:            pgCatalogSettingsTable,
-		sqlbase.PgCatalogShdependTableID:            pgCatalogShdependTable,
 		sqlbase.PgCatalogUserTableID:                pgCatalogUserTable,
-		sqlbase.PgCatalogUserMappingTableID:         pgCatalogUserMappingTable,
 		sqlbase.PgCatalogTablesTableID:              pgCatalogTablesTable,
 		sqlbase.PgCatalogTablespaceTableID:          pgCatalogTablespaceTable,
-		sqlbase.PgCatalogTriggerTableID:             pgCatalogTriggerTable,
 		sqlbase.PgCatalogTypeTableID:                pgCatalogTypeTable,
 		sqlbase.PgCatalogViewsTableID:               pgCatalogViewsTable,
 		sqlbase.PgCatalogStatActivityTableID:        pgCatalogStatActivityTable,
-		sqlbase.PgCatalogSecurityLabelTableID:       pgCatalogSecurityLabelTable,
-		sqlbase.PgCatalogSharedSecurityLabelTableID: pgCatalogSharedSecurityLabelTable,
 	},
 	// Postgres's catalogs are ill-defined when there is no current
 	// database set. Simply reject any attempts to use them in that
@@ -462,26 +428,6 @@ CREATE TABLE pg_catalog.pg_attribute (
 	},
 }
 
-var pgCatalogCastTable = virtualSchemaTable{
-	comment: `casts (empty - needs filling out)
-https://www.postgresql.org/docs/9.6/catalog-pg-cast.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_cast (
-	oid OID,
-	castsource OID,
-	casttarget OID,
-	castfunc OID,
-	castcontext CHAR,
-	castmethod CHAR
-)`,
-	populate: func(ctx context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		// TODO(someone): to populate this, we should split up the big PerformCast
-		// method in tree/eval.go into entries in a list. Then, this virtual table
-		// can simply range over the list. This would probably be better for
-		// maintainability anyway.
-		return nil
-	},
-}
 
 var pgCatalogAuthMembersTable = virtualSchemaTable{
 	comment: `role membership
@@ -937,24 +883,6 @@ func colIDArrayToVector(arr []sqlbase.ColumnID) (tree.Datum, error) {
 	return tree.NewDIntVectorFromDArray(tree.MustBeDArray(dArr)), nil
 }
 
-var pgCatalogConversionTable = virtualSchemaTable{
-	comment: `encoding conversions (empty - unimplemented)
-https://www.postgresql.org/docs/9.6/catalog-pg-conversion.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_conversion (
-	oid OID,
-	conname NAME,
-	connamespace OID,
-	conowner OID,
-	conforencoding INT4,
-	contoencoding INT4,
-	conproc OID,
-  condefault BOOL
-)`,
-	populate: func(ctx context.Context, p *planner, dbContext *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		return nil
-	},
-}
 
 var pgCatalogDatabaseTable = virtualSchemaTable{
 	comment: `available databases (incomplete)
@@ -999,21 +927,6 @@ CREATE TABLE pg_catalog.pg_database (
 	},
 }
 
-var pgCatalogDefaultACLTable = virtualSchemaTable{
-	comment: `default ACLs (empty - unimplemented)
-https://www.postgresql.org/docs/9.6/catalog-pg-default-acl.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_default_acl (
-	oid OID,
-	defaclrole OID,
-	defaclnamespace OID,
-	defaclobjtype CHAR,
-	defaclacl STRING[]
-)`,
-	populate: func(ctx context.Context, p *planner, dbContext *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		return nil
-	},
-}
 
 var (
 	depTypeNormal        = tree.NewDString("n")
@@ -1217,41 +1130,7 @@ CREATE TABLE pg_catalog.pg_shdescription (
 	},
 }
 
-var pgCatalogEnumTable = virtualSchemaTable{
-	comment: `enum types and labels (empty - feature does not exist)
-https://www.postgresql.org/docs/9.5/catalog-pg-enum.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_enum (
-  oid OID,
-  enumtypid OID,
-  enumsortorder FLOAT4,
-  enumlabel STRING
-)`,
-	populate: func(_ context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		// Enum types are not currently supported.
-		return nil
-	},
-}
 
-var pgCatalogExtensionTable = virtualSchemaTable{
-	comment: `installed extensions (empty - feature does not exist)
-https://www.postgresql.org/docs/9.5/catalog-pg-extension.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_extension (
-  oid OID,
-  extname NAME,
-  extowner OID,
-  extnamespace OID,
-  extrelocatable BOOL,
-  extversion STRING,
-  extconfig STRING,
-  extcondition STRING
-)`,
-	populate: func(_ context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		// Extensions are not supported.
-		return nil
-	},
-}
 
 var pgCatalogForeignDataWrapperTable = virtualSchemaTable{
 	comment: `foreign data wrappers (empty - feature does not exist)
@@ -1292,20 +1171,6 @@ CREATE TABLE pg_catalog.pg_foreign_server (
 	},
 }
 
-var pgCatalogForeignTableTable = virtualSchemaTable{
-	comment: `foreign tables (empty  - feature does not exist)
-https://www.postgresql.org/docs/9.5/catalog-pg-foreign-table.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_foreign_table (
-  ftrelid OID,
-  ftserver OID,
-  ftoptions STRING[]
-)`,
-	populate: func(_ context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		// Foreign tables are not supported.
-		return nil
-	},
-}
 
 func makeZeroedOidVector(size int) (tree.Datum, error) {
 	oidArray := tree.NewDArray(types.Oid)
@@ -1513,20 +1378,6 @@ func indexDefFromDescriptor(
 	return fmtCtx.String(), nil
 }
 
-var pgCatalogInheritsTable = virtualSchemaTable{
-	comment: `table inheritance hierarchy (empty - feature does not exist)
-https://www.postgresql.org/docs/9.5/catalog-pg-inherits.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_inherits (
-	inhrelid OID,
-	inhparent OID,
-	inhseqno INT4
-)`,
-	populate: func(_ context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		// Table inheritance is not supported.
-		return nil
-	},
-}
 
 var pgCatalogLanguageTable = virtualSchemaTable{
 	comment: `available languages (empty - feature does not exist)
@@ -1549,49 +1400,7 @@ CREATE TABLE pg_catalog.pg_language (
 	},
 }
 
-var pgCatalogLocksTable = virtualSchemaTable{
-	comment: `locks held by active processes (empty - feature does not exist)
-https://www.postgresql.org/docs/9.6/view-pg-locks.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_locks (
-  locktype TEXT,
-  database OID,
-  relation OID,
-  page INT4,
-  tuple SMALLINT,
-  virtualxid TEXT,
-  transactionid INT,
-  classid OID,
-  objid OID,
-  objsubid SMALLINT,
-  virtualtransaction TEXT,
-  pid INT4,
-  mode TEXT,
-  granted BOOLEAN,
-  fastpath BOOLEAN
-)`,
-	populate: func(ctx context.Context, p *planner, dbContext *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		return nil
-	},
-}
 
-var pgCatalogMatViewsTable = virtualSchemaTable{
-	comment: `available materialized views (empty - feature does not exist)
-https://www.postgresql.org/docs/9.6/view-pg-matviews.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_matviews (
-  schemaname NAME,
-  matviewname NAME,
-  matviewowner NAME,
-  tablespace NAME,
-  hasindexes BOOL,
-  ispopulated BOOL,
-  definition TEXT
-)`,
-	populate: func(ctx context.Context, p *planner, dbContext *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		return nil
-	},
-}
 
 var pgCatalogNamespaceTable = virtualSchemaTable{
 	comment: `available namespaces (incomplete; namespaces and databases are congruent in CockroachDB)
@@ -1743,21 +1552,6 @@ var (
 	_ = proArgModeTable
 )
 
-var pgCatalogPreparedXactsTable = virtualSchemaTable{
-	comment: `prepared transactions (empty - feature does not exist)
-https://www.postgresql.org/docs/9.6/view-pg-prepared-xacts.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_prepared_xacts (
-  transaction INTEGER,
-  gid TEXT,
-  prepared TIMESTAMP WITH TIME ZONE,
-  owner NAME,
-  database NAME
-)`,
-	populate: func(ctx context.Context, p *planner, dbContext *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		return nil
-	},
-}
 
 var pgCatalogProcTable = virtualSchemaTable{
 	comment: `built-in functions (incomplete)
@@ -1918,45 +1712,7 @@ CREATE TABLE pg_catalog.pg_proc (
 	},
 }
 
-var pgCatalogRangeTable = virtualSchemaTable{
-	comment: `range types (empty - feature does not exist)
-https://www.postgresql.org/docs/9.5/catalog-pg-range.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_range (
-	rngtypid OID,
-	rngsubtype OID,
-	rngcollation OID,
-	rngsubopc OID,
-	rngcanonical OID,
-	rngsubdiff OID
-)`,
-	populate: func(_ context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		// We currently do not support any range types, so this table is empty.
-		// This table should be populated when any range types are added to
-		// oidToDatum (and therefore pg_type).
-		return nil
-	},
-}
 
-var pgCatalogRewriteTable = virtualSchemaTable{
-	comment: `rewrite rules (empty - feature does not exist)
-https://www.postgresql.org/docs/9.5/catalog-pg-rewrite.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_rewrite (
-	oid OID,
-	rulename NAME,
-	ev_class OID,
-	ev_type TEXT,
-	ev_enabled TEXT,
-	is_instead BOOL,
-	ev_qual TEXT,
-	ev_action TEXT
-)`,
-	populate: func(_ context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		// Rewrite rules are not supported.
-		return nil
-	},
-}
 
 var pgCatalogRolesTable = virtualSchemaTable{
 	comment: `database roles
@@ -2140,23 +1896,6 @@ CREATE TABLE pg_catalog.pg_settings (
 	},
 }
 
-var pgCatalogShdependTable = virtualSchemaTable{
-	comment: `shared dependencies (empty - not implemented)
-https://www.postgresql.org/docs/9.6/catalog-pg-shdepend.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_shdepend (
-	dbid OID,
-	classid OID,
-	objid OID,
-  objsubid INT4,
-	refclassid OID,
-	refobjid OID,
-	deptype CHAR
-)`,
-	populate: func(ctx context.Context, p *planner, dbContext *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		return nil
-	},
-}
 
 var pgCatalogTablesTable = virtualSchemaTable{
 	comment: `tables summary (see also information_schema.tables, pg_catalog.pg_class)
@@ -2219,35 +1958,6 @@ CREATE TABLE pg_catalog.pg_tablespace (
 	},
 }
 
-var pgCatalogTriggerTable = virtualSchemaTable{
-	comment: `triggers (empty - feature does not exist)
-https://www.postgresql.org/docs/9.5/catalog-pg-trigger.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_trigger (
-	oid OID,
-	tgrelid OID,
-	tgname NAME,
-	tgfoid OID,
-	tgtype INT2,
-	tgenabled TEXT,
-	tgisinternal BOOL,
-	tgconstrrelid OID,
-	tgconstrindid OID,
-	tgconstraint OID,
-	tgdeferrable BOOL,
-	tginitdeferred BOOL,
-	tgnargs INT2,
-	tgattr INT2VECTOR,
-	tgargs BYTEA,
-	tgqual TEXT,
-	tgoldtable NAME,
-	tgnewtable NAME
-)`,
-	populate: func(ctx context.Context, p *planner, dbContext *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		// Triggers are unsupported.
-		return nil
-	},
-}
 
 var (
 	typTypeBase      = tree.NewDString("b")
@@ -2448,22 +2158,6 @@ CREATE TABLE pg_catalog.pg_user (
 	},
 }
 
-var pgCatalogUserMappingTable = virtualSchemaTable{
-	comment: `local to remote user mapping (empty - feature does not exist)
-https://www.postgresql.org/docs/9.5/catalog-pg-user-mapping.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_user_mapping (
-	oid OID,
-	umuser OID,
-	umserver OID,
-	umoptions TEXT[]
-)`,
-	populate: func(ctx context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		// This table stores the mapping to foreign server users.
-		// Foreign servers are not supported.
-		return nil
-	},
-}
 
 var pgCatalogStatActivityTable = virtualSchemaTable{
 	comment: `backend access statistics (empty - monitoring works differently in CockroachDB)
@@ -2496,38 +2190,7 @@ CREATE TABLE pg_catalog.pg_stat_activity (
 	},
 }
 
-var pgCatalogSecurityLabelTable = virtualSchemaTable{
-	comment: `security labels (empty - feature does not exist)
-https://www.postgresql.org/docs/9.5/catalog-pg-seclabel.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_seclabel (
-	objoid OID,
-	classoid OID,
-	objsubid INTEGER,
-	provider TEXT,
-	label TEXT
-)
-`,
-	populate: func(ctx context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		return nil
-	},
-}
 
-var pgCatalogSharedSecurityLabelTable = virtualSchemaTable{
-	comment: `shared security labels (empty - feature not supported)
-https://www.postgresql.org/docs/9.5/catalog-pg-shseclabel.html`,
-	schema: `
-CREATE TABLE pg_catalog.pg_shseclabel (
-	objoid OID,
-	classoid OID,
-	provider TEXT,
-	label TEXT
-)
-`,
-	populate: func(ctx context.Context, p *planner, _ *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		return nil
-	},
-}
 
 // typOid is the only OID generation approach that does not use oidHasher, because
 // object identifiers for types are not arbitrary, but instead need to be kept in

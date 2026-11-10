@@ -13,8 +13,6 @@ package roachpb
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/podomy/tardigrade/pkg/util/protoutil"
 	"github.com/pkg/errors"
 )
@@ -1147,13 +1145,6 @@ func (*RangeStatsRequest) flags() int { return isRead }
 // about parallel commits.
 func (etr *EndTransactionRequest) IsParallelCommit() bool {
 	return etr.Commit && len(etr.InFlightWrites) > 0
-}
-
-// Keys returns credentials in an aws.Config.
-func (b *ExportStorage_S3) Keys() *aws.Config {
-	return &aws.Config{
-		Credentials: credentials.NewStaticCredentials(b.AccessKey, b.Secret, b.TempToken),
-	}
 }
 
 // InsertRangeInfo inserts ri into a slice of RangeInfo's if a descriptor for

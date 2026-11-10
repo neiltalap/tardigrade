@@ -51,9 +51,6 @@ func (p *planner) ShowTrace(ctx context.Context, n *tree.ShowTraceForSession) (p
 		needSort: true,
 	}
 
-	if n.TraceType == tree.ShowTraceReplica {
-		node = &showTraceReplicaNode{plan: node}
-	}
 	return node, nil
 }
 

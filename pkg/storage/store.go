@@ -36,8 +36,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/sqlutil"
 	"github.com/podomy/tardigrade/pkg/storage/batcheval"
-	"github.com/podomy/tardigrade/pkg/storage/closedts/container"
-	"github.com/podomy/tardigrade/pkg/storage/closedts/ctpb"
 	"github.com/podomy/tardigrade/pkg/storage/compactor"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
@@ -54,6 +52,7 @@ import (
 	"github.com/podomy/tardigrade/pkg/util/limit"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/metric"
+	"github.com/podomy/tardigrade/pkg/util/mon"
 	"github.com/podomy/tardigrade/pkg/util/protoutil"
 	"github.com/podomy/tardigrade/pkg/util/retry"
 	"github.com/podomy/tardigrade/pkg/util/shuffle"
@@ -129,13 +128,6 @@ var addSSTableRequestLimit = settings.RegisterPositiveIntSetting(
 	1,
 )
 
-// concurrentRangefeedItersLimit limits concurrent rangefeed catchup iterators.
-var concurrentRangefeedItersLimit = settings.RegisterPositiveIntSetting(
-	"kv.rangefeed.concurrent_catchup_iterators",
-	"number of rangefeeds catchup iterators a store will allow concurrently before queueing",
-	64,
-)
-
 // raftLeadershipTransferTimeout limits the amount of time a drain command
 // waits for lease transfers.
 var raftLeadershipTransferWait = settings.RegisterValidatedDurationSetting(
@@ -184,7 +176,6 @@ func TestStoreConfig(clock *hlc.Clock) StoreConfig {
 		TimestampCachePageSize:      tscache.TestSklPageSize,
 		HistogramWindowInterval:     metric.TestSampleInterval,
 		EnableEpochRangeLeases:      true,
-		ClosedTimestamp:             container.NoopContainer(),
 	}
 
 	// Use shorter Raft tick settings in order to minimize start up and failover
@@ -399,9 +390,7 @@ type Store struct {
 	replicaGCQueue     *replicaGCQueue             // Replica GC queue
 	raftLogQueue       *raftLogQueue               // Raft log truncation queue
 	raftSnapshotQueue  *raftSnapshotQueue          // Raft repair queue
-	tsMaintenanceQueue *timeSeriesMaintenanceQueue // Time series maintenance queue
 	scanner            *replicaScanner             // Replica scanner
-	consistencyQueue   *consistencyQueue           // Replica consistency check queue
 	metrics            *StoreMetrics
 	intentResolver     *intentresolver.IntentResolver
 	recoveryMgr        txnrecovery.Manager
@@ -569,12 +558,6 @@ type Store struct {
 		m map[roachpb.RangeID]struct{}
 	}
 
-	// The subset of replicas with active rangefeeds.
-	rangefeedReplicas struct {
-		syncutil.Mutex
-		m map[roachpb.RangeID]struct{}
-	}
-
 	// replicaQueues is a map of per-Replica incoming request queues. These
 	// queues might more naturally belong in Replica, but are kept separate to
 	// avoid reworking the locking in getOrCreateReplica which requires
@@ -632,13 +615,14 @@ type StoreConfig struct {
 	RPCContext              *rpc.Context
 	RangeDescriptorCache    kvbase.RangeDescriptorCache
 
-	ClosedTimestamp *container.Container
-
 	// SQLExecutor is used by the store to execute SQL statements.
 	SQLExecutor sqlutil.InternalExecutor
 
 	// TimeSeriesDataStore is an interface used by the store's time series
 	// maintenance queue to dispatch individual maintenance tasks.
+	// The time series maintenance queue has been removed; this field is
+	// retained only so that callers outside pkg/storage (e.g. pkg/server)
+	// continue to compile. It is ignored.
 	TimeSeriesDataStore TimeSeriesDataStore
 
 	// CoalescedHeartbeatsInterval is the interval for which heartbeat messages
@@ -711,6 +695,24 @@ type StoreConfig struct {
 	// gossiped store capacity values which need be exceeded before the store will
 	// gossip immediately without waiting for the periodic gossip interval.
 	GossipWhenCapacityDeltaExceedsFraction float64
+}
+
+// TimeSeriesDataStore is an interface defined in the storage package that can
+// be implemented by the higher-level time series system. Retained for
+// compilation compatibility after removal of the time series maintenance
+// queue; the store no longer dispatches maintenance tasks.
+type TimeSeriesDataStore interface {
+	ContainsTimeSeries(roachpb.RKey, roachpb.RKey) bool
+	MaintainTimeSeries(
+		context.Context,
+		engine.Reader,
+		roachpb.RKey,
+		roachpb.RKey,
+		*client.DB,
+		*mon.BytesMonitor,
+		int64,
+		hlc.Timestamp,
+	) error
 }
 
 // ConsistencyTestingKnobs is a BatchEvalTestingKnobs struct used to control the
@@ -823,10 +825,6 @@ func NewStore(
 	s.unquiescedReplicas.m = map[roachpb.RangeID]struct{}{}
 	s.unquiescedReplicas.Unlock()
 
-	s.rangefeedReplicas.Lock()
-	s.rangefeedReplicas.m = map[roachpb.RangeID]struct{}{}
-	s.rangefeedReplicas.Unlock()
-
 	s.tsCache = tscache.New(cfg.Clock, cfg.TimestampCachePageSize)
 	s.metrics.registry.AddMetricStruct(s.tsCache.Metrics())
 
@@ -901,13 +899,6 @@ func NewStore(
 	addSSTableRequestLimit.SetOnChange(&cfg.Settings.SV, func() {
 		s.limiters.ConcurrentAddSSTableRequests.SetLimit(int(addSSTableRequestLimit.Get(&cfg.Settings.SV)))
 	})
-	s.limiters.ConcurrentRangefeedIters = limit.MakeConcurrentRequestLimiter(
-		"rangefeedIterLimiter", int(concurrentRangefeedItersLimit.Get(&cfg.Settings.SV)),
-	)
-	concurrentRangefeedItersLimit.SetOnChange(&cfg.Settings.SV, func() {
-		s.limiters.ConcurrentRangefeedIters.SetLimit(
-			int(concurrentRangefeedItersLimit.Get(&cfg.Settings.SV)))
-	})
 
 	if s.cfg.Gossip != nil {
 		// Add range scanner and configure with queues.
@@ -922,20 +913,12 @@ func NewStore(
 		s.replicaGCQueue = newReplicaGCQueue(s, s.db, s.cfg.Gossip)
 		s.raftLogQueue = newRaftLogQueue(s, s.db, s.cfg.Gossip)
 		s.raftSnapshotQueue = newRaftSnapshotQueue(s, s.cfg.Gossip)
-		s.consistencyQueue = newConsistencyQueue(s, s.cfg.Gossip)
 		// NOTE: If more queue types are added, please also add them to the list of
 		// queues on the EnqueueRange debug page as defined in
 		// pkg/ui/src/views/reports/containers/enqueueRange/index.tsx
 		s.scanner.AddQueues(
 			s.gcQueue, s.mergeQueue, s.splitQueue, s.replicateQueue, s.replicaGCQueue,
-			s.raftLogQueue, s.raftSnapshotQueue, s.consistencyQueue)
-
-		if s.cfg.TimeSeriesDataStore != nil {
-			s.tsMaintenanceQueue = newTimeSeriesMaintenanceQueue(
-				s, s.db, s.cfg.Gossip, s.cfg.TimeSeriesDataStore,
-			)
-			s.scanner.AddQueues(s.tsMaintenanceQueue)
-		}
+			s.raftLogQueue, s.raftSnapshotQueue)
 	}
 
 	if cfg.TestingKnobs.DisableGCQueue {
@@ -956,15 +939,14 @@ func NewStore(
 	if cfg.TestingKnobs.DisableSplitQueue {
 		s.setSplitQueueActive(false)
 	}
-	if cfg.TestingKnobs.DisableTimeSeriesMaintenanceQueue {
-		s.setTimeSeriesMaintenanceQueueActive(false)
-	}
+	// DisableTimeSeriesMaintenanceQueue is a no-op retained for test
+	// compatibility; the time series maintenance queue has been removed.
 	if cfg.TestingKnobs.DisableRaftSnapshotQueue {
 		s.setRaftSnapshotQueueActive(false)
 	}
-	if cfg.TestingKnobs.DisableConsistencyQueue {
-		s.setConsistencyQueueActive(false)
-	}
+	// DisableConsistencyQueue is a no-op retained for test compatibility;
+	// the background consistency checker queue has been removed. The
+	// CheckConsistency admin RPC (Replica.CheckConsistency) is unchanged.
 	if cfg.TestingKnobs.DisableScanner {
 		s.setScannerActive(false)
 	}
@@ -1516,9 +1498,6 @@ func (s *Store) Start(ctx context.Context, stopper *stop.Stopper) error {
 		s.startLeaseRenewer(ctx)
 	}
 
-	// Connect rangefeeds to closed timestamp updates.
-	s.startClosedTimestampRangefeedSubscriber(ctx)
-
 	if s.replicateQueue != nil {
 		s.storeRebalancer = NewStoreRebalancer(
 			s.cfg.AmbientCtx, s.cfg.Settings, s.replicateQueue, s.replRankings)
@@ -1682,75 +1661,6 @@ func (s *Store) startLeaseRenewer(ctx context.Context) {
 			}
 		}
 	})
-}
-
-// startClosedTimestampRangefeedSubscriber establishes a new ClosedTimestamp
-// subscription and runs an infinite loop to listen for closed timestamp updates
-// and inform Replicas with active Rangefeeds about them.
-func (s *Store) startClosedTimestampRangefeedSubscriber(ctx context.Context) {
-	// NB: We can't use Stopper.RunWorker because doing so would race with
-	// calling Stopper.Stop. We give the subscription channel a small capacity
-	// to avoid blocking the closed timestamp goroutine.
-	ch := make(chan ctpb.Entry, 8)
-	const name = "closedts-rangefeed-subscriber"
-	if err := s.stopper.RunAsyncTask(ctx, name, func(ctx context.Context) {
-		s.cfg.ClosedTimestamp.Provider.Subscribe(ctx, ch)
-	}); err != nil {
-		return
-	}
-
-	s.stopper.RunWorker(ctx, func(ctx context.Context) {
-		var replIDs []roachpb.RangeID
-		for {
-			select {
-			case <-ch:
-				// Drain all notifications from the channel.
-			loop:
-				for {
-					select {
-					case _, ok := <-ch:
-						if !ok {
-							break loop
-						}
-					default:
-						break loop
-					}
-				}
-
-				// Gather replicas to notify under lock.
-				s.rangefeedReplicas.Lock()
-				for replID := range s.rangefeedReplicas.m {
-					replIDs = append(replIDs, replID)
-				}
-				s.rangefeedReplicas.Unlock()
-
-				// Notify each replica with an active rangefeed to
-				// check for an updated closed timestamp.
-				for _, replID := range replIDs {
-					repl, err := s.GetReplica(replID)
-					if err != nil {
-						continue
-					}
-					repl.handleClosedTimestampUpdate(ctx)
-				}
-				replIDs = replIDs[:0]
-			case <-s.stopper.ShouldQuiesce():
-				return
-			}
-		}
-	})
-}
-
-func (s *Store) addReplicaWithRangefeed(rangeID roachpb.RangeID) {
-	s.rangefeedReplicas.Lock()
-	s.rangefeedReplicas.m[rangeID] = struct{}{}
-	s.rangefeedReplicas.Unlock()
-}
-
-func (s *Store) removeReplicaWithRangefeed(rangeID roachpb.RangeID) {
-	s.rangefeedReplicas.Lock()
-	delete(s.rangefeedReplicas.m, rangeID)
-	s.rangefeedReplicas.Unlock()
 }
 
 // systemGossipUpdate is a callback for gossip updates to
@@ -2272,32 +2182,6 @@ func (s *Store) Descriptor(useCached bool) (*roachpb.StoreDescriptor, error) {
 	}, nil
 }
 
-// RangeFeed registers a rangefeed over the specified span. It sends updates to
-// the provided stream and returns with an optional error when the rangefeed is
-// complete.
-func (s *Store) RangeFeed(
-	args *roachpb.RangeFeedRequest, stream roachpb.Internal_RangeFeedServer,
-) *roachpb.Error {
-	if err := verifyKeys(args.Span.Key, args.Span.EndKey, true); err != nil {
-		return roachpb.NewError(err)
-	}
-
-	// Get range and add command to the range for execution.
-	repl, err := s.GetReplica(args.RangeID)
-	if err != nil {
-		return roachpb.NewError(err)
-	}
-	if !repl.IsInitialized() {
-		// (*Store).Send has an optimization for uninitialized replicas to send back
-		// a NotLeaseHolderError with a hint of where an initialized replica might
-		// be found. RangeFeeds can always be served from followers and so don't
-		// otherwise return NotLeaseHolderError. For simplicity we also don't return
-		// one here.
-		return roachpb.NewError(roachpb.NewRangeNotFoundError(args.RangeID, s.StoreID()))
-	}
-	return repl.RangeFeed(args, stream)
-}
-
 // updateReplicationGauges counts a number of simple replication statistics for
 // the ranges in this store.
 // TODO(bram): #4564 It may be appropriate to compute these statistics while
@@ -2334,7 +2218,6 @@ func (s *Store) updateReplicationGauges(ctx context.Context) error {
 	}
 	clusterNodes := s.ClusterNodeCount()
 
-	var minMaxClosedTS hlc.Timestamp
 	newStoreReplicaVisitor(s).Visit(func(rep *Replica) bool {
 		metrics := rep.Metrics(ctx, timestamp, livenessMap, clusterNodes)
 		if metrics.Leader {
@@ -2375,10 +2258,6 @@ func (s *Store) updateReplicationGauges(ctx context.Context) error {
 		if wps, dur := rep.writeStats.avgQPS(); dur >= MinStatsDuration {
 			averageWritesPerSecond += wps
 		}
-		mc, ok := rep.maxClosed(ctx)
-		if ok && (minMaxClosedTS.IsEmpty() || mc.Less(minMaxClosedTS)) {
-			minMaxClosedTS = mc
-		}
 		return true // more
 	})
 
@@ -2397,11 +2276,6 @@ func (s *Store) updateReplicationGauges(ctx context.Context) error {
 	s.metrics.UnderReplicatedRangeCount.Update(underreplicatedRangeCount)
 	s.metrics.OverReplicatedRangeCount.Update(overreplicatedRangeCount)
 	s.metrics.RaftLogFollowerBehindCount.Update(behindCount)
-
-	if !minMaxClosedTS.IsEmpty() {
-		nanos := timeutil.Since(minMaxClosedTS.GoTime()).Nanoseconds()
-		s.metrics.ClosedTimestampMaxBehindNanos.Update(nanos)
-	}
 
 	return nil
 }
@@ -2427,13 +2301,6 @@ func (s *Store) ComputeMetrics(ctx context.Context, tick int) error {
 		return err
 	}
 	s.metrics.updateRocksDBStats(*stats)
-
-	// Get engine Env stats.
-	envStats, err := s.engine.GetEnvStats()
-	if err != nil {
-		return err
-	}
-	s.metrics.updateEnvStats(*envStats)
 
 	// If we're using RocksDB, log the sstable overview.
 	if rocksdb, ok := s.engine.(*engine.RocksDB); ok {

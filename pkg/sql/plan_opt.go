@@ -53,19 +53,19 @@ func (p *planner) prepareUsingOptimizer(ctx context.Context) (planFlags, error) 
 	// code that can introduce unnecessary txn retries (because of looking up
 	// descriptors and such).
 	switch stmt.AST.(type) {
-	case *tree.AlterIndex, *tree.AlterTable, *tree.AlterSequence,
+	case *tree.AlterTable, *tree.AlterSequence,
 		*tree.BeginTransaction,
 		*tree.CommentOnColumn, *tree.CommentOnDatabase, *tree.CommentOnTable, *tree.CommitTransaction,
 		*tree.CopyFrom, *tree.CreateDatabase, *tree.CreateIndex, *tree.CreateView,
 		*tree.CreateSequence,
 		*tree.CreateStats,
 		*tree.Deallocate, *tree.Discard, *tree.DropDatabase, *tree.DropIndex,
-		*tree.DropTable, *tree.DropView, *tree.DropSequence, *tree.DropRole,
+		*tree.DropTable, *tree.DropView, *tree.DropSequence,
 		*tree.Execute,
-		*tree.Grant, *tree.GrantRole,
+		*tree.Grant,
 		*tree.Prepare,
 		*tree.ReleaseSavepoint, *tree.RenameColumn, *tree.RenameDatabase,
-		*tree.RenameIndex, *tree.RenameTable, *tree.Revoke, *tree.RevokeRole,
+		*tree.RenameIndex, *tree.RenameTable, *tree.Revoke,
 		*tree.RollbackToSavepoint, *tree.RollbackTransaction,
 		*tree.Savepoint, *tree.SetTransaction, *tree.SetTracing, *tree.SetSessionAuthorizationDefault,
 		*tree.SetSessionCharacteristics:

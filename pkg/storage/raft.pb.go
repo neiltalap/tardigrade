@@ -6,7 +6,7 @@ package storage
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import raftpb "github.com/podomy/tardigrade/pkg/etcd/raft/raftpb"
+import raftpb "go.etcd.io/etcd/raft/raftpb"
 import roachpb "github.com/podomy/tardigrade/pkg/roachpb"
 import storagepb "github.com/podomy/tardigrade/pkg/storage/storagepb"
 

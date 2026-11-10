@@ -54,9 +54,6 @@ func planPhysicalProps(plan planNode) physicalProps {
 	case *groupNode:
 		return n.props
 
-	case *windowNode:
-		// TODO: window partitions can be ordered if the source is ordered
-		// appropriately.
 	case *joinNode:
 		return n.props
 	case *unionNode:
@@ -95,7 +92,6 @@ func planPhysicalProps(plan planNode) physicalProps {
 	// Every other node simply has no guarantees on its output rows.
 	case *CreateUserNode:
 	case *DropUserNode:
-	case *alterIndexNode:
 	case *alterSequenceNode:
 	case *alterTableNode:
 	case *alterUserSetPasswordNode:
@@ -109,7 +105,6 @@ func planPhysicalProps(plan planNode) physicalProps {
 	case *createDatabaseNode:
 	case *createIndexNode:
 	case *createSequenceNode:
-	case *createStatsNode:
 	case *createTableNode:
 	case *createViewNode:
 	case *delayedNode:
@@ -120,9 +115,7 @@ func planPhysicalProps(plan planNode) physicalProps {
 	case *dropTableNode:
 	case *dropViewNode:
 	case *errorIfRowsNode:
-	case *exportNode:
 	case *explainDistSQLNode:
-	case *explainVecNode:
 	case *hookFnNode:
 	case *relocateNode:
 	case *renameColumnNode:
@@ -132,14 +125,11 @@ func planPhysicalProps(plan planNode) physicalProps {
 	case *rowCountNode:
 	case *rowSourceToPlanNode:
 	case *scatterNode:
-	case *scrubNode:
 	case *sequenceSelectNode:
 	case *setClusterSettingNode:
 	case *setVarNode:
 	case *setZoneConfigNode:
-	case *showFingerprintsNode:
 	case *showTraceNode:
-	case *showTraceReplicaNode:
 	case *splitNode:
 	case *unsplitNode:
 	case *unsplitAllNode:

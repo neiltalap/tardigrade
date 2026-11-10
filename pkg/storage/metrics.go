@@ -17,7 +17,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/storage/batcheval/result"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
-	"github.com/podomy/tardigrade/pkg/storage/rangefeed"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/metric"
 	"go.etcd.io/etcd/raft/raftpb"
@@ -278,14 +277,6 @@ var (
 		Name:        "rebalancing.writespersecond",
 		Help:        "Number of keys written (i.e. applied by raft) per second to the store, averaged over a large time period as used in rebalancing decisions",
 		Measurement: "Keys/Sec",
-		Unit:        metric.Unit_COUNT,
-	}
-
-	// Metric for tracking follower reads.
-	metaFollowerReadsCount = metric.Metadata{
-		Name:        "follower_reads.success_count",
-		Help:        "Number of reads successfully processed by any replica",
-		Measurement: "Read Ops",
 		Unit:        metric.Unit_COUNT,
 	}
 
@@ -963,22 +954,6 @@ var (
 		Unit:        metric.Unit_NANOSECONDS,
 	}
 
-	// Encryption-at-rest metrics.
-	// TODO(mberhault): metrics for key age, per-key file/bytes counts.
-	metaEncryptionAlgorithm = metric.Metadata{
-		Name:        "rocksdb.encryption.algorithm",
-		Help:        "algorithm in use for encryption-at-rest, see ccl/storageccl/engineccl/enginepbccl/key_registry.proto",
-		Measurement: "Encryption At Rest",
-		Unit:        metric.Unit_CONST,
-	}
-
-	// Closed timestamp metrics.
-	metaClosedTimestampMaxBehindNanos = metric.Metadata{
-		Name:        "kv.closed_timestamp.max_behind_nanos",
-		Help:        "Largest latency between realtime and replica max closed timestamp",
-		Measurement: "Nanoseconds",
-		Unit:        metric.Unit_NANOSECONDS,
-	}
 )
 
 // StoreMetrics is the set of metrics for a given store.
@@ -1035,9 +1010,6 @@ type StoreMetrics struct {
 	// Rebalancing metrics.
 	AverageQueriesPerSecond *metric.GaugeFloat64
 	AverageWritesPerSecond  *metric.GaugeFloat64
-
-	// Follower read metrics.
-	FollowerReadsCount *metric.Counter
 
 	// RocksDB metrics.
 	RdbBlockCacheHits           *metric.Gauge
@@ -1180,16 +1152,6 @@ type StoreMetrics struct {
 	AddSSTableApplicationCopies   *metric.Counter
 	AddSSTableProposalTotalDelay  *metric.Counter
 	AddSSTableProposalEngineDelay *metric.Counter
-
-	// Encryption-at-rest stats.
-	// EncryptionAlgorithm is an enum representing the cipher in use, so we use a gauge.
-	EncryptionAlgorithm *metric.Gauge
-
-	// RangeFeed counts.
-	RangeFeedMetrics *rangefeed.Metrics
-
-	// Closed timestamp metrics.
-	ClosedTimestampMaxBehindNanos *metric.Gauge
 }
 
 func newStoreMetrics(histogramWindow time.Duration) *StoreMetrics {
@@ -1247,9 +1209,6 @@ func newStoreMetrics(histogramWindow time.Duration) *StoreMetrics {
 		// Rebalancing metrics.
 		AverageQueriesPerSecond: metric.NewGaugeFloat64(metaAverageQueriesPerSecond),
 		AverageWritesPerSecond:  metric.NewGaugeFloat64(metaAverageWritesPerSecond),
-
-		// Follower reads metrics.
-		FollowerReadsCount: metric.NewCounter(metaFollowerReadsCount),
 
 		// RocksDB metrics.
 		RdbBlockCacheHits:           metric.NewGauge(metaRdbBlockCacheHits),
@@ -1384,15 +1343,6 @@ func newStoreMetrics(histogramWindow time.Duration) *StoreMetrics {
 		AddSSTableApplicationCopies:   metric.NewCounter(metaAddSSTableApplicationCopies),
 		AddSSTableProposalTotalDelay:  metric.NewCounter(metaAddSSTableEvalTotalDelay),
 		AddSSTableProposalEngineDelay: metric.NewCounter(metaAddSSTableEvalEngineDelay),
-
-		// Encryption-at-rest.
-		EncryptionAlgorithm: metric.NewGauge(metaEncryptionAlgorithm),
-
-		// RangeFeed counters.
-		RangeFeedMetrics: rangefeed.NewMetrics(),
-
-		// Closed timestamp metrics.
-		ClosedTimestampMaxBehindNanos: metric.NewGauge(metaClosedTimestampMaxBehindNanos),
 	}
 
 	sm.raftRcvdMessages[raftpb.MsgProp] = sm.RaftRcvdMsgProp
@@ -1458,10 +1408,6 @@ func (sm *StoreMetrics) updateRocksDBStats(stats engine.Stats) {
 	sm.RdbFlushes.Update(stats.Flushes)
 	sm.RdbCompactions.Update(stats.Compactions)
 	sm.RdbTableReadersMemEstimate.Update(stats.TableReadersMemEstimate)
-}
-
-func (sm *StoreMetrics) updateEnvStats(stats engine.EnvStats) {
-	sm.EncryptionAlgorithm.Update(int64(stats.EncryptionType))
 }
 
 func (sm *StoreMetrics) handleMetricsResult(ctx context.Context, metric result.Metrics) {

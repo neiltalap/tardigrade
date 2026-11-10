@@ -36,7 +36,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/sqlutil"
 	"github.com/podomy/tardigrade/pkg/util/ctxgroup"
 	"github.com/podomy/tardigrade/pkg/util/encoding"
@@ -1022,7 +1021,6 @@ func (sc *SchemaChanger) exec(
 			log.Warningf(ctx, "waiting to update leases: %+v", err)
 			// As we are dismissing the error, go through the recording motions.
 			// This ensures that any important error gets reported to Sentry, etc.
-			sqltelemetry.RecordError(ctx, err, &sc.settings.SV)
 		}
 		// We wait to trigger a stats refresh until we know the leases have been
 		// updated.
@@ -1052,7 +1050,6 @@ func (sc *SchemaChanger) exec(
 		if err := sc.ReleaseLease(ctx, lease); err != nil {
 			log.Warningf(ctx, "while releasing schema change lease: %+v", err)
 			// Go through the recording motions. See comment above.
-			sqltelemetry.RecordError(ctx, err, &sc.settings.SV)
 		}
 	}()
 
@@ -1081,7 +1078,6 @@ func (sc *SchemaChanger) exec(
 			log.Infof(ctx, "Failed to mark job %d as started: %+v", *sc.job.ID(), err)
 		}
 		// Go through the recording motions. See comment above.
-		sqltelemetry.RecordError(ctx, err, &sc.settings.SV)
 	}
 
 	if err := sc.initJobRunningStatus(ctx); err != nil {
@@ -1089,7 +1085,6 @@ func (sc *SchemaChanger) exec(
 			log.Infof(ctx, "Failed to update job %d running status: %+v", *sc.job.ID(), err)
 		}
 		// Go through the recording motions. See comment above.
-		sqltelemetry.RecordError(ctx, err, &sc.settings.SV)
 	}
 
 	// Run through mutation state machine and backfill.
@@ -1103,7 +1098,6 @@ func (sc *SchemaChanger) exec(
 			log.Warningf(ctx, "unexpected error while waiting for leases to update: %+v", err)
 			// As we are dismissing the error, go through the recording motions.
 			// This ensures that any important error gets reported to Sentry, etc.
-			sqltelemetry.RecordError(ctx, err, &sc.settings.SV)
 		}
 	}()
 
@@ -1184,7 +1178,6 @@ func (sc *SchemaChanger) rollbackSchemaChange(
 		// we relegate it to a secondary, go through the recording motions.
 		// This ensures that any important error gets reported to Sentry, etc.
 		secondary := errors.Wrap(err, "original error when reversing mutations")
-		sqltelemetry.RecordError(ctx, secondary, &sc.settings.SV)
 		return errors.WithSecondaryError(errReverse, secondary)
 	}
 
@@ -1200,8 +1193,6 @@ func (sc *SchemaChanger) rollbackSchemaChange(
 		// motions on them. This ensures that any assertion failure or
 		// other important error underneath gets recorded properly.
 		log.Warningf(ctx, "error purging mutation: %+v\nwhile handling error: %+v", errPurge, err)
-		sqltelemetry.RecordError(ctx, err, &sc.settings.SV)
-		sqltelemetry.RecordError(ctx, errPurge, &sc.settings.SV)
 	}
 	return nil
 }
@@ -1500,11 +1491,9 @@ func (sc *SchemaChanger) runStateMachineAndBackfill(
 	return err
 }
 
+// refreshStats is retained as a no-op. Automatic statistics collection has
+// been removed, so schema changes no longer trigger CREATE STATISTICS runs.
 func (sc *SchemaChanger) refreshStats() {
-	// Initiate an asynchronous run of CREATE STATISTICS. We use a large number
-	// for rowsAffected because we want to make sure that stats always get
-	// created/refreshed here.
-	sc.execCfg.StatsRefresher.NotifyMutation(sc.tableID, math.MaxInt32 /* rowsAffected */)
 }
 
 // reverseMutations reverses the direction of all the mutations with the

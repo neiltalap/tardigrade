@@ -16,7 +16,7 @@ import "github.com/podomy/tardigrade/pkg/settings"
 var SplitByLoadEnabled = settings.RegisterBoolSetting(
 	"kv.range_split.by_load_enabled",
 	"allow automatic splits of ranges based on where load is concentrated",
-	true,
+	false,
 )
 
 // SplitByLoadQPSThreshold wraps "kv.range_split.load_qps_threshold".

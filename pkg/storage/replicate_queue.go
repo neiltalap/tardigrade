@@ -277,12 +277,6 @@ func (rq *replicateQueue) process(
 				return err
 			}
 
-			if testingAggressiveConsistencyChecks {
-				if err := rq.store.consistencyQueue.process(ctx, repl, sysCfg); err != nil {
-					log.Warning(ctx, err)
-				}
-			}
-
 			if !requeue {
 				return nil
 			}

@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/podomy/tardigrade/pkg/build"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/sql/delegate"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
@@ -29,7 +28,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
 	"github.com/podomy/tardigrade/pkg/util/timeutil"
 	"github.com/podomy/tardigrade/pkg/util/tracing"
@@ -248,7 +246,6 @@ var varGen = map[string]sessionVar{
 			// set to int4 by a connection string.
 			// TODO(bob): Change to 8 in v2.3: https://github.com/cockroachdb/cockroach/issues/32534
 			if i == 4 {
-				telemetry.Inc(sqltelemetry.DefaultIntSize4Counter)
 			}
 			m.SetDefaultIntSize(int(i))
 			return nil
@@ -506,26 +503,6 @@ var varGen = map[string]sessionVar{
 			return fmt.Sprintf("%d", evalCtx.SessionData.DataConversion.ExtraFloatDigits)
 		},
 		GlobalDefault: func(sv *settings.Values) string { return "0" },
-	},
-	// CockroachDB extension. See docs on SessionData.ForceSavepointRestart.
-	// https://github.com/cockroachdb/cockroach/issues/30588
-	`force_savepoint_restart`: {
-		Get: func(evalCtx *extendedEvalContext) string {
-			return formatBoolAsPostgresSetting(evalCtx.SessionData.ForceSavepointRestart)
-		},
-		GetStringVal: makePostgresBoolGetStringValFn("force_savepoint_restart"),
-		Set: func(_ context.Context, m *sessionDataMutator, val string) error {
-			b, err := parsePostgresBool(val)
-			if err != nil {
-				return err
-			}
-			if b {
-				telemetry.Inc(sqltelemetry.ForceSavepointRestartCounter)
-			}
-			m.SetForceSavepointRestart(b)
-			return nil
-		},
-		GlobalDefault: globalFalse,
 	},
 	// See https://www.postgresql.org/docs/10/static/runtime-config-preset.html
 	`integer_datetimes`: makeReadOnlyVar("on"),
@@ -874,7 +851,6 @@ func makeCompatBoolVar(varName string, displayValue, anyValAllowed bool) session
 			if anyValAllowed || b == displayValue {
 				return nil
 			}
-			telemetry.Inc(sqltelemetry.UnimplementedSessionVarValueCounter(varName, s))
 			allowedVals := []string{displayValStr}
 			if anyValAllowed {
 				allowedVals = append(allowedVals, formatBoolAsPostgresSetting(!displayValue))
@@ -911,7 +887,6 @@ func makeCompatStringVar(varName, displayValue string, extraAllowed ...string) s
 					return nil
 				}
 			}
-			telemetry.Inc(sqltelemetry.UnimplementedSessionVarValueCounter(varName, s))
 			err := newVarValueError(varName, s, allowedVals...)
 			err = errors.WithDetail(err, compatErrMsg)
 			return err

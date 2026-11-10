@@ -36,9 +36,7 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/execinfra"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/stats"
 	"github.com/podomy/tardigrade/pkg/sql/tests"
-	"github.com/podomy/tardigrade/pkg/sqlmigrations"
 	"github.com/podomy/tardigrade/pkg/testutils"
 	"github.com/podomy/tardigrade/pkg/testutils/jobutils"
 	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
@@ -404,9 +402,6 @@ CREATE INDEX foo ON t.test (v)
 		mTest.CheckQueryResults(t, indexQuery, [][]string{{"b"}, {"d"}})
 	}
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func getTableKeyCount(ctx context.Context, kvDB *client.DB) (int, error) {
@@ -534,9 +529,6 @@ func runSchemaChangeWithOperations(
 	if err := checkTableKeyCount(ctx, kvDB, keyMultiple, maxValue+numInserts); err != nil {
 		t.Fatal(err)
 	}
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 
 	// Delete the rows inserted.
 	for i := 0; i < numInserts; i++ {
@@ -641,9 +633,6 @@ CREATE UNIQUE INDEX vidx ON t.test (v);
 	// number of keys == 2 * number of rows; 1 column family and 1 index entry
 	// for each row.
 	if err := checkTableKeyCount(ctx, kvDB, 2, maxValue); err != nil {
-		t.Fatal(err)
-	}
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -777,9 +766,6 @@ func TestDropWhileBackfill(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 
 	tc := serverutils.StartTestCluster(t, numNodes,
@@ -817,9 +803,6 @@ CREATE UNIQUE INDEX vidx ON t.test (v);
 	// number of keys == 2 * number of rows; 1 column family and 1 index entry
 	// for each row.
 	if err := checkTableKeyCount(ctx, kvDB, 2, maxValue); err != nil {
-		t.Fatal(err)
-	}
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1020,9 +1003,6 @@ func TestAbortSchemaChangeBackfill(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	server, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer server.Stopper().Stop(context.TODO())
@@ -1127,9 +1107,6 @@ COMMIT;
 				t.Fatal(err)
 			}
 
-			if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-				t.Fatal(err)
-			}
 		})
 	}
 }
@@ -1346,9 +1323,6 @@ func TestSchemaChangeRetry(t *testing.T) {
 		},
 		DistSQL: &execinfra.TestingKnobs{RunBeforeBackfillChunk: checkSpan},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	s, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer s.Stopper().Stop(context.TODO())
@@ -1422,9 +1396,6 @@ func TestSchemaChangeRetryOnVersionChange(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	s, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer s.Stopper().Stop(context.TODO())
@@ -1528,9 +1499,6 @@ func TestSchemaChangePurgeFailure(t *testing.T) {
 			RunAfterBackfillChunk: func() {},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	server, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer server.Stopper().Stop(context.TODO())
@@ -1605,9 +1573,6 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT);
 		t.Fatal(err)
 	}
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 
 	// Enable async schema change processing to ensure that it cleans up the
 	// above garbage left behind.
@@ -1665,9 +1630,6 @@ func TestSchemaChangeFailureAfterCheckpointing(t *testing.T) {
 		},
 		// Disable backfill migrations so it doesn't interfere with the
 		// backfill in this test.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	server, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer server.Stopper().Stop(context.TODO())
@@ -1744,9 +1706,6 @@ func TestSchemaChangeReverseMutations(t *testing.T) {
 			BackfillChunkSize: chunkSize,
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	s, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer s.Stopper().Stop(context.TODO())
@@ -1921,9 +1880,6 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT8);
 		t.Fatal("SELECT over index 'foo' works")
 	}
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 
 	// Add immediate GC TTL to allow index creation purge to complete.
 	if _, err := addImmediateGCZoneConfig(sqlDB, tableDesc.ID); err != nil {
@@ -2052,9 +2008,6 @@ CREATE TABLE t.test (
 		t.Fatal(err)
 	}
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 
 	// The table contains the one updated value and remaining NULL values.
 	rows, err := sqlDB.Query(`SELECT v from t.test`)
@@ -2110,9 +2063,6 @@ func TestAddColumnDuringColumnDrop(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	server, sqlDB, _ := serverutils.StartServer(t, params)
 	defer server.Stopper().Stop(context.TODO())
@@ -2149,9 +2099,6 @@ CREATE TABLE t.test (
 	close(continueBackfillNotification)
 	wg.Wait()
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 }
 
 // Test a DROP failure on a unique column. The rollback
@@ -2195,9 +2142,6 @@ func TestSchemaUniqueColumnDropFailure(t *testing.T) {
 		},
 		// Disable backfill migrations so it doesn't interfere with the
 		// backfill in this test.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	server, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer server.Stopper().Stop(context.TODO())
@@ -2276,9 +2220,6 @@ func TestCRUDWhileColumnBackfill(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	server, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer server.Stopper().Stop(context.TODO())
@@ -2446,9 +2387,6 @@ INSERT INTO t.test (k, v, length) VALUES (2, 3, 1);
 
 	wg.Wait()
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 	// Check data!
 	rows, err := sqlDB.Query(`SELECT k, v, length, id, u, z FROM t.test`)
 	if err != nil {
@@ -2560,9 +2498,6 @@ func TestBackfillCompletesOnChunkBoundary(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-				t.Fatal(err)
-			}
 		})
 	}
 }
@@ -2673,9 +2608,6 @@ INSERT INTO t.kv VALUES ('a', 'b');
 					t.Fatal(err)
 				}
 
-				if err := sqlutils.RunScrub(sqlDB, "t", "kv"); err != nil {
-					t.Fatal(err)
-				}
 			}
 		})
 	}
@@ -2786,9 +2718,6 @@ CREATE TABLE d.t (
 				t.Errorf("expected one row but read %d", count)
 			}
 
-			if err := sqlutils.RunScrub(sqlDB, "d", "t"); err != nil {
-				t.Fatal(err)
-			}
 		})
 	}
 }
@@ -2915,9 +2844,6 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT);
 	if err := checkTableKeyCount(ctx, kvDB, 1, maxValue); err != nil {
 		t.Fatal(err)
 	}
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 
 	// Do not execute the first schema change so that the second schema
 	// change gets queued up behind it. The second schema change will be
@@ -2963,9 +2889,6 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT);
 	// running scrub will cause it to trigger again on an already closed
 	// channel when we run another statement.
 	notifySchemaChange = nil
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 }
 
 // Test that a table TRUNCATE leaves the database in the correct state
@@ -3001,9 +2924,6 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT, pi DECIMAL DEFAULT (DECIMAL '3.14
 	}
 
 	if err := checkTableKeyCount(ctx, kvDB, 1, maxValue); err != nil {
-		t.Fatal(err)
-	}
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -3113,9 +3033,6 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT, pi DECIMAL REFERENCES t.pi (d) DE
 	if err := checkTableKeyCount(ctx, kvDB, 2, maxValue); err != nil {
 		t.Fatal(err)
 	}
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 
 	tableDesc := sqlbase.GetTableDescriptor(kvDB, "t", "test")
 
@@ -3145,9 +3062,6 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT, pi DECIMAL REFERENCES t.pi (d) DE
 	}
 
 	if err := checkTableKeyCount(ctx, kvDB, 2, maxValue); err != nil {
-		t.Fatal(err)
-	}
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -3472,17 +3386,10 @@ func TestSchemaChangeAfterCreateInTxn(t *testing.T) {
 	s, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer s.Stopper().Stop(context.TODO())
 
-	// The schema change below can occasionally take more than
-	// 5 seconds and gets pushed by the closed timestamp mechanism
-	// in the read timestamp cache. Setting the closed timestamp
-	// target duration to a higher value.
-	// TODO(vivek): Remove the need to do this by removing the use of
-	// txn.CommitTimestamp() in schema changes.
-	if _, err := sqlDB.Exec(`
-SET CLUSTER SETTING kv.closed_timestamp.target_duration = '20s'
-`); err != nil {
-		t.Fatal(err)
-	}
+	// The schema change below can occasionally take more than 5 seconds.
+	// (The closed timestamp push that this test used to tune around has been
+	// removed.)
+	// TODO(vivek): Remove the use of txn.CommitTimestamp() in schema changes.
 
 	// A large enough value that the backfills run as part of the
 	// schema change run in many chunks.
@@ -3539,9 +3446,6 @@ ALTER TABLE t.test ADD COLUMN c INT AS (v + 4) STORED, ADD COLUMN d INT DEFAULT 
 		t.Fatal(err)
 	}
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 
 	// Verify that the index bar over is consistent, and that columns c, d
 	// have been backfilled properly.
@@ -4080,9 +3984,6 @@ func TestIndexBackfillValidation(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	server, sqlDB, kvDB := serverutils.StartServer(t, params)
 	db = kvDB
@@ -4150,9 +4051,6 @@ func TestInvertedIndexBackfillValidation(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	server, sqlDB, kvDB := serverutils.StartServer(t, params)
 	db = kvDB
@@ -4203,9 +4101,6 @@ func TestMultipleIndexBackfills(t *testing.T) {
 			BackfillChunkSize: maxValue / 5,
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	server, sqlDB, _ := serverutils.StartServer(t, params)
 	defer server.Stopper().Stop(context.TODO())
@@ -4255,60 +4150,6 @@ CREATE TABLE t.test (a INT, b INT, c JSON, d JSON);
 	}
 }
 
-func TestCreateStatsAfterSchemaChange(t *testing.T) {
-	defer leaktest.AfterTest(t)()
-
-	defer func(oldRefreshInterval, oldAsOf time.Duration) {
-		stats.DefaultRefreshInterval = oldRefreshInterval
-		stats.DefaultAsOfTime = oldAsOf
-	}(stats.DefaultRefreshInterval, stats.DefaultAsOfTime)
-	stats.DefaultRefreshInterval = time.Millisecond
-	stats.DefaultAsOfTime = time.Microsecond
-
-	server, sqlDB, _ := serverutils.StartServer(t, base.TestServerArgs{})
-	defer server.Stopper().Stop(context.TODO())
-	sqlRun := sqlutils.MakeSQLRunner(sqlDB)
-
-	sqlRun.Exec(t, `SET CLUSTER SETTING sql.stats.automatic_collection.enabled=false`)
-
-	sqlRun.Exec(t, `
-		CREATE DATABASE t;
-		CREATE TABLE t.test (k INT PRIMARY KEY, v CHAR, w CHAR);`)
-
-	sqlRun.Exec(t, `SET CLUSTER SETTING sql.stats.automatic_collection.enabled=true`)
-
-	// Add an index.
-	sqlRun.Exec(t, `CREATE INDEX foo ON t.test (w)`)
-
-	// Verify that statistics have been created for the new index (note that
-	// column w is ordered before column v, since index columns are added first).
-	sqlRun.CheckQueryResultsRetry(t,
-		`SELECT statistics_name, column_names, row_count, distinct_count, null_count
-	  FROM [SHOW STATISTICS FOR TABLE t.test]`,
-		[][]string{
-			{"__auto__", "{k}", "0", "0", "0"},
-			{"__auto__", "{w}", "0", "0", "0"},
-			{"__auto__", "{v}", "0", "0", "0"},
-		})
-
-	// Add a column.
-	sqlRun.Exec(t, `ALTER TABLE t.test ADD COLUMN x INT`)
-
-	// Verify that statistics have been created for the new column.
-	sqlRun.CheckQueryResultsRetry(t,
-		`SELECT statistics_name, column_names, row_count, distinct_count, null_count
-	  FROM [SHOW STATISTICS FOR TABLE t.test] ORDER BY column_names::STRING`,
-		[][]string{
-			{"__auto__", "{k}", "0", "0", "0"},
-			{"__auto__", "{k}", "0", "0", "0"},
-			{"__auto__", "{v}", "0", "0", "0"},
-			{"__auto__", "{v}", "0", "0", "0"},
-			{"__auto__", "{w}", "0", "0", "0"},
-			{"__auto__", "{w}", "0", "0", "0"},
-			{"__auto__", "{x}", "0", "0", "0"},
-		})
-}
-
 func TestTableValidityWhileAddingFK(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	params, _ := tests.CreateTestServerParams()
@@ -4340,9 +4181,6 @@ func TestTableValidityWhileAddingFK(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 
 	server, sqlDB, _ := serverutils.StartServer(t, params)
@@ -4387,12 +4225,6 @@ CREATE TABLE t.parent (a INT PRIMARY KEY);
 
 	wg.Wait()
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "child"); err != nil {
-		t.Fatal(err)
-	}
-	if err := sqlutils.RunScrub(sqlDB, "t", "parent"); err != nil {
-		t.Fatal(err)
-	}
 }
 
 // TestWritesWithChecksBeforeDefaultColumnBackfill tests that when a check on a
@@ -4430,9 +4262,6 @@ func TestWritesWithChecksBeforeDefaultColumnBackfill(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 
 	server, sqlDB, _ := serverutils.StartServer(t, params)
@@ -4488,9 +4317,6 @@ CREATE TABLE t.test (
 
 	wg.Wait()
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 }
 
 // TestWritesWithChecksBeforeComputedColumnBackfill tests that when a check on a
@@ -4528,9 +4354,6 @@ func TestWritesWithChecksBeforeComputedColumnBackfill(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 
 	server, sqlDB, _ := serverutils.StartServer(t, params)
@@ -4586,9 +4409,6 @@ CREATE TABLE t.test (
 
 	wg.Wait()
 
-	if err := sqlutils.RunScrub(sqlDB, "t", "test"); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestSchemaChangeJobRunningStatus(t *testing.T) {
@@ -4622,9 +4442,6 @@ func TestSchemaChangeJobRunningStatus(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	s, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer s.Stopper().Stop(context.TODO())
@@ -4861,9 +4678,6 @@ func TestSchemaChangeJobRunningStatusValidation(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	s, sqlDB, kvDB := serverutils.StartServer(t, params)
 	defer s.Stopper().Stop(context.TODO())
@@ -4910,9 +4724,6 @@ func TestFKReferencesAddedOnlyOnceOnRetry(t *testing.T) {
 			},
 		},
 		// Disable backfill migrations, we still need the jobs table migration.
-		SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-			DisableBackfillMigrations: true,
-		},
 	}
 	s, sqlDB, _ := serverutils.StartServer(t, params)
 	defer s.Stopper().Stop(context.TODO())

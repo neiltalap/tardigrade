@@ -82,8 +82,6 @@ type TestServerArgs struct {
 	ScanMinIdleTime             time.Duration
 	ScanMaxIdleTime             time.Duration
 	SSLCertsDir                 string
-	TimeSeriesQueryWorkerMax    int
-	TimeSeriesQueryMemoryBudget int64
 	SQLMemoryPoolSize           int64
 
 	// If set, this will be appended to the Postgres URL by functions that

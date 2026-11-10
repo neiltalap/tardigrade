@@ -685,15 +685,9 @@ func (b *replicaAppBatch) runPreApplyTriggers(ctx context.Context, cmd *replicat
 	}
 
 	// Provide the command's corresponding logical operations to the Replica's
-	// rangefeed. Only do so if the WriteBatch is non-nil, in which case the
-	// rangefeed requires there to be a corresponding logical operation log or
-	// it will shut down with an error. If the WriteBatch is nil then we expect
-	// the logical operation log to also be nil. We don't want to trigger a
-	// shutdown of the rangefeed in that situation, so we don't pass anything to
-	// the rangefed. If no rangefeed is running at all, this call will be a noop.
-	if cmd.raftCmd.WriteBatch != nil {
-		b.r.handleLogicalOpLogRaftMuLocked(ctx, cmd.raftCmd.LogicalOpLog, b.batch)
-	} else if cmd.raftCmd.LogicalOpLog != nil {
+	// rangefeed. Rangefeeds have been removed; logical op logs are no longer
+	// produced or consumed.
+	if cmd.raftCmd.WriteBatch == nil && cmd.raftCmd.LogicalOpLog != nil {
 		log.Fatalf(ctx, "non-nil logical op log with nil write batch: %v", cmd.raftCmd)
 	}
 

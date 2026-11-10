@@ -315,11 +315,7 @@ func (d *deleteNode) BatchedNext(params runParams) (bool, error) {
 		d.run.done = true
 	}
 
-	// Possibly initiate a run of CREATE STATISTICS.
-	params.ExecCfg().StatsRefresher.NotifyMutation(
-		d.run.td.tableDesc().ID,
-		d.run.rowCount,
-	)
+	// Automatic statistics collection has been removed; no refresher to notify.
 
 	return d.run.rowCount > 0, nil
 }

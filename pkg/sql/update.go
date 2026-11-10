@@ -596,11 +596,7 @@ func (u *updateNode) BatchedNext(params runParams) (bool, error) {
 		u.run.done = true
 	}
 
-	// Possibly initiate a run of CREATE STATISTICS.
-	params.ExecCfg().StatsRefresher.NotifyMutation(
-		u.run.tu.tableDesc().ID,
-		u.run.rowCount,
-	)
+	// Automatic statistics collection has been removed; no refresher to notify.
 
 	return u.run.rowCount > 0, nil
 }

@@ -960,13 +960,6 @@ func (r *Replica) applySnapshot(
 	r.assertStateLocked(ctx, r.store.Engine())
 	r.mu.Unlock()
 
-	// The rangefeed processor is listening for the logical ops attached to
-	// each raft command. These will be lost during a snapshot, so disconnect
-	// the rangefeed, if one exists.
-	r.disconnectRangefeedWithReason(
-		roachpb.RangeFeedRetryError_REASON_RAFT_SNAPSHOT,
-	)
-
 	// Update the replica's cached byte thresholds. This is a no-op if the system
 	// config is not available, in which case we rely on the next gossip update
 	// to perform the update.

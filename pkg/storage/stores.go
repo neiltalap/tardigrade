@@ -185,25 +185,13 @@ func (ls *Stores) Send(
 	return br, pErr
 }
 
-// RangeFeed registers a rangefeed over the specified span. It sends updates to
-// the provided stream and returns with an optional error when the rangefeed is
-// complete.
+// RangeFeed previously registered a rangefeed over the specified span.
+// Rangefeeds have been removed; this stub preserves the RPC dispatch chain
+// and always returns an error.
 func (ls *Stores) RangeFeed(
 	args *roachpb.RangeFeedRequest, stream roachpb.Internal_RangeFeedServer,
 ) *roachpb.Error {
-	ctx := stream.Context()
-	if args.RangeID == 0 {
-		log.Fatal(ctx, "rangefeed request missing range ID")
-	} else if args.Replica.StoreID == 0 {
-		log.Fatal(ctx, "rangefeed request missing store ID")
-	}
-
-	store, err := ls.GetStore(args.Replica.StoreID)
-	if err != nil {
-		return roachpb.NewError(err)
-	}
-
-	return store.RangeFeed(args, stream)
+	return roachpb.NewErrorf("rangefeeds are no longer supported")
 }
 
 // ReadBootstrapInfo implements the gossip.Storage interface. Read

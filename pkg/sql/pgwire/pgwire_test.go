@@ -33,7 +33,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/security"
 	"github.com/podomy/tardigrade/pkg/security/securitytest"
 	"github.com/podomy/tardigrade/pkg/server"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
 	"github.com/podomy/tardigrade/pkg/testutils"
@@ -954,9 +953,6 @@ func TestPGPreparedQuery(t *testing.T) {
 		}},
 		{"INSERT INTO d.arr VALUES($1, $2)", []preparedQueryTest{
 			baseTest.SetArgs(pq.Array([]int64{}), pq.Array([]string{})),
-		}},
-		{"EXPERIMENTAL SCRUB TABLE system.locations", []preparedQueryTest{
-			baseTest.SetArgs(),
 		}},
 		{"ALTER RANGE liveness CONFIGURE ZONE = $1", []preparedQueryTest{
 			baseTest.SetArgs("num_replicas: 1"),
@@ -2305,9 +2301,6 @@ func TestCancelRequest(t *testing.T) {
 	}
 	if _, err := fe.Receive(); err != io.EOF {
 		t.Fatalf("unexpected: %v", err)
-	}
-	if count := telemetry.GetRawFeatureCounts()["pgwire.unimplemented.cancel_request"]; count != 1 {
-		t.Fatalf("expected 1 cancel request, got %d", count)
 	}
 }
 

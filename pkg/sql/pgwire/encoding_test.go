@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/cockroachdb/apd"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/parser"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgwirebase"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
@@ -267,13 +266,3 @@ func BenchmarkEncodings(b *testing.B) {
 	}
 }
 
-func TestEncodingErrorCounts(t *testing.T) {
-	defer leaktest.AfterTest(t)()
-
-	buf := newWriteBuffer(metric.NewCounter(metric.Metadata{}))
-	d, _ := tree.ParseDDecimal("Inf")
-	buf.writeBinaryDatum(context.Background(), d, nil, d.ResolvedType().Oid())
-	if count := telemetry.GetRawFeatureCounts()["pgwire.#32489.binary_decimal_infinity"]; count != 1 {
-		t.Fatalf("expected 1 encoding error, got %d", count)
-	}
-}

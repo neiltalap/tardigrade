@@ -361,24 +361,7 @@ func TestSavepointMetrics(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Custom restart savepoint names are recognized.
-	txn, err = sqlDB.Begin()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := txn.Exec("SET force_savepoint_restart = true"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := txn.Exec("SAVEPOINT blah"); err != nil {
-		t.Fatal(err)
-	}
-	if err := txn.Rollback(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := checkCounterDelta(s, sql.MetaRestartSavepointStarted, accum.restartSavepointCount, 2); err != nil {
-		t.Error(err)
-	}
-	if _, err := checkCounterDelta(s, sql.MetaTxnRollbackStarted, accum.txnRollbackCount, 2); err != nil {
+	if _, err := checkCounterDelta(s, sql.MetaTxnRollbackStarted, accum.txnRollbackCount, 1); err != nil {
 		t.Error(err)
 	}
 }

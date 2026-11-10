@@ -34,7 +34,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/mon"
@@ -1171,7 +1170,6 @@ func writeErr(
 	ctx context.Context, sv *settings.Values, err error, msgBuilder *writeBuffer, w io.Writer,
 ) error {
 	// Record telemetry for the error.
-	sqltelemetry.RecordError(ctx, err, sv)
 
 	// Now send the error to the client.
 	pgErr := pgerror.Flatten(err)
@@ -1259,7 +1257,7 @@ func (c *conn) writeRowDescription(
 		typ := pgTypeForParserType(column.Typ)
 		c.msgBuilder.putInt32(0) // Table OID (optional).
 		c.msgBuilder.putInt16(0) // Column attribute ID (optional).
-		c.msgBuilder.putInt32(int32(mapResultOid(typ.oid)))
+		c.msgBuilder.putInt32(int32(typ.oid))
 		c.msgBuilder.putInt16(int16(typ.size))
 		// The type modifier (atttypmod) is used to include various extra information
 		// about the type being sent. -1 is used for values which don't make use of

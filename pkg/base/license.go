@@ -25,11 +25,3 @@ import (
 var CheckEnterpriseEnabled = func(_ *cluster.Settings, _ uuid.UUID, org, feature string) error {
 	return errors.New("OSS binaries do not include enterprise features")
 }
-
-// LicenseType returns what type of license the cluster is running with, or
-// "OSS" if it is an OSS build.
-//
-// This function is overridden by an init hook in CCL builds.
-var LicenseType = func(st *cluster.Settings) (string, error) {
-	return "OSS", nil
-}

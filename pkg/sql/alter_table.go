@@ -18,7 +18,6 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/keys"
 	"github.com/podomy/tardigrade/pkg/security"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
@@ -26,13 +25,11 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/schemachange"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/stats"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
 	"github.com/podomy/tardigrade/pkg/util/protoutil"
 	"github.com/cockroachdb/errors"
-	"github.com/gogo/protobuf/proto"
 )
 
 type alterTableNode struct {
@@ -122,7 +119,6 @@ func (n *alterTableNode) startExec(params runParams) error {
 			}
 			d = newDef
 
-			telemetry.Inc(sqltelemetry.SchemaNewTypeCounter(d.Type.TelemetryName()))
 			col, idx, expr, err := sqlbase.MakeColumnDefDescs(d, &params.p.semaCtx)
 			if err != nil {
 				return err
@@ -589,35 +585,6 @@ func (n *alterTableNode) startExec(params runParams) error {
 			}
 			descriptorChanged = true
 
-		case *tree.AlterTablePartitionBy:
-			partitioning, err := CreatePartitioning(
-				params.ctx, params.p.ExecCfg().Settings,
-				params.EvalContext(),
-				n.tableDesc, &n.tableDesc.PrimaryIndex, t.PartitionBy)
-			if err != nil {
-				return err
-			}
-			descriptorChanged = !proto.Equal(
-				&n.tableDesc.PrimaryIndex.Partitioning,
-				&partitioning,
-			)
-			err = deleteRemovedPartitionZoneConfigs(
-				params.ctx, params.p.txn,
-				n.tableDesc.TableDesc(), &n.tableDesc.PrimaryIndex, &n.tableDesc.PrimaryIndex.Partitioning,
-				&partitioning, params.extendedEvalCtx.ExecCfg,
-			)
-			if err != nil {
-				return err
-			}
-			n.tableDesc.PrimaryIndex.Partitioning = partitioning
-
-		case *tree.AlterTableSetAudit:
-			var err error
-			descriptorChanged, err = params.p.setAuditMode(params.ctx, n.tableDesc.TableDesc(), t.Mode)
-			if err != nil {
-				return err
-			}
-
 		case *tree.AlterTableInjectStats:
 			sd, ok := n.statsData[i]
 			if !ok {
@@ -726,23 +693,6 @@ func (n *alterTableNode) startExec(params runParams) error {
 		}{params.p.ResolvedName(n.n.Table).FQString(), n.n.String(),
 			params.SessionData().User, uint32(mutationID), droppedViews},
 	)
-}
-
-func (p *planner) setAuditMode(
-	ctx context.Context, desc *sqlbase.TableDescriptor, auditMode tree.AuditMode,
-) (bool, error) {
-	// An auditing config change is itself auditable!
-	// We record the event even if the permission check below fails:
-	// auditing wants to know who tried to change the settings.
-	p.curPlan.auditEvents = append(p.curPlan.auditEvents,
-		auditEvent{desc: desc, writing: true})
-
-	// We require root for now. Later maybe use a different permission?
-	if err := p.RequireAdminRole(ctx, "change auditing settings on a table"); err != nil {
-		return false, err
-	}
-
-	return desc.SetAuditMode(auditMode)
 }
 
 func (n *alterTableNode) Next(runParams) (bool, error) { return false, nil }

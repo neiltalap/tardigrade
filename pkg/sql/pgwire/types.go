@@ -21,12 +21,10 @@ import (
 	"time"
 
 	"github.com/cockroachdb/apd"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/lex"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgwirebase"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/duration"
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
@@ -63,29 +61,6 @@ func pgTypeForParserType(t *types.T) pgType {
 	}
 }
 
-var resultOidMap = map[oid.Oid]oid.Oid{
-	oid.T_bit:      oid.T_varbit,
-	oid.T__bit:     oid.T__varbit,
-	oid.T_bpchar:   oid.T_text,
-	oid.T__bpchar:  oid.T__text,
-	oid.T_char:     oid.T_text,
-	oid.T__char:    oid.T__text,
-	oid.T_varchar:  oid.T_text,
-	oid.T__varchar: oid.T__text,
-}
-
-// mapResultOid maps an Oid value returned by the server to an Oid value that is
-// backwards-compatible with previous versions of CRDB. See this issue for more
-// details: https://github.com/cockroachdb/cockroach/issues/36811
-//
-// TODO(andyk): Remove this once issue #36811 is resolved.
-func mapResultOid(o oid.Oid) oid.Oid {
-	mapped := resultOidMap[o]
-	if mapped != 0 {
-		return mapped
-	}
-	return o
-}
 
 func (b *writeBuffer) writeTextDatum(
 	ctx context.Context, d tree.Datum, conv sessiondata.DataConversionConfig,
@@ -279,7 +254,6 @@ func (b *writeBuffer) writeBinaryDatum(
 				// The above encoding is not correct for Infinity, but since that encoding
 				// doesn't exist in postgres, it's unclear what to do. For now use the NaN
 				// encoding and count it to see if anyone even needs this.
-				telemetry.Inc(sqltelemetry.BinaryDecimalInfinityCounter)
 			}
 
 			return

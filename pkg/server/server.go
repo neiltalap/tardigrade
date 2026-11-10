@@ -38,11 +38,8 @@ import (
 	"github.com/podomy/tardigrade/pkg/rpc"
 	"github.com/podomy/tardigrade/pkg/rpc/nodedialer"
 	"github.com/podomy/tardigrade/pkg/server/debug"
-	"github.com/podomy/tardigrade/pkg/server/goroutinedumper"
-	"github.com/podomy/tardigrade/pkg/server/heapprofiler"
 	"github.com/podomy/tardigrade/pkg/server/serverpb"
 	"github.com/podomy/tardigrade/pkg/server/status"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql"
@@ -55,15 +52,10 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
 	"github.com/podomy/tardigrade/pkg/sql/sqlutil"
 	"github.com/podomy/tardigrade/pkg/sql/stats"
-	"github.com/podomy/tardigrade/pkg/sqlmigrations"
 	"github.com/podomy/tardigrade/pkg/storage"
 	"github.com/podomy/tardigrade/pkg/storage/bulk"
-	"github.com/podomy/tardigrade/pkg/storage/closedts/container"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
-	"github.com/podomy/tardigrade/pkg/storage/reports"
 	"github.com/podomy/tardigrade/pkg/storage/storagebase"
-	"github.com/podomy/tardigrade/pkg/ts"
-	"github.com/podomy/tardigrade/pkg/ui"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/podomy/tardigrade/pkg/util/envutil"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
@@ -161,8 +153,6 @@ type Server struct {
 	status           *statusServer
 	authentication   *authenticationServer
 	initServer       *initServer
-	tsDB             *ts.DB
-	tsServer         ts.Server
 	raftTransport    *storage.RaftTransport
 	stopper          *stop.Stopper
 	execCfg          *sql.ExecutorConfig
@@ -172,8 +162,6 @@ type Server struct {
 	// shared between the sql.Server and the statusServer.
 	sessionRegistry     *sql.SessionRegistry
 	jobRegistry         *jobs.Registry
-	statsRefresher      *stats.Refresher
-	replicationReporter *reports.Reporter
 	engines             Engines
 	internalMemMetrics  sql.MemoryMetrics
 	adminMemMetrics     sql.MemoryMetrics
@@ -408,13 +396,6 @@ func NewServer(cfg Config, stopper *stop.Stopper) (*Server, error) {
 	s.adminMemMetrics = sql.MakeMemMetrics("admin", cfg.HistogramWindowInterval())
 	s.registry.AddMetricStruct(s.adminMemMetrics)
 
-	s.tsDB = ts.NewDB(s.db, s.cfg.Settings)
-	s.registry.AddMetricStruct(s.tsDB.Metrics())
-	nodeCountFn := func() int64 {
-		return s.nodeLiveness.Metrics().LiveNodes.Value()
-	}
-	s.tsServer = ts.MakeServer(s.cfg.AmbientCtx, s.tsDB, nodeCountFn, s.cfg.TimeSeriesServerConfig, s.stopper)
-
 	// The InternalExecutor will be further initialized later, as we create more
 	// of the server's components. There's a circular dependency - many things
 	// need an InternalExecutor, but the InternalExecutor needs an ExecutorConfig,
@@ -447,28 +428,6 @@ func NewServer(cfg Config, stopper *stop.Stopper) (*Server, error) {
 		SQLExecutor:             internalExecutor,
 		LogRangeEvents:          s.cfg.EventLogEnabled,
 		RangeDescriptorCache:    s.distSender.RangeDescriptorCache(),
-		TimeSeriesDataStore:     s.tsDB,
-
-		// Initialize the closed timestamp subsystem. Note that it won't
-		// be ready until it is .Start()ed, but the grpc server can be
-		// registered early.
-		ClosedTimestamp: container.NewContainer(container.Config{
-			Settings: st,
-			Stopper:  s.stopper,
-			Clock:    s.nodeLiveness.AsLiveClock(),
-			// NB: s.node is not defined at this point, but it will be
-			// before this is ever called.
-			Refresh: func(rangeIDs ...roachpb.RangeID) {
-				for _, rangeID := range rangeIDs {
-					repl, err := s.node.stores.GetReplicaForRangeID(rangeID)
-					if err != nil || repl == nil {
-						continue
-					}
-					repl.EmitMLAI()
-				}
-			},
-			Dialer: s.nodeDialer.CTDialer(),
-		}),
 
 		EnableEpochRangeLeases: true,
 	}
@@ -487,10 +446,6 @@ func NewServer(cfg Config, stopper *stop.Stopper) (*Server, error) {
 		txnMetrics, nil /* execCfg */, &s.rpcContext.ClusterID)
 	roachpb.RegisterInternalServer(s.grpc.Server, s.node)
 	storage.RegisterPerReplicaServer(s.grpc.Server, s.node.perReplicaServer)
-	s.node.storeCfg.ClosedTimestamp.RegisterClosedTimestampServer(s.grpc.Server)
-	s.replicationReporter = reports.NewReporter(
-		s.db, s.node.stores, s.storePool,
-		s.ClusterSettings(), s.nodeLiveness, internalExecutor)
 
 	s.sessionRegistry = sql.NewSessionRegistry()
 	s.jobRegistry = jobs.MakeRegistry(
@@ -588,7 +543,7 @@ func NewServer(cfg Config, stopper *stop.Stopper) (*Server, error) {
 		s.sessionRegistry,
 	)
 	s.authentication = newAuthenticationServer(s)
-	for _, gw := range []grpcGatewayServer{s.admin, s.status, s.authentication, &s.tsServer} {
+	for _, gw := range []grpcGatewayServer{s.admin, s.status, s.authentication} {
 		gw.RegisterService(s.grpc.Server)
 	}
 
@@ -700,13 +655,10 @@ func NewServer(cfg Config, stopper *stop.Stopper) (*Server, error) {
 		execCfg.PGWireTestingKnobs = pgwireKnobs.(*sql.PGWireTestingKnobs)
 	}
 
-	s.statsRefresher = stats.MakeRefresher(
-		s.st,
-		internalExecutor,
-		execCfg.TableStatsCache,
-		stats.DefaultAsOfTime,
-	)
-	execCfg.StatsRefresher = s.statsRefresher
+	// Table statistics are injected explicitly (e.g. ALTER TABLE ...
+	// INJECT STATISTICS in tests) and read through TableStatsCache.
+	// Automatic background collection has been removed with the statistics
+	// subsystem's collection path, so there is no refresher to start here.
 
 	// Set up internal memory metrics for use by internal SQL executors.
 	s.sqlMemMetrics = sql.MakeMemMetrics("sql", cfg.HistogramWindowInterval())
@@ -1081,13 +1033,6 @@ func (s *Server) startPersistingHLCUpperBound(
 	return nil
 }
 
-// getServerEndpointCounter returns a telemetry Counter corresponding to the
-// given grpc method.
-func getServerEndpointCounter(method string) telemetry.Counter {
-	const counterPrefix = "http.grpc-gateway"
-	return telemetry.GetCounter(fmt.Sprintf("%s.%s", counterPrefix, method))
-}
-
 // Start starts the server on the specified port, starts gossip and initializes
 // the node using the engines from the server's context. This is complex since
 // it sets up the listeners and the associated port muxing, but especially since
@@ -1214,7 +1159,6 @@ func (s *Server) Start(ctx context.Context) error {
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption,
 	) error {
-		telemetry.Inc(getServerEndpointCounter(method))
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 	conn, err := grpc.DialContext(ctx, s.cfg.AdvertiseAddr, append(append(
@@ -1234,7 +1178,7 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	})
 
-	for _, gw := range []grpcGatewayServer{s.admin, s.status, s.authentication, &s.tsServer} {
+	for _, gw := range []grpcGatewayServer{s.admin, s.status, s.authentication} {
 		if err := gw.RegisterGateway(gwCtx, gwMux, conn); err != nil {
 			return err
 		}
@@ -1434,7 +1378,6 @@ func (s *Server) Start(ctx context.Context) error {
 	); err != nil {
 		return err
 	}
-	s.replicationReporter.Start(ctx, s.stopper)
 
 	// Cluster ID should have been determined by this point.
 	if s.rpcContext.ClusterID.Get() == uuid.Nil {
@@ -1456,11 +1399,6 @@ func (s *Server) Start(ctx context.Context) error {
 	if err := s.startSampleEnvironment(ctx, DefaultMetricsSampleInterval); err != nil {
 		return err
 	}
-
-	// Begin recording time series data collected by the status monitor.
-	s.tsDB.PollSource(
-		s.cfg.AmbientCtx, s.recorder, DefaultMetricsSampleInterval, ts.Resolution10s, s.stopper,
-	)
 
 	var graphiteOnce sync.Once
 	graphiteEndpoint.SetOnChange(&s.st.SV, func() {
@@ -1535,65 +1473,27 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	}
 
-	// Start the background thread for periodically refreshing table statistics.
-	if err := s.statsRefresher.Start(ctx, s.stopper, stats.DefaultRefreshInterval); err != nil {
-		return err
-	}
+	// No background statistics refresher: automatic collection was removed
+	// with the statistics subsystem's collection path (see above).
 
-	// Before serving SQL requests, we have to make sure the database is
-	// in an acceptable form for this version of the software.
-	// We have to do this after actually starting up the server to be able to
-	// seamlessly use the kv client against other nodes in the cluster.
-	var mmKnobs sqlmigrations.MigrationManagerTestingKnobs
-	if migrationManagerTestingKnobs := s.cfg.TestingKnobs.SQLMigrationManager; migrationManagerTestingKnobs != nil {
-		mmKnobs = *migrationManagerTestingKnobs.(*sqlmigrations.MigrationManagerTestingKnobs)
-	}
-	migMgr := sqlmigrations.NewManager(
-		s.stopper,
-		s.db,
-		s.internalExecutor,
-		s.clock,
-		mmKnobs,
-		s.NodeID().String(),
-	)
-	migrationFilter := sqlmigrations.AllMigrations
+	// On a fresh bootstrap, initialize the SQL state that the old
+	// sqlmigrations framework used to create (root/admin, default DBs,
+	// version, jobs progress, etc). No upgrade path is needed.
 	if doBootstrap {
-		// If we've just bootstrapped, some migrations are unnecessary because
-		// they're included in the metadata schema that we've written to the store
-		// by hand.
-		migrationFilter = sqlmigrations.ExcludeMigrationsIncludedInBootstrap
+		if err := s.bootstrapFreshCluster(ctx); err != nil {
+			return errors.Wrap(err, "bootstrapping fresh cluster SQL state")
+		}
 	}
-	if err := migMgr.EnsureMigrations(ctx, migrationFilter); err != nil {
-		return errors.Wrap(err, "ensuring SQL migrations")
-	}
-	log.Infof(ctx, "done ensuring all necessary migrations have run")
+	log.Infof(ctx, "done bootstrapping fresh cluster SQL state")
 
 	// Start garbage collecting system events.
 	s.startSystemLogsGC(ctx)
 
-	// Serve UI assets.
-	//
-	// The authentication mux used here is created in "allow anonymous" mode so that the UI
-	// assets are served up whether or not there is a session. If there is a session, the mux
-	// adds it to the context, and it is templated into index.html so that the UI can show
-	// the username of the currently-logged-in user.
-	authenticatedUIHandler := newAuthenticationMuxAllowAnonymous(
-		s.authentication,
-		ui.Handler(ui.Config{
-			ExperimentalUseLogin: s.cfg.EnableWebSessionAuthentication,
-			LoginEnabled:         s.cfg.RequireWebSession(),
-			NodeID:               &s.nodeIDContainer,
-			GetUser: func(ctx context.Context) *string {
-				if u, ok := ctx.Value(webSessionUserKey{}).(string); ok {
-					return &u
-				}
-				return nil
-			},
-		}),
-	)
-	s.mux.Handle("/", authenticatedUIHandler)
+	// The web UI has been removed. "/" returns 404; interact via the SQL
+	// client. The /health endpoint below stays for orchestration.
+	s.mux.Handle("/", http.NotFoundHandler())
 
-	// Register gRPC-gateway endpoints used by the admin UI.
+	// Register gRPC-gateway endpoints used by the admin API.
 	var authHandler http.Handler = gwMux
 	if s.cfg.RequireWebSession() {
 		authHandler = newAuthenticationMux(s.authentication, authHandler)
@@ -1603,7 +1503,8 @@ func (s *Server) Start(ctx context.Context) error {
 	// Exempt the health check endpoint from authentication.
 	// This mirrors the handling of /health above.
 	s.mux.Handle("/_admin/v1/health", gwMux)
-	s.mux.Handle(ts.URLPrefix, authHandler)
+	// The /ts/ time-series API was removed with the time-series subsystem;
+	// requests there fall through to the 404 handler.
 	s.mux.Handle(statusPrefix, authHandler)
 	// The /login endpoint is, by definition, available pre-authentication.
 	s.mux.Handle(loginPath, gwMux)
@@ -1952,47 +1853,10 @@ func (s *Server) Decommission(ctx context.Context, setTo bool, nodeIDs []roachpb
 	return nil
 }
 
-// startSampleEnvironment begins the heap profiler worker.
+// startSampleEnvironment begins the environment sampling worker.
 func (s *Server) startSampleEnvironment(ctx context.Context, frequency time.Duration) error {
 	// Immediately record summaries once on server startup.
 	ctx = s.AnnotateCtx(ctx)
-
-	// We're not going to take heap profiles or goroutine dumps if
-	// running only with in-memory stores.  This helps some tests that
-	// can't write any files.
-	allStoresInMem := true
-	for _, storeSpec := range s.cfg.Stores.Specs {
-		if !storeSpec.InMemory {
-			allStoresInMem = false
-			break
-		}
-	}
-
-	var goroutineDumper *goroutinedumper.GoroutineDumper
-	var heapProfiler *heapprofiler.HeapProfiler
-
-	if !allStoresInMem {
-		var err error
-		if s.cfg.GoroutineDumpDirName != "" {
-			if err := os.MkdirAll(s.cfg.GoroutineDumpDirName, 0755); err != nil {
-				return errors.Wrap(err, "creating goroutine dump dir")
-			}
-			goroutineDumper, err = goroutinedumper.NewGoroutineDumper(s.cfg.GoroutineDumpDirName)
-			if err != nil {
-				return errors.Wrap(err, "starting goroutine dumper worker")
-			}
-		}
-
-		if s.cfg.HeapProfileDirName != "" {
-			if err := os.MkdirAll(s.cfg.HeapProfileDirName, 0755); err != nil {
-				return errors.Wrap(err, "creating heap profiles dir")
-			}
-			heapProfiler, err = heapprofiler.NewHeapProfiler(s.cfg.HeapProfileDirName, s.ClusterSettings())
-			if err != nil {
-				return errors.Wrap(err, "starting heap profiler worker")
-			}
-		}
-	}
 
 	s.stopper.RunWorker(ctx, func(ctx context.Context) {
 		var goMemStats atomic.Value // *status.GoMemStats
@@ -2042,12 +1906,6 @@ func (s *Server) startSampleEnvironment(ctx context.Context, frequency time.Dura
 
 				curStats := goMemStats.Load().(*status.GoMemStats)
 				s.runtime.SampleEnvironment(ctx, *curStats)
-				if goroutineDumper != nil {
-					goroutineDumper.MaybeDump(ctx, s.ClusterSettings(), s.runtime.Goroutines.Value())
-				}
-				if heapProfiler != nil {
-					heapProfiler.MaybeTakeProfile(ctx, curStats.MemStats)
-				}
 
 			}
 		}

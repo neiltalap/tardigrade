@@ -431,17 +431,6 @@ func (v *planVisitor) visitInternal(plan planNode, name string) {
 
 		n.plan = v.visit(n.plan)
 
-	case *windowNode:
-		if v.observer.expr != nil {
-			for i, agg := range n.funcs {
-				v.metadataExpr(name, "window", i, agg.expr)
-			}
-			for i, rexpr := range n.windowRender {
-				v.metadataExpr(name, "render", i, rexpr)
-			}
-		}
-		n.plan = v.visit(n.plan)
-
 	case *unionNode:
 		n.left = v.visit(n.left)
 		n.right = v.visit(n.right)
@@ -597,9 +586,6 @@ func (v *planVisitor) visitInternal(plan planNode, name string) {
 	case *explainDistSQLNode:
 		n.plan = v.visit(n.plan)
 
-	case *explainVecNode:
-		n.plan = v.visit(n.plan)
-
 	case *ordinalityNode:
 		n.source = v.visit(n.source)
 
@@ -614,9 +600,6 @@ func (v *planVisitor) visitInternal(plan planNode, name string) {
 			v.observer.attr(name, "target", n.target.String())
 		}
 		n.source = v.visit(n.source)
-
-	case *showTraceReplicaNode:
-		n.plan = v.visit(n.plan)
 
 	case *explainPlanNode:
 		n.plan = v.visit(n.plan)
@@ -662,11 +645,6 @@ func (v *planVisitor) visitInternal(plan planNode, name string) {
 		}
 		n.plan = v.visit(n.plan)
 
-	case *exportNode:
-		if v.observer.attr != nil {
-			v.observer.attr(name, "destination", n.fileName)
-		}
-		n.source = v.visit(n.source)
 	}
 }
 
@@ -756,7 +734,6 @@ func joinTypeStr(t sqlbase.JoinType) string {
 // strings are constant and not precomputed so that the type names can
 // be changed without changing the output of "EXPLAIN".
 var planNodeNames = map[reflect.Type]string{
-	reflect.TypeOf(&alterIndexNode{}):           "alter index",
 	reflect.TypeOf(&alterSequenceNode{}):        "alter sequence",
 	reflect.TypeOf(&alterTableNode{}):           "alter table",
 	reflect.TypeOf(&alterUserSetPasswordNode{}): "alter user",
@@ -772,7 +749,6 @@ var planNodeNames = map[reflect.Type]string{
 	reflect.TypeOf(&createDatabaseNode{}):       "create database",
 	reflect.TypeOf(&createIndexNode{}):          "create index",
 	reflect.TypeOf(&createSequenceNode{}):       "create sequence",
-	reflect.TypeOf(&createStatsNode{}):          "create statistics",
 	reflect.TypeOf(&createTableNode{}):          "create table",
 	reflect.TypeOf(&CreateUserNode{}):           "create user/role",
 	reflect.TypeOf(&createViewNode{}):           "create view",
@@ -789,8 +765,6 @@ var planNodeNames = map[reflect.Type]string{
 	reflect.TypeOf(&errorIfRowsNode{}):          "error if rows",
 	reflect.TypeOf(&explainDistSQLNode{}):       "explain distsql",
 	reflect.TypeOf(&explainPlanNode{}):          "explain plan",
-	reflect.TypeOf(&explainVecNode{}):           "explain vectorized",
-	reflect.TypeOf(&exportNode{}):               "export",
 	reflect.TypeOf(&filterNode{}):               "filter",
 	reflect.TypeOf(&groupNode{}):                "group",
 	reflect.TypeOf(&hookFnNode{}):               "plugin",
@@ -814,15 +788,12 @@ var planNodeNames = map[reflect.Type]string{
 	reflect.TypeOf(&scanBufferNode{}):           "scan buffer node",
 	reflect.TypeOf(&scanNode{}):                 "scan",
 	reflect.TypeOf(&scatterNode{}):              "scatter",
-	reflect.TypeOf(&scrubNode{}):                "scrub",
 	reflect.TypeOf(&sequenceSelectNode{}):       "sequence select",
 	reflect.TypeOf(&serializeNode{}):            "run",
 	reflect.TypeOf(&setClusterSettingNode{}):    "set cluster setting",
 	reflect.TypeOf(&setVarNode{}):               "set",
 	reflect.TypeOf(&setZoneConfigNode{}):        "configure zone",
-	reflect.TypeOf(&showFingerprintsNode{}):     "showFingerprints",
 	reflect.TypeOf(&showTraceNode{}):            "show trace for",
-	reflect.TypeOf(&showTraceReplicaNode{}):     "replica trace",
 	reflect.TypeOf(&sortNode{}):                 "sort",
 	reflect.TypeOf(&splitNode{}):                "split",
 	reflect.TypeOf(&unsplitNode{}):              "unsplit",
@@ -835,7 +806,6 @@ var planNodeNames = map[reflect.Type]string{
 	reflect.TypeOf(&upsertNode{}):               "upsert",
 	reflect.TypeOf(&valuesNode{}):               "values",
 	reflect.TypeOf(&virtualTableNode{}):         "virtual table values",
-	reflect.TypeOf(&windowNode{}):               "window",
 	reflect.TypeOf(&zeroNode{}):                 "norows",
 	reflect.TypeOf(&zigzagJoinNode{}):           "zigzag-join",
 }

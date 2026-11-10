@@ -19,7 +19,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -30,7 +29,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/podomy/tardigrade/pkg/base"
-	"github.com/podomy/tardigrade/pkg/build"
 	"github.com/podomy/tardigrade/pkg/config"
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/keys"
@@ -42,7 +40,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/testutils"
 	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
-	"github.com/podomy/tardigrade/pkg/ui"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
 	"github.com/podomy/tardigrade/pkg/util/httputil"
 	"github.com/podomy/tardigrade/pkg/util/leaktest"
@@ -170,10 +167,11 @@ func TestPlainHTTPServer(t *testing.T) {
 	defer s.Stopper().Stop(context.TODO())
 
 	// First, make sure that the TestServer's built-in client interface
-	// still works in insecure mode.
-	var data serverpb.JSONResponse
+	// still works in insecure mode. Uses the nodes endpoint (the metrics
+	// endpoint was removed with the heuristically-driven status surface).
+	var data serverpb.NodesResponse
 	testutils.SucceedsSoon(t, func() error {
-		return getStatusJSONProto(s, "metrics/local", &data)
+		return getStatusJSONProto(s, "nodes", &data)
 	})
 
 	// Now make a couple of direct requests using both http and https.
@@ -281,7 +279,7 @@ func TestAcceptEncoding(t *testing.T) {
 		},
 	}
 	for _, d := range testData {
-		req, err := http.NewRequest("GET", s.AdminURL()+statusPrefix+"metrics/local", nil)
+		req, err := http.NewRequest("GET", s.AdminURL()+statusPrefix+"nodes", nil)
 		if err != nil {
 			t.Fatalf("could not create request: %s", err)
 		}
@@ -297,7 +295,7 @@ func TestAcceptEncoding(t *testing.T) {
 			t.Fatalf("unexpected content encoding: '%s' != '%s'", ce, d.acceptEncoding)
 		}
 		r := d.newReader(resp.Body)
-		var data serverpb.JSONResponse
+		var data serverpb.NodesResponse
 		if err := jsonpb.Unmarshal(r, &data); err != nil {
 			t.Error(err)
 		}
@@ -826,170 +824,4 @@ func TestPersistHLCUpperBound(t *testing.T) {
 			a.True(fatal)
 		})
 	}
-}
-
-func TestServeIndexHTML(t *testing.T) {
-	defer leaktest.AfterTest(t)()
-
-	const htmlTemplate = `<!DOCTYPE html>
-<html>
-	<head>
-		<title>Tardigrade</title>
-		<meta charset="UTF-8">
-		<link href="favicon.ico" rel="shortcut icon">
-	</head>
-	<body>
-		<div id="react-layout"></div>
-
-		<script>
-			window.dataFromServer = %s;
-		</script>
-
-		<script src="protos.dll.js" type="text/javascript"></script>
-		<script src="vendor.dll.js" type="text/javascript"></script>
-		<script src="bundle.js" type="text/javascript"></script>
-	</body>
-</html>
-`
-
-	linkInFakeUI := func() {
-		ui.Asset = func(string) (_ []byte, _ error) { return }
-		ui.AssetDir = func(name string) (_ []string, _ error) { return }
-		ui.AssetInfo = func(name string) (_ os.FileInfo, _ error) { return }
-	}
-	unlinkFakeUI := func() {
-		ui.Asset = nil
-		ui.AssetDir = nil
-		ui.AssetInfo = nil
-	}
-
-	t.Run("Insecure mode", func(t *testing.T) {
-		s, _, _ := serverutils.StartServer(t, base.TestServerArgs{
-			Insecure: true,
-			// This test server argument has the same effect as setting the environment variable
-			// `COCKROACH_EXPERIMENTAL_REQUIRE_WEB_SESSION` to false, or not setting it.
-			// In test servers, web sessions are required by default.
-			DisableWebSessionAuthentication: true,
-		})
-		defer s.Stopper().Stop(context.TODO())
-		tsrv := s.(*TestServer)
-
-		client, err := tsrv.GetHTTPClient()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		t.Run("short build", func(t *testing.T) {
-			resp, err := client.Get(s.AdminURL())
-			if err != nil {
-				t.Fatal(err)
-			}
-			if resp.StatusCode != 200 {
-				t.Fatalf("expected status code 200; got %d", resp.StatusCode)
-			}
-			respBytes, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
-			respString := string(respBytes)
-			expected := fmt.Sprintf(`<!DOCTYPE html>
-<title>Tardigrade</title>
-Tardigrade has no UI.
-<hr>
-<em>%s</em>`,
-				build.GetInfo().Short())
-			if respString != expected {
-				t.Fatalf("expected %s; got %s", expected, respString)
-			}
-		})
-
-		t.Run("non-short build", func(t *testing.T) {
-			linkInFakeUI()
-			defer unlinkFakeUI()
-			resp, err := client.Get(s.AdminURL())
-			if err != nil {
-				t.Fatal(err)
-			}
-			if resp.StatusCode != 200 {
-				t.Fatalf("expected status code 200; got %d", resp.StatusCode)
-			}
-			respBytes, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
-			respString := string(respBytes)
-			expected := fmt.Sprintf(
-				htmlTemplate,
-				fmt.Sprintf(
-					`{"ExperimentalUseLogin":false,"LoginEnabled":false,"LoggedInUser":null,"Tag":"%s","Version":"%s","NodeID":"%d"}`,
-					build.GetInfo().Tag,
-					build.VersionPrefix(),
-					1,
-				),
-			)
-			if respString != expected {
-				t.Fatalf("expected %s; got %s", expected, respString)
-			}
-		})
-	})
-
-	t.Run("Secure mode", func(t *testing.T) {
-		linkInFakeUI()
-		defer unlinkFakeUI()
-		s, _, _ := serverutils.StartServer(t, base.TestServerArgs{})
-		defer s.Stopper().Stop(context.TODO())
-		tsrv := s.(*TestServer)
-
-		loggedInClient, err := tsrv.GetAdminAuthenticatedHTTPClient()
-		if err != nil {
-			t.Fatal(err)
-		}
-		loggedOutClient, err := tsrv.GetHTTPClient()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		cases := []struct {
-			client http.Client
-			json   string
-		}{
-			{
-				loggedInClient,
-				fmt.Sprintf(
-					`{"ExperimentalUseLogin":true,"LoginEnabled":true,"LoggedInUser":"authentic_user","Tag":"%s","Version":"%s","NodeID":"%d"}`,
-					build.GetInfo().Tag,
-					build.VersionPrefix(),
-					1,
-				),
-			},
-			{
-				loggedOutClient,
-				fmt.Sprintf(
-					`{"ExperimentalUseLogin":true,"LoginEnabled":true,"LoggedInUser":null,"Tag":"%s","Version":"%s","NodeID":"%d"}`,
-					build.GetInfo().Tag,
-					build.VersionPrefix(),
-					1,
-				),
-			},
-		}
-
-		for _, testCase := range cases {
-			resp, err := testCase.client.Get(s.AdminURL())
-			if err != nil {
-				t.Fatal(err)
-			}
-			if resp.StatusCode != 200 {
-				t.Fatalf("expected status code 200; got %d", resp.StatusCode)
-			}
-			respBytes, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
-			respString := string(respBytes)
-			expected := fmt.Sprintf(htmlTemplate, testCase.json)
-			if respString != expected {
-				t.Fatalf("expected %s; got %s", expected, respString)
-			}
-		}
-	})
 }

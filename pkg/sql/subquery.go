@@ -13,12 +13,10 @@ package sql
 import (
 	"context"
 
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/rowexec"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/cockroachdb/errors"
@@ -214,7 +212,6 @@ func (v *subqueryVisitor) extractSubquery(
 		log.Infof(v.ctx, "collected subquery: %q -> %d", sub, sub.Idx)
 	}
 
-	telemetry.Inc(sqltelemetry.SubqueryUseCounter)
 
 	// The typing for subqueries is complex, but regular.
 	//

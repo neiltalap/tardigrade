@@ -24,7 +24,7 @@ import (
 )
 
 // CreateUserNode creates entries in the system.users table.
-// This is called from CREATE USER and CREATE ROLE.
+// This is called from CREATE USER.
 type CreateUserNode struct {
 	ifNotExists bool
 	isRole      bool
@@ -43,7 +43,7 @@ func (p *planner) CreateUser(ctx context.Context, n *tree.CreateUser) (planNode,
 	return p.CreateUserNode(ctx, n.Name, n.Password, n.IfNotExists, false /* isRole */, "CREATE USER")
 }
 
-// CreateUserNode creates a "create user" plan node. This can be called from CREATE USER or CREATE ROLE.
+// CreateUserNode creates a "create user" plan node. This can be called from CREATE USER.
 func (p *planner) CreateUserNode(
 	ctx context.Context, nameE, passwordE tree.Expr, ifNotExists bool, isRole bool, opName string,
 ) (*CreateUserNode, error) {

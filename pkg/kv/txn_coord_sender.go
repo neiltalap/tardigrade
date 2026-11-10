@@ -22,7 +22,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/keys"
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
 	"github.com/podomy/tardigrade/pkg/util/duration"
@@ -239,15 +238,15 @@ type TxnMetrics struct {
 	Restarts *metric.Histogram
 
 	// Counts of restart types.
-	RestartsWriteTooOld           telemetry.CounterWithMetric
-	RestartsWriteTooOldMulti      telemetry.CounterWithMetric
-	RestartsSerializable          telemetry.CounterWithMetric
-	RestartsPossibleReplay        telemetry.CounterWithMetric
-	RestartsAsyncWriteFailure     telemetry.CounterWithMetric
-	RestartsReadWithinUncertainty telemetry.CounterWithMetric
-	RestartsTxnAborted            telemetry.CounterWithMetric
-	RestartsTxnPush               telemetry.CounterWithMetric
-	RestartsUnknown               telemetry.CounterWithMetric
+	RestartsWriteTooOld           *metric.Counter
+	RestartsWriteTooOldMulti      *metric.Counter
+	RestartsSerializable          *metric.Counter
+	RestartsPossibleReplay        *metric.Counter
+	RestartsAsyncWriteFailure     *metric.Counter
+	RestartsReadWithinUncertainty *metric.Counter
+	RestartsTxnAborted            *metric.Counter
+	RestartsTxnPush               *metric.Counter
+	RestartsUnknown               *metric.Counter
 }
 
 var (
@@ -386,15 +385,15 @@ func MakeTxnMetrics(histogramWindow time.Duration) TxnMetrics {
 		AutoRetries:                   metric.NewCounter(metaAutoRetriesRates),
 		Durations:                     metric.NewLatency(metaDurationsHistograms, histogramWindow),
 		Restarts:                      metric.NewHistogram(metaRestartsHistogram, histogramWindow, 100, 3),
-		RestartsWriteTooOld:           telemetry.NewCounterWithMetric(metaRestartsWriteTooOld),
-		RestartsWriteTooOldMulti:      telemetry.NewCounterWithMetric(metaRestartsWriteTooOldMulti),
-		RestartsSerializable:          telemetry.NewCounterWithMetric(metaRestartsSerializable),
-		RestartsPossibleReplay:        telemetry.NewCounterWithMetric(metaRestartsPossibleReplay),
-		RestartsAsyncWriteFailure:     telemetry.NewCounterWithMetric(metaRestartsAsyncWriteFailure),
-		RestartsReadWithinUncertainty: telemetry.NewCounterWithMetric(metaRestartsReadWithinUncertainty),
-		RestartsTxnAborted:            telemetry.NewCounterWithMetric(metaRestartsTxnAborted),
-		RestartsTxnPush:               telemetry.NewCounterWithMetric(metaRestartsTxnPush),
-		RestartsUnknown:               telemetry.NewCounterWithMetric(metaRestartsUnknown),
+		RestartsWriteTooOld:           metric.NewCounter(metaRestartsWriteTooOld),
+		RestartsWriteTooOldMulti:      metric.NewCounter(metaRestartsWriteTooOldMulti),
+		RestartsSerializable:          metric.NewCounter(metaRestartsSerializable),
+		RestartsPossibleReplay:        metric.NewCounter(metaRestartsPossibleReplay),
+		RestartsAsyncWriteFailure:     metric.NewCounter(metaRestartsAsyncWriteFailure),
+		RestartsReadWithinUncertainty: metric.NewCounter(metaRestartsReadWithinUncertainty),
+		RestartsTxnAborted:            metric.NewCounter(metaRestartsTxnAborted),
+		RestartsTxnPush:               metric.NewCounter(metaRestartsTxnPush),
+		RestartsUnknown:               metric.NewCounter(metaRestartsUnknown),
 	}
 }
 
@@ -978,31 +977,31 @@ func (tc *TxnCoordSender) handleRetryableErrLocked(
 	case *roachpb.TransactionRetryError:
 		switch tErr.Reason {
 		case roachpb.RETRY_WRITE_TOO_OLD:
-			tc.metrics.RestartsWriteTooOld.Inc()
+			tc.metrics.RestartsWriteTooOld.Inc(1)
 		case roachpb.RETRY_SERIALIZABLE:
-			tc.metrics.RestartsSerializable.Inc()
+			tc.metrics.RestartsSerializable.Inc(1)
 		case roachpb.RETRY_POSSIBLE_REPLAY:
-			tc.metrics.RestartsPossibleReplay.Inc()
+			tc.metrics.RestartsPossibleReplay.Inc(1)
 		case roachpb.RETRY_ASYNC_WRITE_FAILURE:
-			tc.metrics.RestartsAsyncWriteFailure.Inc()
+			tc.metrics.RestartsAsyncWriteFailure.Inc(1)
 		default:
-			tc.metrics.RestartsUnknown.Inc()
+			tc.metrics.RestartsUnknown.Inc(1)
 		}
 
 	case *roachpb.WriteTooOldError:
-		tc.metrics.RestartsWriteTooOldMulti.Inc()
+		tc.metrics.RestartsWriteTooOldMulti.Inc(1)
 
 	case *roachpb.ReadWithinUncertaintyIntervalError:
-		tc.metrics.RestartsReadWithinUncertainty.Inc()
+		tc.metrics.RestartsReadWithinUncertainty.Inc(1)
 
 	case *roachpb.TransactionAbortedError:
-		tc.metrics.RestartsTxnAborted.Inc()
+		tc.metrics.RestartsTxnAborted.Inc(1)
 
 	case *roachpb.TransactionPushError:
-		tc.metrics.RestartsTxnPush.Inc()
+		tc.metrics.RestartsTxnPush.Inc(1)
 
 	default:
-		tc.metrics.RestartsUnknown.Inc()
+		tc.metrics.RestartsUnknown.Inc(1)
 	}
 	errTxnID := pErr.GetTxn().ID
 	newTxn := roachpb.PrepareTransactionForRetry(ctx, pErr, tc.mu.userPriority, tc.clock)

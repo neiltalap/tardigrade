@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/podomy/tardigrade/pkg/base"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql"
@@ -30,7 +29,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgwirebase"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/util/contextutil"
 	"github.com/podomy/tardigrade/pkg/util/envutil"
 	"github.com/podomy/tardigrade/pkg/util/humanizeutil"
@@ -526,7 +524,6 @@ func (s *Server) ServeConn(ctx context.Context, conn net.Conn) error {
 
 	if version != version30 {
 		if version == versionCancel {
-			telemetry.Inc(sqltelemetry.CancelRequestCounter)
 			_ = conn.Close()
 			return nil
 		}
@@ -624,8 +621,6 @@ func parseOptions(ctx context.Context, data []byte) (sql.SessionArgs, error) {
 			} else {
 				if !exists {
 					if _, ok := sql.UnsupportedVars[key]; ok {
-						counter := sqltelemetry.UnimplementedClientStatusParameterCounter(key)
-						telemetry.Inc(counter)
 					}
 					log.Warningf(ctx, "unknown configuration parameter: %q", key)
 				} else {

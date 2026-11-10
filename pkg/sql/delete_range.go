@@ -235,8 +235,7 @@ func (d *deleteRangeNode) startExec(params runParams) error {
 		}
 	}
 
-	// Possibly initiate a run of CREATE STATISTICS.
-	params.ExecCfg().StatsRefresher.NotifyMutation(d.desc.ID, d.rowCount)
+	// Automatic statistics collection has been removed; no refresher to notify.
 
 	return nil
 }

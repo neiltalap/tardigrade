@@ -1336,10 +1336,10 @@ func payloadHasError(payload fsm.EventPayload) bool {
 }
 
 // validateSavepointName validates that it is that the provided ident
-// matches the active savepoint name, begins with RestartSavepointName,
-// or that force_savepoint_restart==true. We accept everything with the
-// desired prefix because at least the C++ libpqxx appends sequence
-// numbers to the savepoint name specified by the user.
+// matches the active savepoint name or begins with RestartSavepointName.
+// We accept everything with the desired prefix because at least the C++
+// libpqxx appends sequence numbers to the savepoint name specified by
+// the user.
 func (ex *connExecutor) validateSavepointName(savepoint tree.Name) error {
 	if ex.state.activeSavepointName != "" {
 		if savepoint == ex.state.activeSavepointName {
@@ -1348,11 +1348,10 @@ func (ex *connExecutor) validateSavepointName(savepoint tree.Name) error {
 		return pgerror.Newf(pgcode.InvalidSavepointSpecification,
 			`SAVEPOINT %q is in use`, tree.ErrString(&ex.state.activeSavepointName))
 	}
-	if !ex.sessionData.ForceSavepointRestart && !strings.HasPrefix(string(savepoint), RestartSavepointName) {
+	if !strings.HasPrefix(string(savepoint), RestartSavepointName) {
 		return unimplemented.NewWithIssueHint(10735,
 			"SAVEPOINT not supported except for "+RestartSavepointName,
-			"Retryable transactions with arbitrary SAVEPOINT names can be enabled "+
-				"with SET force_savepoint_restart=true")
+			"Retryable transactions require SAVEPOINT names starting with "+RestartSavepointName)
 	}
 	return nil
 }

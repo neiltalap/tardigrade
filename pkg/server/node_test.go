@@ -35,7 +35,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/server/status/statuspb"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/storage"
-	"github.com/podomy/tardigrade/pkg/storage/closedts/container"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/testutils"
 	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
@@ -111,8 +110,6 @@ func createTestNode(
 		cfg.Settings,
 		cfg.HistogramWindowInterval,
 	)
-	cfg.ClosedTimestamp = container.NoopContainer()
-
 	storage.TimeUntilStoreDead.Override(&cfg.Settings.SV, 10*time.Millisecond)
 	cfg.StorePool = storage.NewStorePool(
 		cfg.AmbientCtx,
@@ -128,7 +125,6 @@ func createTestNode(
 		kv.MakeTxnMetrics(metric.TestSampleInterval), nil, /* execCfg */
 		&nodeRPCContext.ClusterID)
 	roachpb.RegisterInternalServer(grpcServer, node)
-	node.storeCfg.ClosedTimestamp.RegisterClosedTimestampServer(grpcServer)
 	ln, err := netutil.ListenAndServeGRPC(stopper, grpcServer, addr)
 	if err != nil {
 		t.Fatal(err)

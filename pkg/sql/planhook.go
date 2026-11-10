@@ -70,9 +70,6 @@ type PlanHookState interface {
 	LeaseMgr() *LeaseManager
 	TypeAsString(e tree.Expr, op string) (func() (string, error), error)
 	TypeAsStringArray(e tree.Exprs, op string) (func() ([]string, error), error)
-	TypeAsStringOpts(
-		opts tree.KVOptions, optsValidate map[string]KVStringOptValidate,
-	) (func() (map[string]string, error), error)
 	User() string
 	AuthorizationAccessor
 	// The role create/drop call into OSS code to reuse plan nodes.

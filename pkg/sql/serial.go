@@ -14,12 +14,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/cockroachdb/errors"
@@ -87,9 +85,6 @@ func (p *planner) processSerialInColumnDef(
 
 	// Clear the IsSerial bit now that it's been remapped.
 	newSpec.IsSerial = false
-
-	telemetry.Inc(sqltelemetry.SerialColumnNormalizationCounter(
-		d.Type.Name(), serialNormalizationMode.String()))
 
 	if serialNormalizationMode == sessiondata.SerialUsesRowID {
 		// We're not constructing a sequence for this SERIAL column.

@@ -122,8 +122,8 @@ var distributeIndexJoin = settings.RegisterBoolSetting(
 
 var planMergeJoins = settings.RegisterBoolSetting(
 	"sql.distsql.merge_joins.enabled",
-	"if set, we plan merge joins when possible",
-	true,
+	"if set, we plan merge joins when possible; the merge join executor has been removed, so this must stay off",
+	false,
 )
 
 // livenessProvider provides just the methods of storage.NodeLiveness that the
@@ -312,7 +312,6 @@ func (dsp *DistSQLPlanner) mustWrapNode(planCtx *PlanningCtx, node planNode) boo
 	case *virtualTableNode:
 	case *projectSetNode:
 	case *unaryNode:
-	case *windowNode:
 	case *zeroNode:
 	case *valuesNode:
 		// This is unfortunately duplicated by createPlanForNode, and must be kept
@@ -489,12 +488,6 @@ func (dsp *DistSQLPlanner) checkSupportForNode(node planNode) (distRecommendatio
 
 	case *zeroNode:
 		return canDistribute, nil
-
-	case *windowNode:
-		return dsp.checkSupportForNode(n.plan)
-
-	case *exportNode:
-		return dsp.checkSupportForNode(n.source)
 
 	default:
 		return cannotDistribute, newQueryNotSupportedErrorf("unsupported node %T", node)
@@ -885,9 +878,9 @@ func initTableReaderSpec(
 	}
 	s.IndexIdx = indexIdx
 
-	// When a TableReader is running scrub checks, do not allow a
+	// When a TableReader is running checks, do not allow a
 	// post-processor. This is because the outgoing stream is a fixed
-	// format (rowexec.ScrubTypes).
+	// format.
 	if n.isCheck {
 		return s, execinfrapb.PostProcessSpec{}, nil
 	}
@@ -2303,7 +2296,15 @@ func (dsp *DistSQLPlanner) createPlanForJoin(
 	// We can propagate the ordering from either side, we use the left side here.
 	// Note that n.props only has a non-empty ordering for inner joins, where it
 	// uses the mergeJoinOrdering.
-	p.SetMergeOrdering(dsp.convertOrdering(n.props, p.PlanToStreamColMap))
+	//
+	// Crucially, only the merge joiner guarantees its output ordering. When we
+	// fall back to the hash joiner (merge joins disabled or incomplete merge
+	// ordering), no ordering may be propagated: downstream operators such as
+	// ordered grouping would otherwise trust an ordering that does not exist
+	// and produce wrong results.
+	if core.MergeJoiner != nil {
+		p.SetMergeOrdering(dsp.convertOrdering(n.props, p.PlanToStreamColMap))
+	}
 	return p, nil
 }
 
@@ -2420,12 +2421,6 @@ func (dsp *DistSQLPlanner) createPlanForNode(
 	case *zeroNode:
 		plan, err = dsp.createPlanForZero(planCtx, n)
 
-	case *windowNode:
-		plan, err = dsp.createPlanForWindow(planCtx, n)
-
-	case *exportNode:
-		plan, err = dsp.createPlanForExport(planCtx, n)
-
 	default:
 		// Can't handle a node? We wrap it and continue on our way.
 		plan, err = dsp.wrapPlan(planCtx, n)
@@ -2477,7 +2472,7 @@ func (dsp *DistSQLPlanner) wrapPlan(planCtx *PlanningCtx, n planNode) (PhysicalP
 	if err := walkPlan(planCtx.ctx, n, planObserver{
 		enterNode: func(ctx context.Context, nodeName string, plan planNode) (bool, error) {
 			switch plan.(type) {
-			case *explainDistSQLNode, *explainPlanNode, *explainVecNode:
+			case *explainDistSQLNode, *explainPlanNode:
 				// Don't continue recursing into explain nodes - they need to be left
 				// alone since they handle their own planning later.
 				return false, nil
@@ -3130,183 +3125,6 @@ func (dsp *DistSQLPlanner) createPlanForSetOp(
 	}
 
 	return p, nil
-}
-
-// createPlanForWindow creates a physical plan for computing window functions.
-// We add a new stage of windower processors for each different partitioning
-// scheme found in the query's window functions.
-func (dsp *DistSQLPlanner) createPlanForWindow(
-	planCtx *PlanningCtx, n *windowNode,
-) (PhysicalPlan, error) {
-	plan, err := dsp.createPlanForNode(planCtx, n.plan)
-	if err != nil {
-		return PhysicalPlan{}, err
-	}
-
-	numWindowFuncProcessed := 0
-	windowPlanState := createWindowPlanState(n, planCtx, &plan)
-	// Each iteration of this loop adds a new stage of windowers. The steps taken:
-	// 1. find a set of unprocessed window functions that have the same PARTITION BY
-	//    clause. All of these will be computed using the single stage of windowers.
-	// 2. a) populate output types of the current stage of windowers. All input
-	//       columns are being passed through, and windower will append output
-	//       columns for each window function processed at the stage.
-	//    b) create specs for all window functions in the set.
-	// 3. decide whether to put windowers on a single or on multiple nodes.
-	//    a) if we're putting windowers on multiple nodes, we'll put them onto
-	//       every node that participated in the previous stage. We leverage hash
-	//       routers to partition the data based on PARTITION BY clause of window
-	//       functions in the set.
-	for numWindowFuncProcessed < len(n.funcs) {
-		samePartitionFuncs, partitionIdxs := windowPlanState.findUnprocessedWindowFnsWithSamePartition()
-		numWindowFuncProcessed += len(samePartitionFuncs)
-		windowerSpec := execinfrapb.WindowerSpec{
-			PartitionBy: partitionIdxs,
-			WindowFns:   make([]execinfrapb.WindowerSpec_WindowFn, len(samePartitionFuncs)),
-		}
-
-		newResultTypes := make([]types.T, len(plan.ResultTypes)+len(samePartitionFuncs))
-		copy(newResultTypes, plan.ResultTypes)
-		for windowFnSpecIdx, windowFn := range samePartitionFuncs {
-			windowFnSpec, outputType, err := windowPlanState.createWindowFnSpec(windowFn)
-			if err != nil {
-				return PhysicalPlan{}, err
-			}
-			newResultTypes[windowFn.outputColIdx] = *outputType
-			windowerSpec.WindowFns[windowFnSpecIdx] = windowFnSpec
-		}
-
-		// Check if the previous stage is all on one node.
-		prevStageNode := plan.Processors[plan.ResultRouters[0]].Node
-		for i := 1; i < len(plan.ResultRouters); i++ {
-			if n := plan.Processors[plan.ResultRouters[i]].Node; n != prevStageNode {
-				prevStageNode = 0
-				break
-			}
-		}
-
-		// Get all nodes from the previous stage.
-		nodes := getNodesOfRouters(plan.ResultRouters, plan.Processors)
-		if len(partitionIdxs) == 0 || len(nodes) == 1 {
-			// No PARTITION BY or we have a single node. Use a single windower.
-			// If the previous stage was all on a single node, put the windower
-			// there. Otherwise, bring the results back on this node.
-			node := dsp.nodeDesc.NodeID
-			if len(nodes) == 1 {
-				node = nodes[0]
-			}
-			plan.AddSingleGroupStage(
-				node,
-				execinfrapb.ProcessorCoreUnion{Windower: &windowerSpec},
-				execinfrapb.PostProcessSpec{},
-				newResultTypes,
-			)
-		} else {
-			// Set up the output routers from the previous stage.
-			// We use hash routers with hashing on the columns
-			// from PARTITION BY clause of window functions
-			// we're processing in the current stage.
-			for _, resultProc := range plan.ResultRouters {
-				plan.Processors[resultProc].Spec.Output[0] = execinfrapb.OutputRouterSpec{
-					Type:        execinfrapb.OutputRouterSpec_BY_HASH,
-					HashColumns: partitionIdxs,
-				}
-			}
-			stageID := plan.NewStageID()
-
-			// We put a windower on each node and we connect it
-			// with all hash routers from the previous stage in
-			// a such way that each node has its designated
-			// SourceRouterSlot - namely, position in which
-			// a node appears in nodes.
-			prevStageRouters := plan.ResultRouters
-			plan.ResultRouters = make([]physicalplan.ProcessorIdx, 0, len(nodes))
-			for bucket, nodeID := range nodes {
-				proc := physicalplan.Processor{
-					Node: nodeID,
-					Spec: execinfrapb.ProcessorSpec{
-						Input: []execinfrapb.InputSyncSpec{{
-							Type:        execinfrapb.InputSyncSpec_UNORDERED,
-							ColumnTypes: plan.ResultTypes,
-						}},
-						Core: execinfrapb.ProcessorCoreUnion{Windower: &windowerSpec},
-						Post: execinfrapb.PostProcessSpec{},
-						Output: []execinfrapb.OutputRouterSpec{{
-							Type: execinfrapb.OutputRouterSpec_PASS_THROUGH,
-						}},
-						StageID: stageID,
-					},
-				}
-				pIdx := plan.AddProcessor(proc)
-
-				for _, router := range prevStageRouters {
-					plan.Streams = append(plan.Streams, physicalplan.Stream{
-						SourceProcessor:  router,
-						SourceRouterSlot: bucket,
-						DestProcessor:    pIdx,
-						DestInput:        0,
-					})
-				}
-				plan.ResultRouters = append(plan.ResultRouters, pIdx)
-			}
-
-			plan.ResultTypes = newResultTypes
-		}
-	}
-
-	// We definitely added columns throughout all the stages of windowers, so we
-	// need to update PlanToStreamColMap. We need to update the map before adding
-	// rendering or projection because it is used there.
-	plan.PlanToStreamColMap = identityMap(plan.PlanToStreamColMap, len(plan.ResultTypes))
-
-	// windowers do not guarantee maintaining the order at the moment, so we
-	// reset MergeOrdering. There shouldn't be an ordering here, but we reset it
-	// defensively (see #35179).
-	plan.SetMergeOrdering(execinfrapb.Ordering{})
-
-	// After all window functions are computed, we need to add rendering or
-	// projection.
-	if err := windowPlanState.addRenderingOrProjection(); err != nil {
-		return PhysicalPlan{}, err
-	}
-
-	if len(plan.ResultTypes) != len(plan.PlanToStreamColMap) {
-		// We added/removed columns while rendering or projecting, so we need to
-		// update PlanToStreamColMap.
-		plan.PlanToStreamColMap = identityMap(plan.PlanToStreamColMap, len(plan.ResultTypes))
-	}
-
-	return plan, nil
-}
-
-// createPlanForExport creates a physical plan for EXPORT.
-// We add a new stage of CSVWriter processors to the input plan.
-func (dsp *DistSQLPlanner) createPlanForExport(
-	planCtx *PlanningCtx, n *exportNode,
-) (PhysicalPlan, error) {
-	plan, err := dsp.createPlanForNode(planCtx, n.source)
-	if err != nil {
-		return PhysicalPlan{}, err
-	}
-
-	core := execinfrapb.ProcessorCoreUnion{CSVWriter: &execinfrapb.CSVWriterSpec{
-		Destination: n.fileName,
-		NamePattern: exportFilePatternDefault,
-		Options:     n.csvOpts,
-		ChunkRows:   int64(n.chunkSize),
-	}}
-
-	resTypes := make([]types.T, len(sqlbase.ExportColumns))
-	for i := range sqlbase.ExportColumns {
-		resTypes[i] = *sqlbase.ExportColumns[i].Typ
-	}
-	plan.AddNoGroupingStage(
-		core, execinfrapb.PostProcessSpec{}, resTypes, execinfrapb.Ordering{},
-	)
-
-	// The CSVWriter produces the same columns as the EXPORT statement.
-	plan.PlanToStreamColMap = identityMap(plan.PlanToStreamColMap, len(sqlbase.ExportColumns))
-	return plan, nil
 }
 
 // NewPlanningCtx returns a new PlanningCtx.

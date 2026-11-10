@@ -24,7 +24,7 @@ import (
 )
 
 // DropUserNode deletes entries from the system.users table.
-// This is called from DROP USER and DROP ROLE.
+// This is called from DROP USER.
 type DropUserNode struct {
 	ifExists bool
 	isRole   bool
@@ -39,7 +39,7 @@ func (p *planner) DropUser(ctx context.Context, n *tree.DropUser) (planNode, err
 	return p.DropUserNode(ctx, n.Names, n.IfExists, false /* isRole */, "DROP USER")
 }
 
-// DropUserNode creates a "drop user" plan node. This can be called from DROP USER or DROP ROLE.
+// DropUserNode creates a "drop user" plan node. This can be called from DROP USER.
 func (p *planner) DropUserNode(
 	ctx context.Context, namesE tree.Exprs, ifExists bool, isRole bool, opName string,
 ) (*DropUserNode, error) {

@@ -63,7 +63,6 @@ func NewTempEngine(
 		// enforced in any way.
 		MaxSizeBytes:    0,
 		MaxOpenFiles:    128, // TODO(arjun): Revisit this.
-		UseFileRegistry: storeSpec.UseFileRegistry,
 		ExtraOptions:    storeSpec.ExtraOptions,
 	}
 	rocksDBCache := NewRocksDBCache(0)

@@ -13,12 +13,10 @@ package sql
 import (
 	"context"
 
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
 )
 
@@ -105,7 +103,6 @@ func containsMutations(plan planNode) (bool, error) {
 // is finished resolving names, which pops the environment frame.
 func (p *planner) initWith(ctx context.Context, with *tree.With) (func(p *planner) error, error) {
 	if with != nil {
-		telemetry.Inc(sqltelemetry.CteUseCounter)
 		frame := make(cteNameEnvironmentFrame)
 		p.curPlan.cteNameEnvironment = p.curPlan.cteNameEnvironment.push(frame)
 		for _, cte := range with.CTEList {

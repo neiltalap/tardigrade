@@ -60,7 +60,6 @@ func TestStatementReuses(t *testing.T) {
 		`ALTER TABLE a ADD COLUMN x INT`,
 		`ALTER TABLE a RENAME COLUMN b TO c`,
 		`ALTER TABLE a DROP COLUMN b`,
-		`ALTER TABLE a EXPERIMENTAL_AUDIT SET READ WRITE`,
 		`ALTER TABLE a CONFIGURE ZONE USING DEFAULT`,
 		`ALTER TABLE a SPLIT AT VALUES(1)`,
 		`ALTER TABLE a SCATTER`,
@@ -98,10 +97,6 @@ func TestStatementReuses(t *testing.T) {
 		`EXPLAIN ANALYZE (DISTSQL) SELECT 1`,
 		`EXPLAIN SELECT 1`,
 
-		// TODO(knz): backup/restore planning tests really should be
-		// implementable here.
-		// `BACKUP a TO 'a'`,
-		// `SHOW BACKUP 'woo'`,
 
 		`PAUSE JOBS SELECT 1`,
 		`RESUME JOBS SELECT 1`,

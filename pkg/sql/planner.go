@@ -17,7 +17,6 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/server/serverpb"
-	"github.com/podomy/tardigrade/pkg/sql/opt/exec"
 	"github.com/podomy/tardigrade/pkg/sql/parser"
 	"github.com/podomy/tardigrade/pkg/sql/querycache"
 	"github.com/podomy/tardigrade/pkg/sql/row"
@@ -448,103 +447,6 @@ func (p *planner) TypeAsString(e tree.Expr, op string) (func() (string, error), 
 	return fn, nil
 }
 
-// KVStringOptValidate indicates the requested validation of a TypeAsStringOpts
-// option.
-type KVStringOptValidate string
-
-// KVStringOptValidate values
-const (
-	KVStringOptAny            KVStringOptValidate = `any`
-	KVStringOptRequireNoValue KVStringOptValidate = `no-value`
-	KVStringOptRequireValue   KVStringOptValidate = `value`
-)
-
-// evalStringOptions evaluates the KVOption values as strings and returns them
-// in a map. Options with no value have an empty string.
-func evalStringOptions(
-	evalCtx *tree.EvalContext, opts []exec.KVOption, optValidate map[string]KVStringOptValidate,
-) (map[string]string, error) {
-	res := make(map[string]string, len(opts))
-	for _, opt := range opts {
-		k := opt.Key
-		validate, ok := optValidate[k]
-		if !ok {
-			return nil, errors.Errorf("invalid option %q", k)
-		}
-		val, err := opt.Value.Eval(evalCtx)
-		if err != nil {
-			return nil, err
-		}
-		if val == tree.DNull {
-			if validate == KVStringOptRequireValue {
-				return nil, errors.Errorf("option %q requires a value", k)
-			}
-			res[k] = ""
-		} else {
-			if validate == KVStringOptRequireNoValue {
-				return nil, errors.Errorf("option %q does not take a value", k)
-			}
-			str, ok := val.(*tree.DString)
-			if !ok {
-				return nil, errors.Errorf("expected string value, got %T", val)
-			}
-			res[k] = string(*str)
-		}
-	}
-	return res, nil
-}
-
-// TypeAsStringOpts enforces (not hints) that the given expressions
-// typecheck as strings, and returns a function that can be called to
-// get the string value during (planNode).Start.
-func (p *planner) TypeAsStringOpts(
-	opts tree.KVOptions, optValidate map[string]KVStringOptValidate,
-) (func() (map[string]string, error), error) {
-	typed := make(map[string]tree.TypedExpr, len(opts))
-	for _, opt := range opts {
-		k := string(opt.Key)
-		validate, ok := optValidate[k]
-		if !ok {
-			return nil, errors.Errorf("invalid option %q", k)
-		}
-
-		if opt.Value == nil {
-			if validate == KVStringOptRequireValue {
-				return nil, errors.Errorf("option %q requires a value", k)
-			}
-			typed[k] = nil
-			continue
-		}
-		if validate == KVStringOptRequireNoValue {
-			return nil, errors.Errorf("option %q does not take a value", k)
-		}
-		r, err := tree.TypeCheckAndRequire(opt.Value, &p.semaCtx, types.String, k)
-		if err != nil {
-			return nil, err
-		}
-		typed[k] = r
-	}
-	fn := func() (map[string]string, error) {
-		res := make(map[string]string, len(typed))
-		for name, e := range typed {
-			if e == nil {
-				res[name] = ""
-				continue
-			}
-			d, err := e.Eval(p.EvalContext())
-			if err != nil {
-				return nil, err
-			}
-			str, ok := d.(*tree.DString)
-			if !ok {
-				return res, errors.Errorf("failed to cast %T to string", d)
-			}
-			res[name] = string(*str)
-		}
-		return res, nil
-	}
-	return fn, nil
-}
 
 // TypeAsStringArray enforces (not hints) that the given expressions all typecheck as
 // strings and returns a function that can be called to get the string values

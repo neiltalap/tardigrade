@@ -57,7 +57,7 @@ func TestNoLinkForbidden(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	// Verify that the cockroach binary doesn't depend on certain packages.
 	buildutil.VerifyNoImports(t,
-		"github.com/podomy/tardigrade/pkg/cmd/cockroach", true,
+		"github.com/podomy/tardigrade/pkg/cmd/cockroach-short", true,
 		[]string{
 			"testing",  // defines flags
 			"go/build", // probably not something we want in the main binary

@@ -844,52 +844,6 @@ func (ef *execFactory) ConstructProjectSet(
 	return p, nil
 }
 
-// ConstructWindow is part of the exec.Factory interface.
-func (ef *execFactory) ConstructWindow(root exec.Node, wi exec.WindowInfo) (exec.Node, error) {
-	p := &windowNode{
-		plan:         root.(planNode),
-		columns:      wi.Cols,
-		windowRender: make([]tree.TypedExpr, len(wi.Cols)),
-	}
-
-	partitionIdxs := make([]int, len(wi.Partition))
-	for i, idx := range wi.Partition {
-		partitionIdxs[i] = int(idx)
-	}
-
-	p.funcs = make([]*windowFuncHolder, len(wi.Exprs))
-	for i := range wi.Exprs {
-		argsIdxs := make([]uint32, len(wi.ArgIdxs[i]))
-		for j := range argsIdxs {
-			argsIdxs[j] = uint32(wi.ArgIdxs[i][j])
-		}
-
-		p.funcs[i] = &windowFuncHolder{
-			expr:           wi.Exprs[i],
-			args:           wi.Exprs[i].Exprs,
-			argsIdxs:       argsIdxs,
-			window:         p,
-			filterColIdx:   wi.FilterIdxs[i],
-			outputColIdx:   wi.OutputIdxs[i],
-			partitionIdxs:  partitionIdxs,
-			columnOrdering: wi.Ordering,
-			frame:          wi.Exprs[i].WindowDef.Frame,
-		}
-		if len(wi.Ordering) == 0 {
-			frame := p.funcs[i].frame
-			if frame.Mode == tree.RANGE && frame.Bounds.HasOffset() {
-				// Execution requires a single column to order by when there is
-				// a RANGE mode frame with at least one 'offset' bound.
-				return nil, errors.AssertionFailedf("a RANGE mode frame with an offset bound must have an ORDER BY column")
-			}
-		}
-
-		p.windowRender[wi.OutputIdxs[i]] = p.funcs[i]
-	}
-
-	return p, nil
-}
-
 // ConstructPlan is part of the exec.Factory interface.
 func (ef *execFactory) ConstructPlan(
 	root exec.Node, subqueries []exec.Subquery, postqueries []exec.Node,
@@ -1181,12 +1135,10 @@ func (ef *execFactory) ConstructExplain(
 		}, nil
 
 	case tree.ExplainVec:
-		return &explainVecNode{
-			options:       options,
-			plan:          p.plan,
-			subqueryPlans: p.subqueryPlans,
-			stmtType:      stmtType,
-		}, nil
+		// The vectorized execution engine has been removed. EXPLAIN (VEC)
+		// errors honestly instead of aliasing to another mode.
+		return nil, errors.New("EXPLAIN (VEC) is not supported: " +
+			"the vectorized execution engine has been removed; use EXPLAIN instead")
 
 	case tree.ExplainPlan:
 		if analyzeSet {
@@ -1222,9 +1174,6 @@ func (ef *execFactory) ConstructShowTrace(typ tree.ShowTraceType, compact bool) 
 		needSort: true,
 	}
 
-	if typ == tree.ShowTraceReplica {
-		node = &showTraceReplicaNode{plan: node}
-	}
 	return node, nil
 }
 

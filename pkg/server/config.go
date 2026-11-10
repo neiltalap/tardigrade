@@ -27,7 +27,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/storage"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
-	"github.com/podomy/tardigrade/pkg/ts"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/podomy/tardigrade/pkg/util/envutil"
 	"github.com/podomy/tardigrade/pkg/util/humanizeutil"
@@ -150,10 +149,6 @@ type Config struct {
 	// CacheSize is the amount of memory in bytes to use for caching data.
 	// The value is split evenly between the stores if there are more than one.
 	CacheSize int64
-
-	// TimeSeriesServerConfig contains configuration specific to the time series
-	// server.
-	TimeSeriesServerConfig ts.ServerConfig
 
 	// SQLMemoryPoolSize is the amount of memory in bytes that can be
 	// used by SQL clients to store row data in server RAM.
@@ -486,7 +481,6 @@ func (cfg *Config) CreateEngines(ctx context.Context) (Engines, error) {
 				MaxOpenFiles:            openFileLimitPerStore,
 				WarnLargeBatchThreshold: 500 * time.Millisecond,
 				Settings:                cfg.Settings,
-				UseFileRegistry:         spec.UseFileRegistry,
 				RocksDBOptions:          spec.RocksDBOptions,
 				ExtraOptions:            spec.ExtraOptions,
 			}

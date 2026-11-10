@@ -35,11 +35,10 @@ import (
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire"
 	"github.com/podomy/tardigrade/pkg/sql/physicalplan"
-	"github.com/podomy/tardigrade/pkg/sqlmigrations"
+	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
 	"github.com/podomy/tardigrade/pkg/storage"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/storage/tscache"
-	"github.com/podomy/tardigrade/pkg/ts"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
 	"github.com/podomy/tardigrade/pkg/util/metric"
@@ -142,12 +141,6 @@ func makeTestConfigFromParams(params base.TestServerArgs) Config {
 	}
 	if params.SSLCertsDir != "" {
 		cfg.SSLCertsDir = params.SSLCertsDir
-	}
-	if params.TimeSeriesQueryWorkerMax != 0 {
-		cfg.TimeSeriesServerConfig.QueryWorkerMax = params.TimeSeriesQueryWorkerMax
-	}
-	if params.TimeSeriesQueryMemoryBudget != 0 {
-		cfg.TimeSeriesServerConfig.QueryMemoryMax = params.TimeSeriesQueryMemoryBudget
 	}
 	if params.DisableEventLog {
 		cfg.EventLogEnabled = false
@@ -299,13 +292,6 @@ func (ts *TestServer) RPCContext() *rpc.Context {
 	return nil
 }
 
-// TsDB returns the ts.DB instance used by the TestServer.
-func (ts *TestServer) TsDB() *ts.DB {
-	if ts != nil {
-		return ts.tsDB
-	}
-	return nil
-}
 
 // DB returns the client.DB instance used by the TestServer.
 func (ts *TestServer) DB() *client.DB {
@@ -388,10 +374,7 @@ func (ts *TestServer) ExpectedInitialRangeCount() (int, error) {
 func ExpectedInitialRangeCount(
 	db *client.DB, defaultZoneConfig *config.ZoneConfig, defaultSystemZoneConfig *config.ZoneConfig,
 ) (int, error) {
-	descriptorIDs, err := sqlmigrations.ExpectedDescriptorIDs(context.Background(), db, defaultZoneConfig, defaultSystemZoneConfig)
-	if err != nil {
-		return 0, err
-	}
+	descriptorIDs := sqlbase.MakeMetadataSchema(defaultZoneConfig, defaultSystemZoneConfig).DescriptorIDs()
 
 	// System table splits occur at every possible table boundary between the end
 	// of the system config ID space (keys.MaxSystemConfigDescID) and the system

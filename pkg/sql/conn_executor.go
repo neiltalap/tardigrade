@@ -24,7 +24,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/server/serverpb"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/sql/parser"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
@@ -32,7 +31,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/sqlutil"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util"
@@ -2010,7 +2008,6 @@ func (ex *connExecutor) txnStateTransitionsApplyWrapper(
 			errorutil.SendReport(ex.Ctx(), &ex.server.cfg.Settings.SV, err)
 			return advanceInfo{}, err
 		}
-		ex.notifyStatsRefresherOfNewTables(ex.Ctx())
 		scc := &ex.extraTxnState.schemaChangers
 		if len(scc.schemaChangers) != 0 {
 			ieFactory := func(ctx context.Context, sd *sessiondata.SessionData) sqlutil.InternalExecutor {
@@ -2098,10 +2095,7 @@ func (ex *connExecutor) initStatementResult(
 }
 
 // recordError processes an error at the end of query execution.
-// This triggers telemetry and, if the error is an internal error,
-// triggers the emission of a sentry report.
 func (ex *connExecutor) recordError(ctx context.Context, err error) {
-	sqltelemetry.RecordError(ctx, err, &ex.server.cfg.Settings.SV)
 }
 
 // newStatsCollector returns a sqlStatsCollector that will record stats in the
@@ -2218,21 +2212,10 @@ func (ex *connExecutor) sessionEventf(ctx context.Context, format string, args .
 	}
 }
 
-// notifyStatsRefresherOfNewTables is called on txn commit to inform
-// the stats refresher that new tables exist and should have their stats
-// collected now.
+// notifyStatsRefresherOfNewTables is retained as a no-op. Automatic
+// statistics collection has been removed, so there is no refresher
+// to notify.
 func (ex *connExecutor) notifyStatsRefresherOfNewTables(ctx context.Context) {
-	for _, desc := range ex.extraTxnState.tables.getNewTables() {
-		// The CREATE STATISTICS run for an async CTAS query is initiated by the
-		// SchemaChanger, so we don't do it here.
-		if desc.IsTable() && !desc.IsAs() {
-			// Initiate a run of CREATE STATISTICS. We use a large number
-			// for rowsAffected because we want to make sure that stats always get
-			// created/refreshed here.
-			ex.planner.execCfg.StatsRefresher.
-				NotifyMutation(desc.ID, math.MaxInt32 /* rowsAffected */)
-		}
-	}
 }
 
 // StatementCounters groups metrics for counting different types of
@@ -2240,133 +2223,133 @@ func (ex *connExecutor) notifyStatsRefresherOfNewTables(ctx context.Context) {
 type StatementCounters struct {
 	// QueryCount includes all statements and it is therefore the sum of
 	// all the below metrics.
-	QueryCount telemetry.CounterWithMetric
+	QueryCount *metric.Counter
 
 	// Basic CRUD statements.
-	SelectCount telemetry.CounterWithMetric
-	UpdateCount telemetry.CounterWithMetric
-	InsertCount telemetry.CounterWithMetric
-	DeleteCount telemetry.CounterWithMetric
+	SelectCount *metric.Counter
+	UpdateCount *metric.Counter
+	InsertCount *metric.Counter
+	DeleteCount *metric.Counter
 
 	// Transaction operations.
-	TxnBeginCount    telemetry.CounterWithMetric
-	TxnCommitCount   telemetry.CounterWithMetric
-	TxnRollbackCount telemetry.CounterWithMetric
+	TxnBeginCount    *metric.Counter
+	TxnCommitCount   *metric.Counter
+	TxnRollbackCount *metric.Counter
 
 	// Savepoint operations. SavepointCount is for real SQL savepoints
 	// (which we don't yet support; this is just a placeholder for
 	// telemetry); the RestartSavepoint variants are for the
 	// cockroach-specific client-side retry protocol.
-	SavepointCount                  telemetry.CounterWithMetric
-	RestartSavepointCount           telemetry.CounterWithMetric
-	ReleaseRestartSavepointCount    telemetry.CounterWithMetric
-	RollbackToRestartSavepointCount telemetry.CounterWithMetric
+	SavepointCount                  *metric.Counter
+	RestartSavepointCount           *metric.Counter
+	ReleaseRestartSavepointCount    *metric.Counter
+	RollbackToRestartSavepointCount *metric.Counter
 
 	// DdlCount counts all statements whose StatementType is DDL.
-	DdlCount telemetry.CounterWithMetric
+	DdlCount *metric.Counter
 
 	// MiscCount counts all statements not covered by a more specific stat above.
-	MiscCount telemetry.CounterWithMetric
+	MiscCount *metric.Counter
 }
 
 func makeStartedStatementCounters(internal bool) StatementCounters {
 	return StatementCounters{
-		TxnBeginCount: telemetry.NewCounterWithMetric(
+		TxnBeginCount: metric.NewCounter(
 			getMetricMeta(MetaTxnBeginStarted, internal)),
-		TxnCommitCount: telemetry.NewCounterWithMetric(
+		TxnCommitCount: metric.NewCounter(
 			getMetricMeta(MetaTxnCommitStarted, internal)),
-		TxnRollbackCount: telemetry.NewCounterWithMetric(
+		TxnRollbackCount: metric.NewCounter(
 			getMetricMeta(MetaTxnRollbackStarted, internal)),
-		SavepointCount: telemetry.NewCounterWithMetric(
+		SavepointCount: metric.NewCounter(
 			getMetricMeta(MetaSavepointStarted, internal)),
-		RestartSavepointCount: telemetry.NewCounterWithMetric(
+		RestartSavepointCount: metric.NewCounter(
 			getMetricMeta(MetaRestartSavepointStarted, internal)),
-		ReleaseRestartSavepointCount: telemetry.NewCounterWithMetric(
+		ReleaseRestartSavepointCount: metric.NewCounter(
 			getMetricMeta(MetaReleaseRestartSavepointStarted, internal)),
-		RollbackToRestartSavepointCount: telemetry.NewCounterWithMetric(
+		RollbackToRestartSavepointCount: metric.NewCounter(
 			getMetricMeta(MetaRollbackToRestartSavepointStarted, internal)),
-		SelectCount: telemetry.NewCounterWithMetric(
+		SelectCount: metric.NewCounter(
 			getMetricMeta(MetaSelectStarted, internal)),
-		UpdateCount: telemetry.NewCounterWithMetric(
+		UpdateCount: metric.NewCounter(
 			getMetricMeta(MetaUpdateStarted, internal)),
-		InsertCount: telemetry.NewCounterWithMetric(
+		InsertCount: metric.NewCounter(
 			getMetricMeta(MetaInsertStarted, internal)),
-		DeleteCount: telemetry.NewCounterWithMetric(
+		DeleteCount: metric.NewCounter(
 			getMetricMeta(MetaDeleteStarted, internal)),
-		DdlCount: telemetry.NewCounterWithMetric(
+		DdlCount: metric.NewCounter(
 			getMetricMeta(MetaDdlStarted, internal)),
-		MiscCount: telemetry.NewCounterWithMetric(
+		MiscCount: metric.NewCounter(
 			getMetricMeta(MetaMiscStarted, internal)),
-		QueryCount: telemetry.NewCounterWithMetric(
+		QueryCount: metric.NewCounter(
 			getMetricMeta(MetaQueryStarted, internal)),
 	}
 }
 
 func makeExecutedStatementCounters(internal bool) StatementCounters {
 	return StatementCounters{
-		TxnBeginCount: telemetry.NewCounterWithMetric(
+		TxnBeginCount: metric.NewCounter(
 			getMetricMeta(MetaTxnBeginExecuted, internal)),
-		TxnCommitCount: telemetry.NewCounterWithMetric(
+		TxnCommitCount: metric.NewCounter(
 			getMetricMeta(MetaTxnCommitExecuted, internal)),
-		TxnRollbackCount: telemetry.NewCounterWithMetric(
+		TxnRollbackCount: metric.NewCounter(
 			getMetricMeta(MetaTxnRollbackExecuted, internal)),
-		SavepointCount: telemetry.NewCounterWithMetric(
+		SavepointCount: metric.NewCounter(
 			getMetricMeta(MetaSavepointExecuted, internal)),
-		RestartSavepointCount: telemetry.NewCounterWithMetric(
+		RestartSavepointCount: metric.NewCounter(
 			getMetricMeta(MetaRestartSavepointExecuted, internal)),
-		ReleaseRestartSavepointCount: telemetry.NewCounterWithMetric(
+		ReleaseRestartSavepointCount: metric.NewCounter(
 			getMetricMeta(MetaReleaseRestartSavepointExecuted, internal)),
-		RollbackToRestartSavepointCount: telemetry.NewCounterWithMetric(
+		RollbackToRestartSavepointCount: metric.NewCounter(
 			getMetricMeta(MetaRollbackToRestartSavepointExecuted, internal)),
-		SelectCount: telemetry.NewCounterWithMetric(
+		SelectCount: metric.NewCounter(
 			getMetricMeta(MetaSelectExecuted, internal)),
-		UpdateCount: telemetry.NewCounterWithMetric(
+		UpdateCount: metric.NewCounter(
 			getMetricMeta(MetaUpdateExecuted, internal)),
-		InsertCount: telemetry.NewCounterWithMetric(
+		InsertCount: metric.NewCounter(
 			getMetricMeta(MetaInsertExecuted, internal)),
-		DeleteCount: telemetry.NewCounterWithMetric(
+		DeleteCount: metric.NewCounter(
 			getMetricMeta(MetaDeleteExecuted, internal)),
-		DdlCount: telemetry.NewCounterWithMetric(
+		DdlCount: metric.NewCounter(
 			getMetricMeta(MetaDdlExecuted, internal)),
-		MiscCount: telemetry.NewCounterWithMetric(
+		MiscCount: metric.NewCounter(
 			getMetricMeta(MetaMiscExecuted, internal)),
-		QueryCount: telemetry.NewCounterWithMetric(
+		QueryCount: metric.NewCounter(
 			getMetricMeta(MetaQueryExecuted, internal)),
 	}
 }
 
 func (sc *StatementCounters) incrementCount(ex *connExecutor, stmt tree.Statement) {
-	sc.QueryCount.Inc()
+	sc.QueryCount.Inc(1)
 	switch t := stmt.(type) {
 	case *tree.BeginTransaction:
-		sc.TxnBeginCount.Inc()
+		sc.TxnBeginCount.Inc(1)
 	case *tree.Select:
-		sc.SelectCount.Inc()
+		sc.SelectCount.Inc(1)
 	case *tree.Update:
-		sc.UpdateCount.Inc()
+		sc.UpdateCount.Inc(1)
 	case *tree.Insert:
-		sc.InsertCount.Inc()
+		sc.InsertCount.Inc(1)
 	case *tree.Delete:
-		sc.DeleteCount.Inc()
+		sc.DeleteCount.Inc(1)
 	case *tree.CommitTransaction:
-		sc.TxnCommitCount.Inc()
+		sc.TxnCommitCount.Inc(1)
 	case *tree.RollbackTransaction:
-		sc.TxnRollbackCount.Inc()
+		sc.TxnRollbackCount.Inc(1)
 	case *tree.Savepoint:
 		if err := ex.validateSavepointName(t.Name); err == nil {
-			sc.RestartSavepointCount.Inc()
+			sc.RestartSavepointCount.Inc(1)
 		} else {
-			sc.SavepointCount.Inc()
+			sc.SavepointCount.Inc(1)
 		}
 	case *tree.ReleaseSavepoint:
-		sc.ReleaseRestartSavepointCount.Inc()
+		sc.ReleaseRestartSavepointCount.Inc(1)
 	case *tree.RollbackToSavepoint:
-		sc.RollbackToRestartSavepointCount.Inc()
+		sc.RollbackToRestartSavepointCount.Inc(1)
 	default:
 		if tree.CanModifySchema(stmt) {
-			sc.DdlCount.Inc()
+			sc.DdlCount.Inc(1)
 		} else {
-			sc.MiscCount.Inc()
+			sc.MiscCount.Inc(1)
 		}
 	}
 }

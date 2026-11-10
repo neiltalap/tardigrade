@@ -75,12 +75,6 @@ type SessionData struct {
 	// VectorizeRowCountThreshold indicates the row count above which the
 	// vectorized execution engine will be used if possible.
 	VectorizeRowCountThreshold uint64
-	// ForceSavepointRestart overrides the default SAVEPOINT behavior
-	// for compatibility with certain ORMs. When this flag is set,
-	// the savepoint name will no longer be compared against the magic
-	// identifier `cockroach_restart` in order use a restartable
-	// transaction.
-	ForceSavepointRestart bool
 	// DefaultIntSize specifies the size in bits or bytes (preferred)
 	// of how a "naked" INT type should be parsed.
 	DefaultIntSize int

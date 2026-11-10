@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/parser"
@@ -436,10 +435,25 @@ func (s *sqlStats) getStmtStats(
 	return ret
 }
 
+// bucket10 buckets a number by order of magnitude base 10, eg 637 -> 100.
+// The numbers 0-10 are reported unchanged.
+func bucket10(num int64) int64 {
+	if num <= 0 {
+		return 0
+	}
+	if num < 10 {
+		return num
+	}
+	res := int64(10)
+	for ; res < 1000000000000000000 && res*10 < num; res *= 10 {
+	}
+	return res
+}
+
 // quantizeCounts ensures that the counts are bucketed into "simple" values.
 func quantizeCounts(d *roachpb.StatementStatistics) {
 	oldCount := d.Count
-	newCount := telemetry.Bucket10(oldCount)
+	newCount := bucket10(oldCount)
 	d.Count = newCount
 	// The SquaredDiffs values are meant to enable computing the variance
 	// via the formula variance = squareddiffs / (count - 1).
@@ -454,7 +468,7 @@ func quantizeCounts(d *roachpb.StatementStatistics) {
 	d.ServiceLat.SquaredDiffs = (d.ServiceLat.SquaredDiffs / oldCountMinusOne) * newCountMinusOne
 	d.OverheadLat.SquaredDiffs = (d.OverheadLat.SquaredDiffs / oldCountMinusOne) * newCountMinusOne
 
-	d.MaxRetries = telemetry.Bucket10(d.MaxRetries)
+	d.MaxRetries = bucket10(d.MaxRetries)
 
 	d.FirstAttemptCount = int64((float64(d.FirstAttemptCount) / float64(oldCount)) * float64(newCount))
 }

@@ -912,7 +912,6 @@ func TestLintClusterSettingNames(t *testing.T) {
 				"sql.distsql.flow_stream_timeout":                    `sql.distsql.flow_stream_timeout: use ".timeout" instead of "_timeout"`,
 				"debug.panic_on_failed_assertions":                   `debug.panic_on_failed_assertions: use .enabled for booleans`,
 				"diagnostics.reporting.send_crash_reports":           `diagnostics.reporting.send_crash_reports: use .enabled for booleans`,
-				"kv.closed_timestamp.follower_reads_enabled":         `kv.closed_timestamp.follower_reads_enabled: use ".enabled" instead of "_enabled"`,
 				"kv.raft_log.disable_synchronization_unsafe":         `kv.raft_log.disable_synchronization_unsafe: use .enabled for booleans`,
 				"kv.range_merge.queue_enabled":                       `kv.range_merge.queue_enabled: use ".enabled" instead of "_enabled"`,
 				"kv.range_split.by_load_enabled":                     `kv.range_split.by_load_enabled: use ".enabled" instead of "_enabled"`,

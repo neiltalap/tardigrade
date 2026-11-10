@@ -19,7 +19,6 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/keys"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/parser"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
@@ -28,7 +27,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/row"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
@@ -880,8 +878,9 @@ func (p *planner) finalizeInterleave(
 	return nil
 }
 
-// CreatePartitioning constructs the partitioning descriptor for an index that
-// is partitioned into ranges, each addressable by zone configs.
+// CreatePartitioning constructs the partitioning descriptor for an index.
+// Partitioning is not supported in the core database: the grammar only
+// permits PARTITION BY NOTHING, so partBy is always nil here.
 func CreatePartitioning(
 	ctx context.Context,
 	st *cluster.Settings,
@@ -890,25 +889,7 @@ func CreatePartitioning(
 	indexDesc *sqlbase.IndexDescriptor,
 	partBy *tree.PartitionBy,
 ) (sqlbase.PartitioningDescriptor, error) {
-	if partBy == nil {
-		// No CCL necessary if we're looking at PARTITION BY NOTHING.
-		return sqlbase.PartitioningDescriptor{}, nil
-	}
-	return CreatePartitioningCCL(ctx, st, evalCtx, tableDesc, indexDesc, partBy)
-}
-
-// CreatePartitioningCCL is the public hook point for the CCL-licensed
-// partitioning creation code.
-var CreatePartitioningCCL = func(
-	ctx context.Context,
-	st *cluster.Settings,
-	evalCtx *tree.EvalContext,
-	tableDesc *sqlbase.MutableTableDescriptor,
-	indexDesc *sqlbase.IndexDescriptor,
-	partBy *tree.PartitionBy,
-) (sqlbase.PartitioningDescriptor, error) {
-	return sqlbase.PartitioningDescriptor{}, sqlbase.NewCCLRequiredError(errors.New(
-		"creating or manipulating partitions requires a CCL binary"))
+	return sqlbase.PartitioningDescriptor{}, nil
 }
 
 // InitTableDescriptor returns a blank TableDescriptor.
@@ -1346,7 +1327,6 @@ func makeTableDesc(
 		}
 		// Do not include virtual tables in these statistics.
 		if !sqlbase.IsVirtualTable(id) {
-			telemetry.Inc(sqltelemetry.SchemaNewTypeCounter(d.Type.TelemetryName()))
 		}
 		newDef, seqDbDesc, seqName, seqOpts, err := params.p.processSerialInColumnDef(params.ctx, d, &n.Table)
 		if err != nil {

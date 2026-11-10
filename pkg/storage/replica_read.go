@@ -29,15 +29,12 @@ import (
 func (r *Replica) executeReadOnlyBatch(
 	ctx context.Context, ba *roachpb.BatchRequest,
 ) (br *roachpb.BatchResponse, pErr *roachpb.Error) {
-	// If the read is not inconsistent, the read requires the range lease or
-	// permission to serve via follower reads.
+	// If the read is not inconsistent, the read requires the range lease.
+	// All consistent reads are served by the leaseholder.
 	var status storagepb.LeaseStatus
 	if ba.ReadConsistency.RequiresReadLease() {
 		if status, pErr = r.redirectOnOrAcquireLease(ctx); pErr != nil {
-			if nErr := r.canServeFollowerRead(ctx, ba, pErr); nErr != nil {
-				return nil, nErr
-			}
-			r.store.metrics.FollowerReadsCount.Inc(1)
+			return nil, pErr
 		}
 	}
 	r.limitTxnMaxTimestamp(ctx, ba, status)

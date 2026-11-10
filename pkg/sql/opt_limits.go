@@ -111,9 +111,6 @@ func (p *planner) applyLimit(plan planNode, numRows int64, soft bool) {
 	case *renderNode:
 		p.applyLimit(n.source.plan, numRows, soft)
 
-	case *windowNode:
-		p.setUnlimited(n.plan)
-
 	case *max1RowNode:
 		p.setUnlimited(n.plan)
 
@@ -172,7 +169,6 @@ func (p *planner) applyLimit(plan planNode, numRows int64, soft bool) {
 		if !n.analyze {
 			p.setUnlimited(n.plan)
 		}
-	case *showTraceReplicaNode:
 		p.setUnlimited(n.plan)
 	case *explainPlanNode:
 		p.setUnlimited(n.plan)
@@ -201,12 +197,8 @@ func (p *planner) applyLimit(plan planNode, numRows int64, soft bool) {
 	case *bufferNode:
 		p.setUnlimited(n.plan)
 
-	case *exportNode:
-		p.setUnlimited(n.source)
-
 	case *valuesNode:
 	case *virtualTableNode:
-	case *alterIndexNode:
 	case *alterTableNode:
 	case *alterSequenceNode:
 	case *alterUserSetPasswordNode:
@@ -215,7 +207,6 @@ func (p *planner) applyLimit(plan planNode, numRows int64, soft bool) {
 	case *renameDatabaseNode:
 	case *renameIndexNode:
 	case *renameTableNode:
-	case *scrubNode:
 	case *truncateNode:
 	case *changePrivilegesNode:
 	case *commentOnColumnNode:
@@ -226,14 +217,12 @@ func (p *planner) applyLimit(plan planNode, numRows int64, soft bool) {
 	case *CreateUserNode:
 	case *createViewNode:
 	case *createSequenceNode:
-	case *createStatsNode:
 	case *dropDatabaseNode:
 	case *dropIndexNode:
 	case *dropTableNode:
 	case *dropViewNode:
 	case *dropSequenceNode:
 	case *DropUserNode:
-	case *explainVecNode:
 	case *zeroNode:
 	case *unaryNode:
 	case *hookFnNode:
@@ -241,7 +230,6 @@ func (p *planner) applyLimit(plan planNode, numRows int64, soft bool) {
 	case *setVarNode:
 	case *setClusterSettingNode:
 	case *setZoneConfigNode:
-	case *showFingerprintsNode:
 	case *showTraceNode:
 	case *scatterNode:
 	case *scanBufferNode:

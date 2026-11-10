@@ -30,9 +30,7 @@ import (
 	"github.com/podomy/tardigrade/pkg/security"
 	"github.com/podomy/tardigrade/pkg/server/serverpb"
 	"github.com/podomy/tardigrade/pkg/server/status/statuspb"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings"
-	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/builtins"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
@@ -1067,13 +1065,9 @@ func populateSessionsTable(
 			// TODO(knz): NewInternalTrackingError is misdesigned. Change to
 			// not use this. See the other facilities in
 			// pgerror/internal_errors.go.
-			telemetry.RecordError(
-				pgerror.NewInternalTrackingError(32517 /* issue */, "null"))
 			sessionID = tree.DNull
 		} else if len(session.ID) != 16 {
 			// TODO(knz): ditto above.
-			telemetry.RecordError(
-				pgerror.NewInternalTrackingError(32517 /* issue */, fmt.Sprintf("len=%d", len(session.ID))))
 			sessionID = tree.NewDString("<invalid>")
 		} else {
 			clusterSessionID := BytesToClusterWideID(session.ID)
@@ -1778,9 +1772,9 @@ CREATE TABLE crdb_internal.backward_dependencies (
 	},
 }
 
-// crdbInternalFeatureUsage exposes the telemetry counters.
+// crdbInternalFeatureUsage is retained as an empty table for compatibility.
 var crdbInternalFeatureUsage = virtualSchemaTable{
-	comment: "telemetry counters (RAM; local node only)",
+	comment: "feature usage (telemetry removed; always empty)",
 	schema: `
 CREATE TABLE crdb_internal.feature_usage (
   feature_name          STRING NOT NULL,
@@ -1788,18 +1782,6 @@ CREATE TABLE crdb_internal.feature_usage (
 )
 `,
 	populate: func(ctx context.Context, p *planner, dbContext *DatabaseDescriptor, addRow func(...tree.Datum) error) error {
-		for feature, count := range telemetry.GetFeatureCounts(telemetry.Raw, telemetry.ReadOnly) {
-			if count == 0 {
-				// Skip over empty counters to avoid polluting the output.
-				continue
-			}
-			if err := addRow(
-				tree.NewDString(feature),
-				tree.NewDInt(tree.DInt(int64(count))),
-			); err != nil {
-				return err
-			}
-		}
 		return nil
 	},
 }

@@ -16,7 +16,6 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/keys"
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/storage/rditer"
 	"github.com/podomy/tardigrade/pkg/storage/tscache"
 	"github.com/podomy/tardigrade/pkg/util"
@@ -222,14 +221,6 @@ func checkedTSCacheUpdate(
 	}
 }
 
-// txnsPushedDueToClosedTimestamp is a telemetry counter for the number of
-// batch requests which have been pushed due to the closed timestamp.
-var batchesPushedDueToClosedTimestamp telemetry.Counter
-
-func init() {
-	batchesPushedDueToClosedTimestamp = telemetry.GetCounter("kv.closed_timestamp.txns_pushed")
-}
-
 // applyTimestampCache moves the batch timestamp forward depending on
 // the presence of overlapping entries in the timestamp cache. If the
 // batch is transactional, the txn timestamp and the txn.WriteTooOld
@@ -310,9 +301,7 @@ func (r *Replica) applyTimestampCache(
 			bumped = bumped || bumpedCurReq
 		}
 	}
-	if bumpedDueToMinReadTS {
-		telemetry.Inc(batchesPushedDueToClosedTimestamp)
-	}
+	_ = bumpedDueToMinReadTS
 	return bumped
 }
 

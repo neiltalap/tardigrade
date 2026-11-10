@@ -16,11 +16,9 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/lex"
 	"github.com/podomy/tardigrade/pkg/sql/opt/cat"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 )
 
 func (d *delegator) delegateShowCreate(n *tree.ShowCreate) (tree.Statement, error) {
-	sqltelemetry.IncrementShowCounter(sqltelemetry.Create)
 	const showCreateQuery = `
     SELECT
 			%[3]s AS table_name,

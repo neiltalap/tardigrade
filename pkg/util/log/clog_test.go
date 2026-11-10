@@ -624,17 +624,26 @@ func TestFatalStacktraceStderr(t *testing.T) {
 		if !strings.Contains(cont, "clog_test") {
 			t.Fatalf("stack trace does not contain file name: %s", cont)
 		}
+		// Count stack-trace headers ("goroutine N [...]" at line start).
+		// Newer Go runtimes append "in goroutine N" trailers, which must
+		// not be counted.
+		numStacks := 0
+		for _, line := range strings.Split(cont, "\n") {
+			if strings.HasPrefix(line, "goroutine ") {
+				numStacks++
+			}
+		}
 		switch traceback {
 		case tracebackNone:
-			if strings.Count(cont, "goroutine ") > 0 {
+			if numStacks > 0 {
 				t.Fatalf("unexpected stack trace:\n%s", cont)
 			}
 		case tracebackSingle:
-			if strings.Count(cont, "goroutine ") != 1 {
-				t.Fatalf("stack trace contains too many goroutines: %s", cont)
+			if numStacks != 1 {
+				t.Fatalf("stack trace contains wrong number of goroutines: %s", cont)
 			}
 		case tracebackAll:
-			if strings.Count(cont, "goroutine ") < 2 {
+			if numStacks < 2 {
 				t.Fatalf("stack trace contains less than two goroutines: %s", cont)
 			}
 		}

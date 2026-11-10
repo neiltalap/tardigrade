@@ -502,9 +502,6 @@ type RocksDBConfig struct {
 	WarnLargeBatchThreshold time.Duration
 	// Settings instance for cluster-wide knobs.
 	Settings *cluster.Settings
-	// UseFileRegistry is true if the file registry is needed (eg: encryption-at-rest).
-	// This may force the store version to versionFileRegistry if currently lower.
-	UseFileRegistry bool
 	// RocksDBOptions contains RocksDB specific options using a semicolon
 	// separated key-value syntax ("key1=value1; key2=value2").
 	RocksDBOptions string
@@ -635,16 +632,7 @@ func (r *RocksDB) open() error {
 
 		newVersion = existingVersion
 		if newVersion == versionNoFile {
-			// We currently set the default store version one before the file registry
-			// to allow downgrades to older binaries as long as encryption is not in use.
-			// TODO(mberhault): once enough releases supporting versionFileRegistry have passed, we can upgrade
-			// to it without worry.
 			newVersion = versionBeta20160331
-		}
-
-		// Using the file registry forces the latest version. We can't downgrade!
-		if r.cfg.UseFileRegistry {
-			newVersion = versionCurrent
 		}
 	} else {
 		if log.V(2) {
@@ -1313,26 +1301,10 @@ func (r *RocksDB) GetEnvStats() (*EnvStats, error) {
 	}
 
 	return &EnvStats{
-		TotalFiles:       uint64(s.total_files),
-		TotalBytes:       uint64(s.total_bytes),
-		ActiveKeyFiles:   uint64(s.active_key_files),
-		ActiveKeyBytes:   uint64(s.active_key_bytes),
-		EncryptionType:   int32(s.encryption_type),
-		EncryptionStatus: cStringToGoBytes(s.encryption_status),
-	}, nil
-}
-
-// GetEncryptionRegistries returns the file and key registries when encryption is enabled
-// on the store.
-func (r *RocksDB) GetEncryptionRegistries() (*EncryptionRegistries, error) {
-	var s C.DBEncryptionRegistries
-	if err := statusToError(C.DBGetEncryptionRegistries(r.rdb, &s)); err != nil {
-		return nil, err
-	}
-
-	return &EncryptionRegistries{
-		FileRegistry: cStringToGoBytes(s.file_registry),
-		KeyRegistry:  cStringToGoBytes(s.key_registry),
+		TotalFiles:     uint64(s.total_files),
+		TotalBytes:     uint64(s.total_bytes),
+		ActiveKeyFiles: uint64(s.active_key_files),
+		ActiveKeyBytes: uint64(s.active_key_bytes),
 	}, nil
 }
 

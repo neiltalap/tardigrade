@@ -711,12 +711,6 @@ If problems persist, please see ` + base.DocsURL("cluster-setup-troubleshooting.
 			serverStatusMu.started = true
 			serverStatusMu.Unlock()
 
-			// Start up the update check loop.
-			// We don't do this in (*server.Server).Start() because we don't want it
-			// in tests.
-			if !cluster.TelemetryOptOut() {
-				s.PeriodicallyCheckForUpdates(ctx)
-			}
 
 			initialBoot := s.InitialBoot()
 
@@ -740,7 +734,6 @@ If problems persist, please see ` + base.DocsURL("cluster-setup-troubleshooting.
 			tw := tabwriter.NewWriter(&buf, 2, 1, 2, ' ', 0)
 			fmt.Fprintf(tw, "CockroachDB node starting at %s (took %0.1fs)\n", timeutil.Now(), timeutil.Since(tBegin).Seconds())
 			fmt.Fprintf(tw, "build:\t%s %s @ %s (%s)\n", info.Distribution, info.Tag, info.Time, info.GoVersion)
-			fmt.Fprintf(tw, "webui:\t%s\n", serverCfg.AdminURL())
 
 			// (Re-)compute the client connection URL. We cannot do this
 			// earlier (e.g. above, in the runStart function) because

@@ -18,7 +18,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 )
 
 // ValidVars contains the set of variable names; initialized from the SQL
@@ -31,7 +30,6 @@ func (d *delegator) delegateShowVar(n *tree.ShowVar) (tree.Statement, error) {
 	name := strings.ToLower(n.Name)
 
 	if name == "locality" {
-		sqltelemetry.IncrementShowCounter(sqltelemetry.Locality)
 	}
 
 	if name == "all" {

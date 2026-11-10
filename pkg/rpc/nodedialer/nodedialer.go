@@ -20,8 +20,6 @@ import (
 	circuit "github.com/cockroachdb/circuitbreaker"
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/rpc"
-	"github.com/podomy/tardigrade/pkg/storage/closedts"
-	"github.com/podomy/tardigrade/pkg/storage/closedts/ctpb"
 	"github.com/podomy/tardigrade/pkg/util/grpcutil"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/stop"
@@ -244,19 +242,4 @@ type dialerAdapter Dialer
 
 func (da *dialerAdapter) Ready(nodeID roachpb.NodeID) bool {
 	return (*Dialer)(da).GetCircuitBreaker(nodeID, rpc.DefaultClass).Ready()
-}
-
-func (da *dialerAdapter) Dial(ctx context.Context, nodeID roachpb.NodeID) (ctpb.Client, error) {
-	c, err := (*Dialer)(da).Dial(ctx, nodeID, rpc.DefaultClass)
-	if err != nil {
-		return nil, err
-	}
-	return ctpb.NewClosedTimestampClient(c).Get(ctx)
-}
-
-var _ closedts.Dialer = (*Dialer)(nil).CTDialer()
-
-// CTDialer wraps the NodeDialer into a closedts.Dialer.
-func (n *Dialer) CTDialer() closedts.Dialer {
-	return (*dialerAdapter)(n)
 }

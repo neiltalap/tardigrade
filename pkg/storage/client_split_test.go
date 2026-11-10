@@ -42,8 +42,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/testutils"
 	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
 	"github.com/podomy/tardigrade/pkg/testutils/testcluster"
-	"github.com/podomy/tardigrade/pkg/ts"
-	"github.com/podomy/tardigrade/pkg/ts/tspb"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/podomy/tardigrade/pkg/util/ctxgroup"
 	"github.com/podomy/tardigrade/pkg/util/encoding"
@@ -917,8 +915,8 @@ func TestStoreRangeSplitStatsWithMerges(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Write random TimeSeries data.
-	midKey := writeRandomTimeSeriesDataToRange(t, store, repl.RangeID, keyPrefix)
+	// Write random data (previously time series data; any bytes do).
+	midKey := storage.WriteRandomDataToRange(t, store, repl.RangeID, keyPrefix)
 	manual.Increment(100)
 
 	// Split the range at approximate halfway point.
@@ -2128,70 +2126,6 @@ func BenchmarkStoreRangeSplit(b *testing.B) {
 	}
 }
 
-func writeRandomTimeSeriesDataToRange(
-	t testing.TB, store *storage.Store, rangeID roachpb.RangeID, keyPrefix []byte,
-) (midpoint []byte) {
-	src := rand.New(rand.NewSource(0))
-	r := ts.Resolution10s
-	for i := 0; i < 20; i++ {
-		var data []tspb.TimeSeriesData
-		for j := int64(0); j <= src.Int63n(5); j++ {
-			d := tspb.TimeSeriesData{
-				Name:   "test.random.metric",
-				Source: "cpu01",
-			}
-			for k := int64(0); k <= src.Int63n(10); k++ {
-				d.Datapoints = append(d.Datapoints, tspb.TimeSeriesDatapoint{
-					TimestampNanos: src.Int63n(200) * r.SlabDuration(),
-					Value:          src.Float64(),
-				})
-			}
-			data = append(data, d)
-		}
-		for _, d := range data {
-			idatas, err := d.ToInternal(r.SlabDuration(), r.SampleDuration(), false)
-			if err != nil {
-				t.Fatal(err)
-			}
-			for _, idata := range idatas {
-				var value roachpb.Value
-				if err := value.SetProto(&idata); err != nil {
-					t.Fatal(err)
-				}
-				mArgs := roachpb.MergeRequest{
-					RequestHeader: roachpb.RequestHeader{
-						Key: encoding.EncodeVarintAscending(keyPrefix, idata.StartTimestampNanos),
-					},
-					Value: value,
-				}
-				if _, pErr := client.SendWrappedWith(context.Background(), store.TestSender(), roachpb.Header{
-					RangeID: rangeID,
-				}, &mArgs); pErr != nil {
-					t.Fatal(pErr)
-				}
-			}
-		}
-	}
-	// Return approximate midway point (100 is midway between random timestamps in range [0,200)).
-	midKey := append([]byte(nil), keyPrefix...)
-	midKey = encoding.EncodeVarintAscending(midKey, 100*r.SlabDuration())
-	return midKey
-}
-
-// TestStoreSplitBeginTxnPushMetaIntentRace prevents regression of
-// #9265. It splits a range and blocks the update to the LHS range
-// descriptor (and associated BeginTransaction request). Prior to the
-// fix in #9287, holding up the BeginTransaction would allow the
-// updates to meta addressing records to proceed. Because the test
-// performs an initial split at the SystemPrefix, the dist sender ends
-// up issuing a range lookup request after failing to send the entire
-// txn to one range. The range lookup encounters the meta2 intents and
-// trivially aborts the txn by writing an ABORTED txn record, because
-// it doesn't exist. The meta2 intents are deleted. We then run a GC
-// which cleans up the aborted txn. When the BeginTransaction
-// proceeds, it succeeds and the rest of the txn runs to completion.
-//
-// This test verifies that the meta records are intact.
 func TestStoreSplitBeginTxnPushMetaIntentRace(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	splitKey := roachpb.RKey("a")

@@ -151,26 +151,10 @@ func GetTraceAgeColumnIdx(compact bool) int {
 	return 1
 }
 
-// ShowReplicaTraceColumns are the result columns of a
-// SHOW EXPERIMENTAL_REPLICA TRACE statement.
-var ShowReplicaTraceColumns = ResultColumns{
-	{Name: "timestamp", Typ: types.TimestampTZ},
-	{Name: "node_id", Typ: types.Int},
-	{Name: "store_id", Typ: types.Int},
-	{Name: "replica_id", Typ: types.Int},
-}
-
 // ShowSyntaxColumns are the columns of a SHOW SYNTAX statement.
 var ShowSyntaxColumns = ResultColumns{
 	{Name: "field", Typ: types.String},
 	{Name: "message", Typ: types.String},
-}
-
-// ShowFingerprintsColumns are the result columns of a
-// SHOW EXPERIMENTAL_FINGERPRINTS statement.
-var ShowFingerprintsColumns = ResultColumns{
-	{Name: "index_name", Typ: types.String},
-	{Name: "fingerprint", Typ: types.String},
 }
 
 // AlterTableSplitColumns are the result columns of an
@@ -202,28 +186,10 @@ var AlterTableScatterColumns = ResultColumns{
 	{Name: "pretty", Typ: types.String},
 }
 
-// ScrubColumns are the result columns of a SCRUB statement.
-var ScrubColumns = ResultColumns{
-	{Name: "job_uuid", Typ: types.Uuid},
-	{Name: "error_type", Typ: types.String},
-	{Name: "database", Typ: types.String},
-	{Name: "table", Typ: types.String},
-	{Name: "primary_key", Typ: types.String},
-	{Name: "timestamp", Typ: types.Timestamp},
-	{Name: "repaired", Typ: types.Bool},
-	{Name: "details", Typ: types.Jsonb},
-}
 
 // SequenceSelectColumns are the result columns of a sequence data source.
 var SequenceSelectColumns = ResultColumns{
 	{Name: `last_value`, Typ: types.Int},
 	{Name: `log_cnt`, Typ: types.Int},
 	{Name: `is_called`, Typ: types.Bool},
-}
-
-// ExportColumns are the result columns of an EXPORT statement.
-var ExportColumns = ResultColumns{
-	{Name: "filename", Typ: types.String},
-	{Name: "rows", Typ: types.Int},
-	{Name: "bytes", Typ: types.Int},
 }

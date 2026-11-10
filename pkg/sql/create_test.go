@@ -25,7 +25,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/server"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
 	"github.com/podomy/tardigrade/pkg/sql/tests"
-	"github.com/podomy/tardigrade/pkg/sqlmigrations"
 	"github.com/podomy/tardigrade/pkg/testutils"
 	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
 	"github.com/podomy/tardigrade/pkg/testutils/sqlutils"
@@ -93,11 +92,11 @@ func TestDatabaseDescriptor(t *testing.T) {
 	if kvs, err := kvDB.Scan(ctx, start, start.PrefixEnd(), 0 /* maxRows */); err != nil {
 		t.Fatal(err)
 	} else {
-		descriptorIDs, err := sqlmigrations.ExpectedDescriptorIDs(ctx, kvDB, &s.(*server.TestServer).Cfg.DefaultZoneConfig, &s.(*server.TestServer).Cfg.DefaultSystemZoneConfig)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if e, a := len(descriptorIDs), len(kvs); a != e {
+		descriptorIDs := sqlbase.MakeMetadataSchema(&s.(*server.TestServer).Cfg.DefaultZoneConfig, &s.(*server.TestServer).Cfg.DefaultSystemZoneConfig).DescriptorIDs()
+		// Default databases (defaultdb, postgres) are created by
+		// fresh-cluster bootstrap, not in the metadata schema.
+		expected := len(descriptorIDs) + 2
+		if e, a := expected, len(kvs); a != e {
 			t.Fatalf("expected %d keys to have been written, found %d keys", e, a)
 		}
 	}

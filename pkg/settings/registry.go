@@ -43,8 +43,10 @@ var retiredSettings = map[string]struct{}{
 	"schemachanger.bulk_index_backfill.enabled":            {},
 	"rocksdb.ingest_backpressure.delay_l0_file":            {}, // never used
 	"server.heap_profile.system_memory_threshold_fraction": {},
+	"server.heap_profile.max_profiles":                     {},
+	"server.goroutine_dump.num_goroutines_threshold":       {},
+	"server.goroutine_dump.total_dump_size_limit":           {},
 	"timeseries.storage.10s_resolution_ttl":                {},
-	"changefeed.push.enabled":                              {},
 	"sql.defaults.optimizer":                               {},
 }
 

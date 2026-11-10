@@ -143,11 +143,6 @@ func (s *Store) removeInitializedReplicaRaftMuLocked(
 	s.metrics.ReplicaCount.Dec(1)
 	s.mu.Unlock()
 
-	// The replica will no longer exist, so cancel any rangefeed registrations.
-	rep.disconnectRangefeedWithReason(
-		roachpb.RangeFeedRetryError_REASON_REPLICA_REMOVED,
-	)
-
 	// Mark the replica as destroyed and (optionally) destroy the on-disk data
 	// while not holding Store.mu. This is safe because we're holding
 	// Replica.raftMu and the replica is present in Store.mu.replicasByKey
