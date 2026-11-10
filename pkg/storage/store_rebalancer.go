@@ -25,7 +25,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/metric"
 	"github.com/podomy/tardigrade/pkg/util/stop"
-	"github.com/podomy/tardigrade/pkg/util/timeutil"
 	"go.etcd.io/etcd/raft"
 )
 
@@ -76,7 +75,7 @@ func makeStoreRebalancerMetrics() StoreRebalancerMetrics {
 var LoadBasedRebalancingMode = settings.RegisterEnumSetting(
 	"kv.allocator.load_based_rebalancing",
 	"whether to rebalance based on the distribution of QPS across stores",
-	"leases and replicas",
+	"off",
 	map[int64]string{
 		int64(LBRebalancingOff):               "off",
 		int64(LBRebalancingLeasesOnly):        "leases",
@@ -158,44 +157,11 @@ func NewStoreRebalancer(
 // QPS, disk usage), and if so attempts to correct that by moving leases or
 // replicas elsewhere.
 //
-// This worker acts on store-level imbalances, whereas the replicate queue
-// makes decisions based on the zone config constraints and diversity of
-// individual ranges. This means that there are two different workers that
-// could potentially be making decisions about a given range, so they have to
-// be careful to avoid stepping on each others' toes.
-//
-// TODO(a-robinson): Expose metrics to make this understandable without having
-// to dive into logspy.
+// Load-based rebalancing has been removed: this method now returns
+// immediately without starting any background work. Range replication and
+// lease transfers driven by zone constraints (replicateQueue and
+// Allocator.AllocateTarget) are unchanged.
 func (sr *StoreRebalancer) Start(ctx context.Context, stopper *stop.Stopper) {
-	ctx = sr.AnnotateCtx(ctx)
-
-	// Start a goroutine that watches and proactively renews certain
-	// expiration-based leases.
-	stopper.RunWorker(ctx, func(ctx context.Context) {
-		timer := timeutil.NewTimer()
-		defer timer.Stop()
-		timer.Reset(jitteredInterval(storeRebalancerTimerDuration))
-		for {
-			// Wait out the first tick before doing anything since the store is still
-			// starting up and we might as well wait for some qps/wps stats to
-			// accumulate.
-			select {
-			case <-stopper.ShouldQuiesce():
-				return
-			case <-timer.C:
-				timer.Read = true
-				timer.Reset(jitteredInterval(storeRebalancerTimerDuration))
-			}
-
-			mode := LBRebalancingMode(LoadBasedRebalancingMode.Get(&sr.st.SV))
-			if mode == LBRebalancingOff {
-				continue
-			}
-
-			storeList, _, _ := sr.rq.allocator.storePool.getStoreList(roachpb.RangeID(0), storeFilterNone)
-			sr.rebalanceStore(ctx, mode, storeList)
-		}
-	})
 }
 
 func (sr *StoreRebalancer) rebalanceStore(
