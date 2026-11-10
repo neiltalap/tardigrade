@@ -21,7 +21,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/server"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
-	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/mattn/go-isatty"
@@ -89,8 +88,6 @@ func initCLIDefaults() {
 	sqlCtx.debugMode = false
 	sqlCtx.echo = false
 
-	zipCtx.nodes = nodeSelection{}
-
 	dumpCtx.dumpMode = dumpBoth
 	dumpCtx.asOf = ""
 
@@ -131,32 +128,6 @@ func initCLIDefaults() {
 	nodeCtx.statusShowAll = false
 	nodeCtx.statusShowDecommission = false
 
-	cfg := tree.DefaultPrettyCfg()
-	sqlfmtCtx.len = cfg.LineWidth
-	sqlfmtCtx.useSpaces = !cfg.UseTabs
-	sqlfmtCtx.tabWidth = cfg.TabWidth
-	sqlfmtCtx.noSimplify = !cfg.Simplify
-	sqlfmtCtx.align = (cfg.Align != tree.PrettyNoAlign)
-	sqlfmtCtx.execStmts = nil
-
-	systemBenchCtx.concurrency = 1
-	systemBenchCtx.duration = 60 * time.Second
-	systemBenchCtx.tempDir = "."
-	systemBenchCtx.writeSize = 32 << 10
-	systemBenchCtx.syncInterval = 512 << 10
-
-	networkBenchCtx.server = true
-	networkBenchCtx.port = 8081
-	networkBenchCtx.addresses = []string{"localhost:8081"}
-
-	demoCtx.nodes = 1
-	demoCtx.useEmptyDatabase = false
-	demoCtx.simulateLatency = false
-	demoCtx.runWorkload = false
-	demoCtx.localities = nil
-	demoCtx.geoPartitionedReplicas = false
-	demoCtx.disableTelemetry = false
-	demoCtx.disableLicenseAcquisition = false
 
 	authCtx.validityPeriod = 1 * time.Hour
 
@@ -251,12 +222,6 @@ var sqlCtx = struct {
 	debugMode bool
 }{cliContext: &cliCtx}
 
-// zipCtx captures the command-line parameters of the `zip` command.
-// Defaults set by InitCLIDefaults() above.
-var zipCtx struct {
-	nodes nodeSelection
-}
-
 // dumpCtx captures the command-line parameters of the `dump` command.
 // Defaults set by InitCLIDefaults() above.
 var dumpCtx struct {
@@ -339,45 +304,4 @@ var nodeCtx struct {
 	statusShowStats        bool
 	statusShowDecommission bool
 	statusShowAll          bool
-}
-
-// systemBenchCtx captures the command-line parameters of the `systembench` command.
-// Defaults set by InitCLIDefaults() above.
-var systemBenchCtx struct {
-	concurrency  int
-	duration     time.Duration
-	tempDir      string
-	writeSize    int64
-	syncInterval int64
-}
-
-var networkBenchCtx struct {
-	server    bool
-	port      int
-	addresses []string
-	latency   bool
-}
-
-// sqlfmtCtx captures the command-line parameters of the `sqlfmt` command.
-// Defaults set by InitCLIDefaults() above.
-var sqlfmtCtx struct {
-	len        int
-	useSpaces  bool
-	tabWidth   int
-	noSimplify bool
-	align      bool
-	execStmts  statementsValue
-}
-
-// demoCtx captures the command-line parameters of the `demo` command.
-// Defaults set by InitCLIDefaults() above.
-var demoCtx struct {
-	nodes                     int
-	disableTelemetry          bool
-	disableLicenseAcquisition bool
-	useEmptyDatabase          bool
-	runWorkload               bool
-	localities                demoLocalityList
-	geoPartitionedReplicas    bool
-	simulateLatency           bool
 }

@@ -40,8 +40,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/util/leaktest"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/timeutil"
-	// register some workloads for TestWorkload
-	_ "github.com/podomy/tardigrade/pkg/workload/examples"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -357,7 +355,7 @@ func isSQLCommand(args []string) bool {
 		return false
 	}
 	switch args[0] {
-	case "user", "sql", "dump", "workload":
+	case "user", "sql", "dump":
 		return true
 	case "node":
 		if len(args) == 0 {
@@ -467,70 +465,6 @@ func Example_logging() {
 	// sql --vmodule=foo=1 -e select 1 as "1"
 	// 1
 	// 1
-}
-
-func Example_demo() {
-	c := newCLITest(cliTestParams{noServer: true})
-	defer c.cleanup()
-
-	testData := [][]string{
-		{`demo`, `-e`, `show database`},
-		{`demo`, `-e`, `show database`, `--empty`},
-		{`demo`, `-e`, `show application_name`},
-		{`demo`, `--format=table`, `-e`, `show database`},
-		{`demo`, `-e`, `select 1 as "1"`, `-e`, `select 3 as "3"`},
-		{`demo`, `--echo-sql`, `-e`, `select 1 as "1"`},
-		{`demo`, `--set=errexit=0`, `-e`, `select nonexistent`, `-e`, `select 123 as "123"`},
-		{`demo`, `startrek`, `-e`, `show databases`},
-		{`demo`, `startrek`, `-e`, `show databases`, `--format=table`},
-	}
-	setCLIDefaultsForTests()
-	for _, cmd := range testData {
-		c.RunWithArgs(cmd)
-	}
-
-	// Output:
-	// demo -e show database
-	// database
-	// movr
-	// demo -e show database --empty
-	// database
-	// defaultdb
-	// demo -e show application_name
-	// application_name
-	// $ cockroach demo
-	// demo --format=table -e show database
-	//   database
-	// +----------+
-	//   movr
-	// (1 row)
-	// demo -e select 1 as "1" -e select 3 as "3"
-	// 1
-	// 1
-	// 3
-	// 3
-	// demo --echo-sql -e select 1 as "1"
-	// > select 1 as "1"
-	// 1
-	// 1
-	// demo --set=errexit=0 -e select nonexistent -e select 123 as "123"
-	// pq: column "nonexistent" does not exist
-	// 123
-	// 123
-	// demo startrek -e show databases
-	// database_name
-	// defaultdb
-	// postgres
-	// startrek
-	// system
-	// demo startrek -e show databases --format=table
-	//   database_name
-	// +---------------+
-	//   defaultdb
-	//   postgres
-	//   startrek
-	//   system
-	// (4 rows)
 }
 
 func Example_sql() {
@@ -1600,13 +1534,8 @@ Available Commands:
   node              list, inspect, drain or remove nodes
   dump              dump sql tables
 
-  demo              open a demo sql shell
-  gen               generate auxiliary files
   version           output version information
   debug             debugging commands
-  sqlfmt            format SQL statements
-  workload          [experimental] generators for data and query loads
-  systembench       Run systembench
   help              Help about any command
 
 Flags:
@@ -1983,93 +1912,6 @@ func extractFields(line string) ([]string, error) {
 	return r, nil
 }
 
-func TestGenMan(t *testing.T) {
-	defer leaktest.AfterTest(t)()
-
-	// Generate man pages in a temp directory.
-	manpath, err := ioutil.TempDir("", "TestGenMan")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := os.RemoveAll(manpath); err != nil {
-			t.Errorf("couldn't remove temporary directory %s: %s", manpath, err)
-		}
-	}()
-	if err := Run([]string{"gen", "man", "--path=" + manpath}); err != nil {
-		t.Fatal(err)
-	}
-
-	// Ensure we have a sane number of man pages.
-	count := 0
-	err = filepath.Walk(manpath, func(path string, info os.FileInfo, err error) error {
-		if strings.HasSuffix(path, ".1") && !info.IsDir() {
-			count++
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if min := 20; count < min {
-		t.Errorf("number of man pages (%d) < minimum (%d)", count, min)
-	}
-}
-
-func TestGenAutocomplete(t *testing.T) {
-	defer leaktest.AfterTest(t)()
-
-	// Get a unique path to which we can write our autocomplete files.
-	acdir, err := ioutil.TempDir("", "TestGenAutoComplete")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if err := os.RemoveAll(acdir); err != nil {
-			t.Errorf("couldn't remove temporary directory %s: %s", acdir, err)
-		}
-	}()
-
-	for _, tc := range []struct {
-		shell  string
-		expErr string
-	}{
-		{shell: ""},
-		{shell: "bash"},
-		{shell: "zsh"},
-		{shell: "bad", expErr: `invalid argument "bad" for "cockroach gen autocomplete"`},
-	} {
-		t.Run("shell="+tc.shell, func(t *testing.T) {
-			const minsize = 1000
-			acpath := filepath.Join(acdir, "output-"+tc.shell)
-
-			args := []string{"gen", "autocomplete", "--out=" + acpath}
-			if len(tc.shell) > 0 {
-				args = append(args, tc.shell)
-			}
-			err := Run(args)
-			if tc.expErr == "" {
-				if err != nil {
-					t.Fatal(err)
-				}
-			} else {
-				if !testutils.IsError(err, tc.expErr) {
-					t.Fatalf("expected error %s, found %v", tc.expErr, err)
-				}
-				return
-			}
-
-			info, err := os.Stat(acpath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if size := info.Size(); size < minsize {
-				t.Fatalf("autocomplete file size (%d) < minimum (%d)", size, minsize)
-			}
-		})
-	}
-}
-
 func TestJunkPositionalArguments(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 
@@ -2079,8 +1921,6 @@ func TestJunkPositionalArguments(t *testing.T) {
 	for i, test := range []string{
 		"start",
 		"sql",
-		"gen man",
-		"gen example-data intro",
 	} {
 		const junk = "junk"
 		line := test + " " + junk
@@ -2092,22 +1932,6 @@ func TestJunkPositionalArguments(t *testing.T) {
 		if exp != out {
 			t.Errorf("expected:\n%s\ngot:\n%s", exp, out)
 		}
-	}
-}
-
-func TestWorkload(t *testing.T) {
-	defer leaktest.AfterTest(t)()
-
-	c := newCLITest(cliTestParams{noServer: true})
-	defer c.cleanup()
-
-	out, err := c.RunWithCapture("workload init --help")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !strings.Contains(out, `startrek`) {
-		t.Fatalf(`startrek workload failed to register got: %s`, out)
 	}
 }
 
@@ -2165,56 +1989,6 @@ func Example_pretty_print_numerical_strings() {
 	//   1.0   | decimal numerical string
 	//   aaaaa | non-numerical string
 	// (4 rows)
-}
-
-func Example_sqlfmt() {
-	c := newCLITest(cliTestParams{noServer: true})
-	defer c.cleanup()
-
-	c.RunWithArgs([]string{"sqlfmt", "-e", ";"})
-	c.RunWithArgs([]string{"sqlfmt", "-e", "delete from t"})
-	c.RunWithArgs([]string{"sqlfmt", "-e", "delete from t", "-e", "update t set a = 1"})
-	c.RunWithArgs([]string{"sqlfmt", "--print-width=10", "-e", "select 1,2,3 from a,b,c;;;select 4"})
-	c.RunWithArgs([]string{"sqlfmt", "--print-width=10", "--align", "-e", "select 1,2,3 from a,b,c;;;select 4"})
-	c.RunWithArgs([]string{"sqlfmt", "--print-width=10", "--tab-width=2", "--use-spaces", "-e", "select 1,2,3 from a,b,c;;;select 4"})
-	c.RunWithArgs([]string{"sqlfmt", "-e", "select (1+2)+3"})
-	c.RunWithArgs([]string{"sqlfmt", "--no-simplify", "-e", "select (1+2)+3"})
-
-	// Output:
-	// sqlfmt -e ;
-	// sqlfmt -e delete from t
-	// DELETE FROM t
-	// sqlfmt -e delete from t -e update t set a = 1
-	// DELETE FROM t;
-	// UPDATE t SET a = 1;
-	// sqlfmt --print-width=10 -e select 1,2,3 from a,b,c;;;select 4
-	// SELECT
-	// 	1,
-	// 	2,
-	// 	3
-	// FROM
-	// 	a,
-	// 	b,
-	// 	c;
-	// SELECT 4;
-	// sqlfmt --print-width=10 --align -e select 1,2,3 from a,b,c;;;select 4
-	// SELECT 1,
-	//        2,
-	//        3
-	//   FROM a,
-	//        b,
-	//        c;
-	// SELECT 4;
-	// sqlfmt --print-width=10 --tab-width=2 --use-spaces -e select 1,2,3 from a,b,c;;;select 4
-	// SELECT
-	//   1, 2, 3
-	// FROM
-	//   a, b, c;
-	// SELECT 4;
-	// sqlfmt -e select (1+2)+3
-	// SELECT 1 + 2 + 3
-	// sqlfmt --no-simplify -e select (1+2)+3
-	// SELECT (1 + 2) + 3
 }
 
 func Example_dump_no_visible_columns() {

@@ -16,17 +16,14 @@ import (
 	"context"
 	gohex "encoding/hex"
 	"fmt"
-	"io"
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/podomy/tardigrade/pkg/cli/syncbench"
 	"github.com/podomy/tardigrade/pkg/config"
 	"github.com/podomy/tardigrade/pkg/gossip"
 	"github.com/podomy/tardigrade/pkg/keys"
@@ -40,9 +37,7 @@ import (
 	"github.com/podomy/tardigrade/pkg/storage/rditer"
 	"github.com/podomy/tardigrade/pkg/storage/stateloader"
 	"github.com/podomy/tardigrade/pkg/storage/storagepb"
-	"github.com/podomy/tardigrade/pkg/ts/tspb"
 	"github.com/podomy/tardigrade/pkg/util/envutil"
-	"github.com/podomy/tardigrade/pkg/util/flagutil"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
 	"github.com/podomy/tardigrade/pkg/util/humanizeutil"
 	"github.com/podomy/tardigrade/pkg/util/log"
@@ -812,74 +807,6 @@ func parseGossipValues(gossipInfo *gossip.InfoStatus) (string, error) {
 	return strings.Join(output, "\n"), nil
 }
 
-var debugTimeSeriesDumpCmd = &cobra.Command{
-	Use:   "tsdump",
-	Short: "dump all the raw timeseries values in a cluster",
-	Long: `
-Dumps all of the raw timeseries values in a cluster.
-`,
-	RunE: MaybeDecorateGRPCError(runTimeSeriesDump),
-}
-
-func runTimeSeriesDump(cmd *cobra.Command, args []string) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	conn, _, finish, err := getClientGRPCConn(ctx)
-	if err != nil {
-		return err
-	}
-	defer finish()
-
-	tsClient := tspb.NewTimeSeriesClient(conn)
-	stream, err := tsClient.Dump(context.Background(), &tspb.DumpRequest{})
-	if err != nil {
-		log.Fatal(context.Background(), err)
-	}
-
-	var name, source string
-	for {
-		data, err := stream.Recv()
-		if err != nil {
-			if err != io.EOF {
-				return err
-			}
-			return nil
-		}
-		if name != data.Name || source != data.Source {
-			name, source = data.Name, data.Source
-			fmt.Printf("%s %s\n", name, source)
-		}
-		for _, d := range data.Datapoints {
-			fmt.Printf("%d %v\n", d.TimestampNanos, d.Value)
-		}
-	}
-}
-
-var debugSyncBenchCmd = &cobra.Command{
-	Use:   "syncbench [directory]",
-	Short: "Run a performance test for WAL sync speed",
-	Long: `
-`,
-	Args:   cobra.MaximumNArgs(1),
-	Hidden: true,
-	RunE:   MaybeDecorateGRPCError(runDebugSyncBench),
-}
-
-var syncBenchOpts = syncbench.Options{
-	Concurrency: 1,
-	Duration:    10 * time.Second,
-	LogOnly:     true,
-}
-
-func runDebugSyncBench(cmd *cobra.Command, args []string) error {
-	syncBenchOpts.Dir = "./testdb"
-	if len(args) == 1 {
-		syncBenchOpts.Dir = args[0]
-	}
-	return syncbench.Run(syncBenchOpts)
-}
-
 var debugUnsafeRemoveDeadReplicasCmd = &cobra.Command{
 	Use:   "unsafe-remove-dead-replicas --dead-store-ids=[store ID,...] [path]",
 	Short: "Unsafely remove all other replicas from the given range",
@@ -1121,50 +1048,10 @@ func removeDeadReplicas(
 	return batch, nil
 }
 
-var debugMergeLogsCommand = &cobra.Command{
-	Use:   "merge-logs <log file globs>",
-	Short: "merge multiple log files from different machines into a single stream",
-	Long: `
-Takes a list of glob patterns (not left exclusively to the shell because of
-MAX_ARG_STRLEN, usually 128kB) pointing to log files and merges them into a
-single stream printed to stdout. Files not matching the log file name pattern
-are ignored. If log lines appear out of order within a file (which happens), the
-timestamp is ratcheted to the highest value seen so far. The command supports
-efficient time filtering as well as multiline regexp pattern matching via flags.
-If the filter regexp contains captures, such as '^abc(hello)def(world)', only
-the captured parts will be printed.
-`,
-	Args: cobra.MinimumNArgs(1),
-	RunE: runDebugMergeLogs,
-}
-
-var debugMergeLogsOpts = struct {
-	from    time.Time
-	to      time.Time
-	filter  *regexp.Regexp
-	program *regexp.Regexp
-	file    *regexp.Regexp
-	prefix  string
-}{
-	program: regexp.MustCompile("^cockroach.*$"),
-	file:    regexp.MustCompile(log.FilePattern),
-}
-
-func runDebugMergeLogs(cmd *cobra.Command, args []string) error {
-	o := debugMergeLogsOpts
-	s, err := newMergedStreamFromPatterns(context.Background(),
-		args, o.file, o.program, o.from, o.to)
-	if err != nil {
-		return err
-	}
-	return writeLogStream(s, cmd.OutOrStdout(), o.filter, o.prefix)
-}
-
 // DebugCmdsForRocksDB lists debug commands that access rocksdb through the engine
 // and need encryption flags (injected by CCL code).
 // Note: do NOT include commands that just call rocksdb code without setting up an engine.
 var DebugCmdsForRocksDB = []*cobra.Command{
-	debugCheckStoreCmd,
 	debugCompactCmd,
 	debugGCCmd,
 	debugKeysCmd,
@@ -1182,13 +1069,8 @@ var debugCmds = append(DebugCmdsForRocksDB,
 	debugRocksDBCmd,
 	debugSSTDumpCmd,
 	debugGossipValuesCmd,
-	debugTimeSeriesDumpCmd,
-	debugSyncBenchCmd,
-	debugSyncTestCmd,
 	debugUnsafeRemoveDeadReplicasCmd,
 	debugEnvCmd,
-	debugZipCmd,
-	debugMergeLogsCommand,
 )
 
 // DebugCmd is the root of all debug commands. Exported to allow modification by CCL code.
@@ -1222,30 +1104,7 @@ func init() {
 	debugPebbleCmd.AddCommand(pebbleTool.Commands...)
 	DebugCmd.AddCommand(debugPebbleCmd)
 
-	f := debugSyncBenchCmd.Flags()
-	f.IntVarP(&syncBenchOpts.Concurrency, "concurrency", "c", syncBenchOpts.Concurrency,
-		"number of concurrent writers")
-	f.DurationVarP(&syncBenchOpts.Duration, "duration", "d", syncBenchOpts.Duration,
-		"duration to run the test for")
-	f.BoolVarP(&syncBenchOpts.LogOnly, "log-only", "l", syncBenchOpts.LogOnly,
-		"only write to the WAL, not to sstables")
-
-	f = debugUnsafeRemoveDeadReplicasCmd.Flags()
+	f := debugUnsafeRemoveDeadReplicasCmd.Flags()
 	f.IntSliceVar(&removeDeadReplicasOpts.deadStoreIDs, "dead-store-ids", nil,
 		"list of dead store IDs")
-
-	f = debugMergeLogsCommand.Flags()
-	f.Var(flagutil.Time(&debugMergeLogsOpts.from), "from",
-		"time before which messages should be filtered")
-	f.Var(flagutil.Time(&debugMergeLogsOpts.to), "to",
-		"time after which messages should be filtered")
-	f.Var(flagutil.Regexp(&debugMergeLogsOpts.filter), "filter",
-		"re which filters log messages")
-	f.Var(flagutil.Regexp(&debugMergeLogsOpts.file), "file-pattern",
-		"re which filters log files based on path, also used with prefix and program-filter")
-	f.Var(flagutil.Regexp(&debugMergeLogsOpts.program), "program-filter",
-		"re which filter log files that operates on the capture group named \"program\" in file-pattern, "+
-			"if no such group exists, program-filter is ignored")
-	f.StringVar(&debugMergeLogsOpts.prefix, "prefix", "${host}> ",
-		"expansion template (see regexp.Expand) used as prefix to merged log messages evaluated on file-pattern")
 }

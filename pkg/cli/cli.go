@@ -24,15 +24,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/log/logflags"
 	"github.com/podomy/tardigrade/pkg/util/randutil"
-	// intentionally not all the workloads in pkg/ccl/workloadccl/allccl
-	_ "github.com/podomy/tardigrade/pkg/workload/bank"       // registers workloads
-	_ "github.com/podomy/tardigrade/pkg/workload/bulkingest" // registers workloads
-	workloadcli "github.com/podomy/tardigrade/pkg/workload/cli"
-	_ "github.com/podomy/tardigrade/pkg/workload/examples" // registers workloads
-	_ "github.com/podomy/tardigrade/pkg/workload/kv"       // registers workloads
-	_ "github.com/podomy/tardigrade/pkg/workload/movr"     // registers workloads
-	_ "github.com/podomy/tardigrade/pkg/workload/tpcc"     // registers workloads
-	_ "github.com/podomy/tardigrade/pkg/workload/ycsb"     // registers workloads
 	"github.com/cockroachdb/errors"
 	"github.com/spf13/cobra"
 )
@@ -203,14 +194,8 @@ func init() {
 		dumpCmd,
 
 		// Miscellaneous commands.
-		// TODO(pmattis): stats
-		demoCmd,
-		genCmd,
 		versionCmd,
 		DebugCmd,
-		sqlfmtCmd,
-		workloadcli.WorkloadCmd(true /* userFacing */),
-		systemBenchCmd,
 	)
 }
 

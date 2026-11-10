@@ -19,9 +19,7 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/base"
 	"github.com/podomy/tardigrade/pkg/cli/cliflags"
-	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/util/envutil"
-	"github.com/podomy/tardigrade/pkg/util/humanizeutil"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/log/logflags"
 	"github.com/podomy/tardigrade/pkg/util/netutil"
@@ -408,8 +406,7 @@ func init() {
 	}
 
 	// Log flags.
-	logCmds := append(StartCmds, demoCmd)
-	logCmds = append(logCmds, demoCmd.Commands()...)
+	logCmds := StartCmds
 	for _, cmd := range logCmds {
 		f := cmd.Flags()
 		VarFlag(f, &startCtx.logDir, cliflags.LogDir)
@@ -457,10 +454,7 @@ func init() {
 
 	clientCmds := []*cobra.Command{
 		debugGossipValuesCmd,
-		debugTimeSeriesDumpCmd,
-		debugZipCmd,
 		dumpCmd,
-		genHAProxyCmd,
 		initCmd,
 		quitCmd,
 		sqlShellCmd,
@@ -469,7 +463,6 @@ func init() {
 	clientCmds = append(clientCmds, userCmds...)
 	clientCmds = append(clientCmds, authCmds...)
 	clientCmds = append(clientCmds, nodeCmds...)
-	clientCmds = append(clientCmds, systemBenchCmds...)
 	for _, cmd := range clientCmds {
 		f := cmd.PersistentFlags()
 		VarFlag(f, addrSetter{&cliCtx.clientConnHost, &cliCtx.clientConnPort}, cliflags.ClientHost)
@@ -492,7 +485,6 @@ func init() {
 	timeoutCmds := []*cobra.Command{
 		statusNodeCmd,
 		lsNodesCmd,
-		debugZipCmd,
 		// If you add something here, make sure the actual implementation
 		// of the command uses `cmdTimeoutContext(.)` or it will ignore
 		// the timeout.
@@ -511,39 +503,6 @@ func init() {
 		BoolFlag(f, &nodeCtx.statusShowDecommission, cliflags.NodeDecommission, nodeCtx.statusShowDecommission)
 	}
 
-	// HDD Bench command.
-	{
-		f := seqWriteBench.Flags()
-		VarFlag(f, humanizeutil.NewBytesValue(&systemBenchCtx.writeSize), cliflags.WriteSize)
-		VarFlag(f, humanizeutil.NewBytesValue(&systemBenchCtx.syncInterval), cliflags.SyncInterval)
-	}
-
-	// Network Bench command.
-	{
-		f := networkBench.Flags()
-		BoolFlag(f, &networkBenchCtx.server, cliflags.BenchServer, networkBenchCtx.server)
-		IntFlag(f, &networkBenchCtx.port, cliflags.BenchPort, networkBenchCtx.port)
-		StringSlice(f, &networkBenchCtx.addresses, cliflags.BenchAddresses, networkBenchCtx.addresses)
-		BoolFlag(f, &networkBenchCtx.latency, cliflags.BenchLatency, networkBenchCtx.latency)
-	}
-
-	// Bench command.
-	{
-		for _, cmd := range systemBenchCmds {
-			f := cmd.Flags()
-			IntFlag(f, &systemBenchCtx.concurrency, cliflags.BenchConcurrency, systemBenchCtx.concurrency)
-			DurationFlag(f, &systemBenchCtx.duration, cliflags.BenchDuration, systemBenchCtx.duration)
-			StringFlag(f, &systemBenchCtx.tempDir, cliflags.TempDir, systemBenchCtx.tempDir)
-		}
-	}
-
-	// Zip command.
-	{
-		f := debugZipCmd.Flags()
-		VarFlag(f, &zipCtx.nodes.inclusive, cliflags.ZipNodes)
-		VarFlag(f, &zipCtx.nodes.exclusive, cliflags.ZipExcludeNodes)
-	}
-
 	// Decommission command.
 	VarFlag(decommissionNodeCmd.Flags(), &nodeCtx.nodeDecommissionWait, cliflags.Wait)
 
@@ -556,8 +515,8 @@ func init() {
 		DurationFlag(f, &quitCtx.drainWait, cliflags.DrainWait, quitCtx.drainWait)
 	}
 
-	// SQL and demo commands.
-	for _, cmd := range append([]*cobra.Command{sqlShellCmd, demoCmd}, demoCmd.Commands()...) {
+	// SQL commands.
+	for _, cmd := range []*cobra.Command{sqlShellCmd} {
 		f := cmd.Flags()
 		VarFlag(f, &sqlCtx.setStmts, cliflags.Set)
 		VarFlag(f, &sqlCtx.execStmts, cliflags.Execute)
@@ -570,18 +529,15 @@ func init() {
 	StringFlag(dumpCmd.Flags(), &dumpCtx.asOf, cliflags.DumpTime, dumpCtx.asOf)
 
 	// Commands that establish a SQL connection.
-	sqlCmds := []*cobra.Command{sqlShellCmd, dumpCmd, demoCmd}
+	sqlCmds := []*cobra.Command{sqlShellCmd, dumpCmd}
 	sqlCmds = append(sqlCmds, userCmds...)
 	sqlCmds = append(sqlCmds, authCmds...)
-	sqlCmds = append(sqlCmds, demoCmd.Commands()...)
 	for _, cmd := range sqlCmds {
 		f := cmd.Flags()
 		BoolFlag(f, &sqlCtx.echo, cliflags.EchoSQL, sqlCtx.echo)
 
-		if cmd != demoCmd {
-			VarFlag(f, urlParser{cmd, &cliCtx, false /* strictSSL */}, cliflags.URL)
-			StringFlag(f, &cliCtx.sqlConnUser, cliflags.User, cliCtx.sqlConnUser)
-		}
+		VarFlag(f, urlParser{cmd, &cliCtx, false /* strictSSL */}, cliflags.URL)
+		StringFlag(f, &cliCtx.sqlConnUser, cliflags.User, cliCtx.sqlConnUser)
 
 		if cmd == sqlShellCmd {
 			StringFlag(f, &cliCtx.sqlConnDBName, cliflags.Database, cliCtx.sqlConnDBName)
@@ -603,9 +559,7 @@ func init() {
 	}
 
 	// Commands that print tables.
-	tableOutputCommands := append(
-		[]*cobra.Command{sqlShellCmd, genSettingsListCmd, demoCmd},
-		demoCmd.Commands()...)
+	tableOutputCommands := []*cobra.Command{sqlShellCmd}
 	tableOutputCommands = append(tableOutputCommands, userCmds...)
 	tableOutputCommands = append(tableOutputCommands, nodeCmds...)
 	tableOutputCommands = append(tableOutputCommands, authCmds...)
@@ -619,31 +573,6 @@ func init() {
 		f := cmd.PersistentFlags()
 		VarFlag(f, &cliCtx.tableDisplayFormat, cliflags.TableDisplayFormat)
 	}
-
-	// demo command.
-	demoFlags := demoCmd.PersistentFlags()
-	// We add this command as a persistent flag so you can do stuff like
-	// ./cockroach demo movr --nodes=3.
-	IntFlag(demoFlags, &demoCtx.nodes, cliflags.DemoNodes, 1)
-	BoolFlag(demoFlags, &demoCtx.runWorkload, cliflags.RunDemoWorkload, false)
-	VarFlag(demoFlags, &demoCtx.localities, cliflags.DemoNodeLocality)
-	BoolFlag(demoFlags, &demoCtx.geoPartitionedReplicas, cliflags.DemoGeoPartitionedReplicas, false)
-	// Mark the --global flag as hidden until we investigate it more.
-	BoolFlag(demoFlags, &demoCtx.simulateLatency, cliflags.Global, false)
-	_ = demoFlags.MarkHidden(cliflags.Global.Name)
-	// The --empty flag is only valid for the top level demo command,
-	// so we use the regular flag set.
-	BoolFlag(demoCmd.Flags(), &demoCtx.useEmptyDatabase, cliflags.UseEmptyDatabase, false)
-
-	// sqlfmt command.
-	fmtFlags := sqlfmtCmd.Flags()
-	VarFlag(fmtFlags, &sqlfmtCtx.execStmts, cliflags.Execute)
-	cfg := tree.DefaultPrettyCfg()
-	IntFlag(fmtFlags, &sqlfmtCtx.len, cliflags.SQLFmtLen, cfg.LineWidth)
-	BoolFlag(fmtFlags, &sqlfmtCtx.useSpaces, cliflags.SQLFmtSpaces, !cfg.UseTabs)
-	IntFlag(fmtFlags, &sqlfmtCtx.tabWidth, cliflags.SQLFmtTabWidth, cfg.TabWidth)
-	BoolFlag(fmtFlags, &sqlfmtCtx.noSimplify, cliflags.SQLFmtNoSimplify, !cfg.Simplify)
-	BoolFlag(fmtFlags, &sqlfmtCtx.align, cliflags.SQLFmtAlign, (cfg.Align != tree.PrettyNoAlign))
 
 	// Debug commands.
 	{
