@@ -23,7 +23,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/treeprinter"
-	"github.com/cockroachdb/errors"
 )
 
 // ExprFmtInterceptor is a callback that can be set to a custom formatting
@@ -193,10 +192,10 @@ func (f *ExprFmtCtx) formatRelational(e RelExpr, tp treeprinter.Node) {
 
 	case *ScanExpr, *VirtualScanExpr, *IndexJoinExpr, *ShowTraceForSessionExpr,
 		*InsertExpr, *UpdateExpr, *UpsertExpr, *DeleteExpr, *SequenceSelectExpr,
-		*WindowExpr, *OpaqueRelExpr, *OpaqueMutationExpr, *OpaqueDDLExpr,
+		*OpaqueRelExpr, *OpaqueMutationExpr, *OpaqueDDLExpr,
 		*AlterTableSplitExpr, *AlterTableUnsplitExpr, *AlterTableUnsplitAllExpr,
 		*AlterTableRelocateExpr, *ControlJobsExpr, *CancelQueriesExpr,
-		*CancelSessionsExpr, *CreateViewExpr, *ExportExpr:
+		*CancelSessionsExpr, *CreateViewExpr:
 		fmt.Fprintf(f.Buffer, "%v", e.Op())
 		FormatPrivate(f, e.Private(), required)
 
@@ -472,9 +471,6 @@ func (f *ExprFmtCtx) formatRelational(e RelExpr, tp treeprinter.Node) {
 			n.Child(f.Buffer.String())
 		}
 
-	case *ExportExpr:
-		tp.Childf("format: %s", t.FileFormat)
-
 	case *ExplainExpr:
 		// ExplainPlan is the default, don't show it.
 		m := ""
@@ -660,15 +656,6 @@ func (f *ExprFmtCtx) formatScalar(scalar opt.ScalarExpr, tp treeprinter.Node) {
 			opt.ZipItemOp:
 			// Use properties from the item, but otherwise omit it from output.
 			scalar = scalar.Child(0).(opt.ScalarExpr)
-		case opt.WindowsItemOp:
-			// Only show this if the frame differs from the default.
-			frame := scalar.Private().(*WindowsItemPrivate).Frame
-			if frame.Mode == tree.RANGE &&
-				frame.StartBoundType == tree.UnboundedPreceding &&
-				frame.EndBoundType == tree.CurrentRow &&
-				frame.FrameExclusion == tree.NoExclusion {
-				scalar = scalar.Child(0).(opt.ScalarExpr)
-			}
 		}
 
 		fmt.Fprintf(f.Buffer, "%v", scalar.Op())
@@ -948,30 +935,6 @@ func formatCol(
 	}
 }
 
-func frameBoundName(b tree.WindowFrameBoundType) string {
-	switch b {
-	case tree.UnboundedFollowing, tree.UnboundedPreceding:
-		return "unbounded"
-	case tree.CurrentRow:
-		return "current-row"
-	case tree.OffsetFollowing, tree.OffsetPreceding:
-		return "offset"
-	}
-	panic(errors.AssertionFailedf("unexpected bound"))
-}
-
-func frameExclusionMode(e tree.WindowFrameExclusion) string {
-	switch e {
-	case tree.ExcludeCurrentRow:
-		return "exclude current row"
-	case tree.ExcludeGroup:
-		return "exclude group"
-	case tree.ExcludeTies:
-		return "exclude ties"
-	}
-	panic(errors.AssertionFailedf("unexpected frame exclusion"))
-}
-
 // ScanIsReverseFn is a callback that is used to figure out if a scan needs to
 // happen in reverse (the code lives in the ordering package, and depending on
 // that directly would be a dependency loop).
@@ -1061,29 +1024,6 @@ func FormatPrivate(f *ExprFmtCtx, private interface{}, physProps *physical.Requi
 	case *FunctionPrivate:
 		fmt.Fprintf(f.Buffer, " %s", t.Name)
 
-	case *WindowsItemPrivate:
-		switch t.Frame.Mode {
-		case tree.GROUPS:
-			fmt.Fprintf(f.Buffer, " groups")
-		case tree.ROWS:
-			fmt.Fprintf(f.Buffer, " rows")
-		case tree.RANGE:
-			fmt.Fprintf(f.Buffer, " range")
-		}
-		fmt.Fprintf(f.Buffer, " from %s to %s",
-			frameBoundName(t.Frame.StartBoundType),
-			frameBoundName(t.Frame.EndBoundType),
-		)
-		if t.Frame.FrameExclusion != tree.NoExclusion {
-			fmt.Fprintf(f.Buffer, " %s", frameExclusionMode(t.Frame.FrameExclusion))
-		}
-
-	case *WindowPrivate:
-		fmt.Fprintf(f.Buffer, " partition=%s", t.Partition)
-		if !t.Ordering.Any() {
-			fmt.Fprintf(f.Buffer, " ordering=%s", t.Ordering)
-		}
-
 	case *physical.OrderingChoice:
 		if !t.Any() {
 			fmt.Fprintf(f.Buffer, " ordering=%s", t)
@@ -1122,7 +1062,7 @@ func FormatPrivate(f *ExprFmtCtx, private interface{}, physProps *physical.Requi
 	case *JoinPrivate:
 		// Nothing to show; flags are shown separately.
 
-	case *ExplainPrivate, *opt.ColSet, *opt.ColList, *SetPrivate, *types.T, *ExportPrivate:
+	case *ExplainPrivate, *opt.ColSet, *opt.ColList, *SetPrivate, *types.T:
 		// Don't show anything, because it's mostly redundant.
 
 	default:

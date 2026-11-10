@@ -377,9 +377,6 @@ func (sb *statisticsBuilder) colStat(colSet opt.ColSet, e RelExpr) *props.Column
 	case opt.OrdinalityOp:
 		return sb.colStatOrdinality(colSet, e.(*OrdinalityExpr))
 
-	case opt.WindowOp:
-		return sb.colStatWindow(colSet, e.(*WindowExpr))
-
 	case opt.ProjectSetOp:
 		return sb.colStatProjectSet(colSet, e.(*ProjectSetExpr))
 
@@ -1939,72 +1936,6 @@ func (sb *statisticsBuilder) colStatOrdinality(
 		}
 	} else {
 		inputColStat := sb.colStatFromChild(colSet, ord, 0 /* childIdx */)
-		colStat.DistinctCount = inputColStat.DistinctCount
-		colStat.NullCount = inputColStat.NullCount
-	}
-
-	if colSet.SubsetOf(relProps.NotNullCols) {
-		colStat.NullCount = 0
-	}
-	sb.finalizeFromRowCount(colStat, s.RowCount)
-	return colStat
-}
-
-// +------------+
-// |   Window   |
-// +------------+
-
-func (sb *statisticsBuilder) buildWindow(window *WindowExpr, relProps *props.Relational) {
-	s := &relProps.Stats
-	if zeroCardinality := s.Init(relProps); zeroCardinality {
-		// Short cut if cardinality is 0.
-		return
-	}
-	s.Available = sb.availabilityFromInput(window)
-
-	inputStats := &window.Input.Relational().Stats
-
-	// The row count of a window is equal to the row count of its input.
-	s.RowCount = inputStats.RowCount
-
-	sb.finalizeFromCardinality(relProps)
-}
-
-func (sb *statisticsBuilder) colStatWindow(
-	colSet opt.ColSet, window *WindowExpr,
-) *props.ColumnStatistic {
-	relProps := window.Relational()
-	s := &relProps.Stats
-
-	colStat, _ := s.ColStats.Add(colSet)
-
-	var windowCols opt.ColSet
-	for _, w := range window.Windows {
-		windowCols.Add(w.Col)
-	}
-
-	if colSet.Intersects(windowCols) {
-		// These can be quite complicated and differ dramatically based on which
-		// window function is being computed. For now, just assume row_number and
-		// that every row is distinct.
-		// TODO(justin): make these accurate and take into consideration the window
-		// function being computed.
-		colStat.DistinctCount = s.RowCount
-
-		// Just assume that no NULLs are output.
-		// TODO(justin): there are window fns for which this is not true, make
-		// sure those are handled.
-		if colSet.SubsetOf(windowCols) {
-			// The generated columns are the only columns being requested.
-			colStat.NullCount = 0
-		} else {
-			// Copy NullCount from child.
-			colSetChild := colSet.Difference(windowCols)
-			inputColStat := sb.colStatFromChild(colSetChild, window, 0 /* childIdx */)
-			colStat.NullCount = inputColStat.NullCount
-		}
-	} else {
-		inputColStat := sb.colStatFromChild(colSet, window, 0 /* childIdx */)
 		colStat.DistinctCount = inputColStat.DistinctCount
 		colStat.NullCount = inputColStat.NullCount
 	}

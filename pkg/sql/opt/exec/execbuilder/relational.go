@@ -15,7 +15,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/cat"
 	"github.com/podomy/tardigrade/pkg/sql/opt/exec"
@@ -25,10 +24,8 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/opt/props/physical"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
-	"github.com/podomy/tardigrade/pkg/sql/sem/builtins"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/podomy/tardigrade/pkg/util/encoding"
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
@@ -161,12 +158,6 @@ func (b *Builder) buildRelational(e memo.RelExpr) (execPlan, error) {
 			"cannot execute %s in a read-only transaction", b.statementTag(e))
 	}
 
-	// Collect usage telemetry for relational node, if appropriate.
-	if !b.disableTelemetry {
-		if c := opt.OpTelemetryCounters[e.Op()]; c != nil {
-			telemetry.Inc(c)
-		}
-	}
 
 	var saveTableName string
 	if b.nameGen != nil {
@@ -228,9 +219,6 @@ func (b *Builder) buildRelational(e memo.RelExpr) (execPlan, error) {
 	case *memo.ProjectSetExpr:
 		ep, err = b.buildProjectSet(t)
 
-	case *memo.WindowExpr:
-		ep, err = b.buildWindow(t)
-
 	case *memo.SequenceSelectExpr:
 		ep, err = b.buildSequenceSelect(t)
 
@@ -287,9 +275,6 @@ func (b *Builder) buildRelational(e memo.RelExpr) (execPlan, error) {
 
 	case *memo.CancelSessionsExpr:
 		ep, err = b.buildCancelSessions(t)
-
-	case *memo.ExportExpr:
-		ep, err = b.buildExport(t)
 
 	default:
 		if opt.IsSetOp(e) {
@@ -461,9 +446,6 @@ func (b *Builder) buildScan(scan *memo.ScanExpr) (execPlan, error) {
 		rowCount = 0
 	}
 
-	if scan.PartitionConstrainedScan {
-		sqltelemetry.IncrementPartitioningCounter(sqltelemetry.PartitionConstrainedScan)
-	}
 
 	root, err := b.factory.ConstructScan(
 		tab,
@@ -1528,254 +1510,6 @@ func (b *Builder) resultColumn(id opt.ColumnID) sqlbase.ResultColumn {
 		Name: colMeta.Alias,
 		Typ:  colMeta.Type,
 	}
-}
-
-// extractFromOffset extracts the start bound expression of a window function
-// that uses the OFFSET windowing mode for its start bound.
-func (b *Builder) extractFromOffset(e opt.ScalarExpr) (_ opt.ScalarExpr, ok bool) {
-	if opt.IsWindowOp(e) || opt.IsAggregateOp(e) {
-		return nil, false
-	}
-	if modifier, ok := e.(*memo.WindowFromOffsetExpr); ok {
-		return modifier.Offset, true
-	}
-	return b.extractFromOffset(e.Child(0).(opt.ScalarExpr))
-}
-
-// extractToOffset extracts the end bound expression of a window function
-// that uses the OFFSET windowing mode for its end bound.
-func (b *Builder) extractToOffset(e opt.ScalarExpr) (_ opt.ScalarExpr, ok bool) {
-	if opt.IsWindowOp(e) || opt.IsAggregateOp(e) {
-		return nil, false
-	}
-	if modifier, ok := e.(*memo.WindowToOffsetExpr); ok {
-		return modifier.Offset, true
-	}
-	return b.extractToOffset(e.Child(0).(opt.ScalarExpr))
-}
-
-// extractFilter extracts a FILTER expression from a window function tower.
-// Returns the expression and true if there was a filter, and false otherwise.
-func (b *Builder) extractFilter(e opt.ScalarExpr) (opt.ScalarExpr, bool) {
-	if opt.IsWindowOp(e) || opt.IsAggregateOp(e) {
-		return nil, false
-	}
-	if filter, ok := e.(*memo.AggFilterExpr); ok {
-		return filter.Filter, true
-	}
-	return b.extractFilter(e.Child(0).(opt.ScalarExpr))
-}
-
-// extractWindowFunction extracts the window function being computed from a
-// potential tower of modifiers attached to the Function field of a
-// WindowsItem.
-func (b *Builder) extractWindowFunction(e opt.ScalarExpr) opt.ScalarExpr {
-	if opt.IsWindowOp(e) || opt.IsAggregateOp(e) {
-		return e
-	}
-	return b.extractWindowFunction(e.Child(0).(opt.ScalarExpr))
-}
-
-func (b *Builder) isOffsetMode(boundType tree.WindowFrameBoundType) bool {
-	return boundType == tree.OffsetPreceding || boundType == tree.OffsetFollowing
-}
-
-func (b *Builder) buildFrame(input execPlan, w *memo.WindowsItem) (*tree.WindowFrame, error) {
-	scalarCtx := input.makeBuildScalarCtx()
-	newDef := &tree.WindowFrame{
-		Mode: w.Frame.Mode,
-		Bounds: tree.WindowFrameBounds{
-			StartBound: &tree.WindowFrameBound{
-				BoundType: w.Frame.StartBoundType,
-			},
-			EndBound: &tree.WindowFrameBound{
-				BoundType: w.Frame.EndBoundType,
-			},
-		},
-		Exclusion: w.Frame.FrameExclusion,
-	}
-	if boundExpr, ok := b.extractFromOffset(w.Function); ok {
-		if !b.isOffsetMode(w.Frame.StartBoundType) {
-			panic(errors.AssertionFailedf("expected offset to only be present in offset mode"))
-		}
-		offset, err := b.buildScalar(&scalarCtx, boundExpr)
-		if err != nil {
-			return nil, err
-		}
-		if offset == tree.DNull {
-			return nil, pgerror.Newf(pgcode.NullValueNotAllowed, "frame starting offset must not be null")
-		}
-		newDef.Bounds.StartBound.OffsetExpr = offset
-	}
-
-	if boundExpr, ok := b.extractToOffset(w.Function); ok {
-		if !b.isOffsetMode(newDef.Bounds.EndBound.BoundType) {
-			panic(errors.AssertionFailedf("expected offset to only be present in offset mode"))
-		}
-		offset, err := b.buildScalar(&scalarCtx, boundExpr)
-		if err != nil {
-			return nil, err
-		}
-		if offset == tree.DNull {
-			return nil, pgerror.Newf(pgcode.NullValueNotAllowed, "frame ending offset must not be null")
-		}
-		newDef.Bounds.EndBound.OffsetExpr = offset
-	}
-	return newDef, nil
-}
-
-func (b *Builder) buildWindow(w *memo.WindowExpr) (execPlan, error) {
-	input, err := b.buildRelational(w.Input)
-	if err != nil {
-		return execPlan{}, err
-	}
-
-	// Rearrange the input so that the input has all the passthrough columns
-	// followed by all the argument columns.
-
-	passthrough := w.Input.Relational().OutputCols
-
-	desiredCols := opt.ColList{}
-	passthrough.ForEach(func(i opt.ColumnID) {
-		desiredCols = append(desiredCols, i)
-	})
-
-	// TODO(justin): this call to ensureColumns is kind of unfortunate because it
-	// can result in an extra render beneath each window function. Figure out a
-	// way to alleviate this.
-	input, err = b.ensureColumns(input, desiredCols, nil, opt.Ordering{})
-	if err != nil {
-		return execPlan{}, err
-	}
-
-	ctx := input.makeBuildScalarCtx()
-
-	ord := w.Ordering.ToOrdering()
-
-	orderingExprs := make(tree.OrderBy, len(ord))
-	for i, c := range ord {
-		direction := tree.Ascending
-		if c.Descending() {
-			direction = tree.Descending
-		}
-		orderingExprs[i] = &tree.Order{
-			Expr:      b.indexedVar(&ctx, b.mem.Metadata(), c.ID()),
-			Direction: direction,
-		}
-	}
-
-	partitionIdxs := make([]exec.ColumnOrdinal, w.Partition.Len())
-	partitionExprs := make(tree.Exprs, w.Partition.Len())
-
-	i := 0
-	w.Partition.ForEach(func(col opt.ColumnID) {
-		ordinal, _ := input.outputCols.Get(int(col))
-		partitionIdxs[i] = exec.ColumnOrdinal(ordinal)
-		partitionExprs[i] = b.indexedVar(&ctx, b.mem.Metadata(), col)
-		i++
-	})
-
-	argIdxs := make([][]exec.ColumnOrdinal, len(w.Windows))
-	filterIdxs := make([]int, len(w.Windows))
-	exprs := make([]*tree.FuncExpr, len(w.Windows))
-
-	for i := range w.Windows {
-		item := &w.Windows[i]
-		fn := b.extractWindowFunction(item.Function)
-		name, overload := memo.FindWindowOverload(fn)
-		props, _ := builtins.GetBuiltinProperties(name)
-
-		args := make([]tree.TypedExpr, fn.ChildCount())
-		argIdxs[i] = make([]exec.ColumnOrdinal, fn.ChildCount())
-		for j, n := 0, fn.ChildCount(); j < n; j++ {
-			col := fn.Child(j).(*memo.VariableExpr).Col
-			args[j] = b.indexedVar(&ctx, b.mem.Metadata(), col)
-			idx, _ := input.outputCols.Get(int(col))
-			argIdxs[i][j] = exec.ColumnOrdinal(idx)
-		}
-
-		frame, err := b.buildFrame(input, item)
-		if err != nil {
-			return execPlan{}, err
-		}
-
-		var builtFilter tree.TypedExpr
-		filter, ok := b.extractFilter(item.Function)
-		if ok {
-			f, ok := filter.(*memo.VariableExpr)
-			if !ok {
-				panic(errors.AssertionFailedf("expected FILTER expression to be a VariableExpr"))
-			}
-			filterIdxs[i], _ = input.outputCols.Get(int(f.Col))
-
-			builtFilter, err = b.buildScalar(&ctx, filter)
-			if err != nil {
-				return execPlan{}, err
-			}
-		} else {
-			filterIdxs[i] = -1
-		}
-
-		exprs[i] = tree.NewTypedFuncExpr(
-			tree.WrapFunction(name),
-			0,
-			args,
-			builtFilter,
-			&tree.WindowDef{
-				Partitions: partitionExprs,
-				OrderBy:    orderingExprs,
-				Frame:      frame,
-			},
-			overload.FixedReturnType(),
-			props,
-			overload,
-		)
-	}
-
-	resultCols := make(sqlbase.ResultColumns, w.Relational().OutputCols.Len())
-
-	// All the passthrough cols will keep their ordinal index.
-	passthrough.ForEach(func(col opt.ColumnID) {
-		ordinal, _ := input.outputCols.Get(int(col))
-		resultCols[ordinal] = b.resultColumn(col)
-	})
-
-	var outputCols opt.ColMap
-	input.outputCols.ForEach(func(key, val int) {
-		if passthrough.Contains(opt.ColumnID(key)) {
-			outputCols.Set(key, val)
-		}
-	})
-
-	outputIdxs := make([]int, len(w.Windows))
-
-	// Because of the way we arranged the input columns, we will be outputting
-	// the window columns at the end (which is exactly what the execution engine
-	// will do as well).
-	windowStart := passthrough.Len()
-	for i := range w.Windows {
-		resultCols[windowStart+i] = b.resultColumn(w.Windows[i].Col)
-		outputCols.Set(int(w.Windows[i].Col), windowStart+i)
-		outputIdxs[i] = windowStart + i
-	}
-
-	node, err := b.factory.ConstructWindow(input.root, exec.WindowInfo{
-		Cols:       resultCols,
-		Exprs:      exprs,
-		OutputIdxs: outputIdxs,
-		ArgIdxs:    argIdxs,
-		FilterIdxs: filterIdxs,
-		Partition:  partitionIdxs,
-		Ordering:   input.sqlOrdering(ord),
-	})
-	if err != nil {
-		return execPlan{}, err
-	}
-
-	return execPlan{
-		root:       node,
-		outputCols: outputCols,
-	}, nil
 }
 
 func (b *Builder) buildSequenceSelect(seqSel *memo.SequenceSelectExpr) (execPlan, error) {

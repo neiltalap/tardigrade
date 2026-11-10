@@ -36,7 +36,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/security"
-	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/lex"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
@@ -1699,30 +1698,6 @@ CockroachDB supports the following flags:
 		},
 	),
 
-	tree.FollowerReadTimestampFunctionName: makeBuiltin(
-		tree.FunctionProperties{Impure: true},
-		tree.Overload{
-			Types:      tree.ArgTypes{},
-			ReturnType: tree.FixedReturnType(types.TimestampTZ),
-			Fn: func(ctx *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-				ts, err := recentTimestamp(ctx)
-				if err != nil {
-					return nil, err
-				}
-				return tree.MakeDTimestampTZ(ts, time.Microsecond), nil
-			},
-			Info: `Returns a timestamp which is very likely to be safe to perform
-against a follower replica.
-
-This function is intended to be used with an AS OF SYSTEM TIME clause to perform
-historical reads against a time which is recent but sufficiently old for reads
-to be performed against the closest replica as opposed to the currently
-leaseholder for a given range.
-
-Note that this function requires an enterprise license on a CCL distribution to
-return without an error.`,
-		},
-	),
 
 	"cluster_logical_timestamp": makeBuiltin(
 		tree.FunctionProperties{
@@ -2231,35 +2206,6 @@ may increase either contention or retry errors, or both.`,
 		},
 	),
 
-	"row_to_json": makeBuiltin(defProps(),
-		tree.Overload{
-			Types:      tree.ArgTypes{{"row", types.AnyTuple}},
-			ReturnType: tree.FixedReturnType(types.Jsonb),
-			Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-				tuple := args[0].(*tree.DTuple)
-				builder := json.NewObjectBuilder(len(tuple.D))
-				typ := tuple.ResolvedType()
-				labels := typ.TupleLabels()
-				for i, d := range tuple.D {
-					var label string
-					if labels != nil {
-						label = labels[i]
-					}
-					if label == "" {
-						label = fmt.Sprintf("f%d", i+1)
-					}
-					val, err := tree.AsJSON(d)
-					if err != nil {
-						return nil, err
-					}
-					builder.Add(label, val)
-				}
-				return tree.NewDJSON(builder.Build()), nil
-			},
-			Info: "Returns the row as a JSON object.",
-		},
-	),
-
 	"sin": makeBuiltin(defProps(),
 		floatOverload1(func(x float64) (tree.Datum, error) {
 			return tree.NewDFloat(tree.DFloat(math.Sin(x))), nil
@@ -2659,12 +2605,12 @@ may increase either contention or retry errors, or both.`,
 		}
 	})),
 
-	// JSON functions.
-
-	"json_to_recordset":        makeBuiltin(tree.FunctionProperties{UnsupportedWithIssue: 33285, Category: categoryJSON}),
-	"jsonb_to_recordset":       makeBuiltin(tree.FunctionProperties{UnsupportedWithIssue: 33285, Category: categoryJSON}),
-	"json_populate_recordset":  makeBuiltin(tree.FunctionProperties{UnsupportedWithIssue: 33285, Category: categoryJSON}),
-	"jsonb_populate_recordset": makeBuiltin(tree.FunctionProperties{UnsupportedWithIssue: 33285, Category: categoryJSON}),
+	// JSON functions (minimal retained set).
+	// NOTE: `#-` in sql.y desugars to json_remove_path and sql.y must not be
+	// modified, so this single builtin is retained to keep parsing `#-` working.
+	// jsonb_pretty, json_agg/jsonb_agg and json[b]_array_elements are retained
+	// for core introspection (plan reproduction, range-log inspection).
+	// All other json_*/jsonb_* builtins were removed (storage+casts only).
 
 	"json_remove_path": makeBuiltin(jsonProps(),
 		tree.Overload{
@@ -2686,16 +2632,6 @@ may increase either contention or retry errors, or both.`,
 		},
 	),
 
-	"json_extract_path": makeBuiltin(jsonProps(), jsonExtractPathImpl),
-
-	"jsonb_extract_path": makeBuiltin(jsonProps(), jsonExtractPathImpl),
-
-	"json_set": makeBuiltin(jsonProps(), jsonSetImpl, jsonSetWithCreateMissingImpl),
-
-	"jsonb_set": makeBuiltin(jsonProps(), jsonSetImpl, jsonSetWithCreateMissingImpl),
-
-	"jsonb_insert": makeBuiltin(jsonProps(), jsonInsertImpl, jsonInsertWithInsertAfterImpl),
-
 	"jsonb_pretty": makeBuiltin(jsonProps(),
 		tree.Overload{
 			Types:      tree.ArgTypes{{"val", types.Jsonb}},
@@ -2710,36 +2646,6 @@ may increase either contention or retry errors, or both.`,
 			Info: "Returns the given JSON value as a STRING indented and with newlines.",
 		},
 	),
-
-	"json_typeof": makeBuiltin(jsonProps(), jsonTypeOfImpl),
-
-	"jsonb_typeof": makeBuiltin(jsonProps(), jsonTypeOfImpl),
-
-	"array_to_json": arrayToJSONImpls,
-
-	"to_json": makeBuiltin(jsonProps(), toJSONImpl),
-
-	"to_jsonb": makeBuiltin(jsonProps(), toJSONImpl),
-
-	"json_build_array": makeBuiltin(jsonPropsNullableArgs(), jsonBuildArrayImpl),
-
-	"jsonb_build_array": makeBuiltin(jsonPropsNullableArgs(), jsonBuildArrayImpl),
-
-	"json_build_object": makeBuiltin(jsonPropsNullableArgs(), jsonBuildObjectImpl),
-
-	"jsonb_build_object": makeBuiltin(jsonPropsNullableArgs(), jsonBuildObjectImpl),
-
-	"json_object": jsonObjectImpls,
-
-	"jsonb_object": jsonObjectImpls,
-
-	"json_strip_nulls": makeBuiltin(jsonProps(), jsonStripNullsImpl),
-
-	"jsonb_strip_nulls": makeBuiltin(jsonProps(), jsonStripNullsImpl),
-
-	"json_array_length": makeBuiltin(jsonProps(), jsonArrayLengthImpl),
-
-	"jsonb_array_length": makeBuiltin(jsonProps(), jsonArrayLengthImpl),
 
 	// Metadata functions.
 
@@ -3318,7 +3224,8 @@ may increase either contention or retry errors, or both.`,
 		},
 	),
 
-	// Returns the number of distinct inverted index entries that would be generated for a JSON value.
+	// Returns true iff the current user has admin role.
+	// Note: it would be a privacy leak to extend this to check arbitrary usernames.
 	"crdb_internal.json_num_index_entries": makeBuiltin(
 		tree.FunctionProperties{
 			Category:     categorySystemInfo,
@@ -3342,8 +3249,6 @@ may increase either contention or retry errors, or both.`,
 		},
 	),
 
-	// Returns true iff the current user has admin role.
-	// Note: it would be a privacy leak to extend this to check arbitrary usernames.
 	"crdb_internal.is_admin": makeBuiltin(
 		tree.FunctionProperties{
 			Category:         categorySystemInfo,
@@ -3625,51 +3530,6 @@ var powImpls = makeBuiltin(defProps(),
 	},
 )
 
-var (
-	jsonNullDString    = tree.NewDString("null")
-	jsonStringDString  = tree.NewDString("string")
-	jsonNumberDString  = tree.NewDString("number")
-	jsonBooleanDString = tree.NewDString("boolean")
-	jsonArrayDString   = tree.NewDString("array")
-	jsonObjectDString  = tree.NewDString("object")
-)
-
-var (
-	errJSONObjectNotEvenNumberOfElements = pgerror.New(pgcode.InvalidParameterValue,
-		"array must have even number of elements")
-	errJSONObjectNullValueForKey = pgerror.New(pgcode.InvalidParameterValue,
-		"null value not allowed for object key")
-	errJSONObjectMismatchedArrayDim = pgerror.New(pgcode.InvalidParameterValue,
-		"mismatched array dimensions")
-)
-
-var jsonExtractPathImpl = tree.Overload{
-	Types:      tree.VariadicType{FixedTypes: []*types.T{types.Jsonb}, VarType: types.String},
-	ReturnType: tree.FixedReturnType(types.Jsonb),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		j := tree.MustBeDJSON(args[0])
-		path := make([]string, len(args)-1)
-		for i, v := range args {
-			if i == 0 {
-				continue
-			}
-			if v == tree.DNull {
-				return tree.DNull, nil
-			}
-			path[i-1] = string(tree.MustBeDString(v))
-		}
-		result, err := json.FetchPath(j.JSON, path)
-		if err != nil {
-			return nil, err
-		}
-		if result == nil {
-			return tree.DNull, nil
-		}
-		return &tree.DJSON{JSON: result}, nil
-	},
-	Info: "Returns the JSON value pointed to by the variadic arguments.",
-}
-
 // darrayToStringSlice converts an array of string datums to a Go array of
 // strings. If any of the elements are NULL, then ok will be returned as false.
 func darrayToStringSlice(d tree.DArray) (result []string, ok bool) {
@@ -3695,313 +3555,10 @@ func checkHasNulls(ary tree.DArray) error {
 	return nil
 }
 
-var jsonSetImpl = tree.Overload{
-	Types: tree.ArgTypes{
-		{"val", types.Jsonb},
-		{"path", types.StringArray},
-		{"to", types.Jsonb},
-	},
-	ReturnType: tree.FixedReturnType(types.Jsonb),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		return jsonDatumSet(args[0], args[1], args[2], tree.DBoolTrue)
-	},
-	Info: "Returns the JSON value pointed to by the variadic arguments.",
-}
-
-var jsonSetWithCreateMissingImpl = tree.Overload{
-	Types: tree.ArgTypes{
-		{"val", types.Jsonb},
-		{"path", types.StringArray},
-		{"to", types.Jsonb},
-		{"create_missing", types.Bool},
-	},
-	ReturnType: tree.FixedReturnType(types.Jsonb),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		return jsonDatumSet(args[0], args[1], args[2], args[3])
-	},
-	Info: "Returns the JSON value pointed to by the variadic arguments. " +
-		"If `create_missing` is false, new keys will not be inserted to objects " +
-		"and values will not be prepended or appended to arrays.",
-}
-
-func jsonDatumSet(
-	targetD tree.Datum, pathD tree.Datum, toD tree.Datum, createMissingD tree.Datum,
-) (tree.Datum, error) {
-	ary := *tree.MustBeDArray(pathD)
-	// jsonb_set only errors if there is a null at the first position, but not
-	// at any other positions.
-	if err := checkHasNulls(ary); err != nil {
-		return nil, err
-	}
-	path, ok := darrayToStringSlice(ary)
-	if !ok {
-		return targetD, nil
-	}
-	j, err := json.DeepSet(tree.MustBeDJSON(targetD).JSON, path, tree.MustBeDJSON(toD).JSON, bool(tree.MustBeDBool(createMissingD)))
-	if err != nil {
-		return nil, err
-	}
-	return &tree.DJSON{JSON: j}, nil
-}
-
-var jsonInsertImpl = tree.Overload{
-	Types: tree.ArgTypes{
-		{"target", types.Jsonb},
-		{"path", types.StringArray},
-		{"new_val", types.Jsonb},
-	},
-	ReturnType: tree.FixedReturnType(types.Jsonb),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		return insertToJSONDatum(args[0], args[1], args[2], tree.DBoolFalse)
-	},
-	Info: "Returns the JSON value pointed to by the variadic arguments. `new_val` will be inserted before path target.",
-}
-
-var jsonInsertWithInsertAfterImpl = tree.Overload{
-	Types: tree.ArgTypes{
-		{"target", types.Jsonb},
-		{"path", types.StringArray},
-		{"new_val", types.Jsonb},
-		{"insert_after", types.Bool},
-	},
-	ReturnType: tree.FixedReturnType(types.Jsonb),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		return insertToJSONDatum(args[0], args[1], args[2], args[3])
-	},
-	Info: "Returns the JSON value pointed to by the variadic arguments. " +
-		"If `insert_after` is true (default is false), `new_val` will be inserted after path target.",
-}
-
-func insertToJSONDatum(
-	targetD tree.Datum, pathD tree.Datum, newValD tree.Datum, insertAfterD tree.Datum,
-) (tree.Datum, error) {
-	ary := *tree.MustBeDArray(pathD)
-
-	// jsonb_insert only errors if there is a null at the first position, but not
-	// at any other positions.
-	if err := checkHasNulls(ary); err != nil {
-		return nil, err
-	}
-	path, ok := darrayToStringSlice(ary)
-	if !ok {
-		return targetD, nil
-	}
-	j, err := json.DeepInsert(tree.MustBeDJSON(targetD).JSON, path, tree.MustBeDJSON(newValD).JSON, bool(tree.MustBeDBool(insertAfterD)))
-	if err != nil {
-		return nil, err
-	}
-	return &tree.DJSON{JSON: j}, nil
-}
-
-var jsonTypeOfImpl = tree.Overload{
-	Types:      tree.ArgTypes{{"val", types.Jsonb}},
-	ReturnType: tree.FixedReturnType(types.String),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		t := tree.MustBeDJSON(args[0]).JSON.Type()
-		switch t {
-		case json.NullJSONType:
-			return jsonNullDString, nil
-		case json.StringJSONType:
-			return jsonStringDString, nil
-		case json.NumberJSONType:
-			return jsonNumberDString, nil
-		case json.FalseJSONType, json.TrueJSONType:
-			return jsonBooleanDString, nil
-		case json.ArrayJSONType:
-			return jsonArrayDString, nil
-		case json.ObjectJSONType:
-			return jsonObjectDString, nil
-		}
-		return nil, errors.AssertionFailedf("unexpected JSON type %d", t)
-	},
-	Info: "Returns the type of the outermost JSON value as a text string.",
-}
-
 func jsonProps() tree.FunctionProperties {
 	return tree.FunctionProperties{
 		Category: categoryJSON,
 	}
-}
-
-func jsonPropsNullableArgs() tree.FunctionProperties {
-	d := jsonProps()
-	d.NullableArgs = true
-	return d
-}
-
-var jsonBuildObjectImpl = tree.Overload{
-	Types:      tree.VariadicType{VarType: types.Any},
-	ReturnType: tree.FixedReturnType(types.Jsonb),
-	Fn: func(ctx *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		if len(args)%2 != 0 {
-			return nil, pgerror.New(pgcode.InvalidParameterValue,
-				"argument list must have even number of elements")
-		}
-
-		builder := json.NewObjectBuilder(len(args) / 2)
-		for i := 0; i < len(args); i += 2 {
-			if args[i] == tree.DNull {
-				return nil, pgerror.Newf(pgcode.InvalidParameterValue,
-					"argument %d cannot be null", i+1)
-			}
-
-			key, err := asJSONBuildObjectKey(args[i])
-			if err != nil {
-				return nil, err
-			}
-
-			val, err := tree.AsJSON(args[i+1])
-			if err != nil {
-				return nil, err
-			}
-
-			builder.Add(key, val)
-		}
-
-		return tree.NewDJSON(builder.Build()), nil
-	},
-	Info: "Builds a JSON object out of a variadic argument list.",
-}
-
-var toJSONImpl = tree.Overload{
-	Types:      tree.ArgTypes{{"val", types.Any}},
-	ReturnType: tree.FixedReturnType(types.Jsonb),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		return toJSONObject(args[0])
-	},
-	Info: "Returns the value as JSON or JSONB.",
-}
-
-var prettyPrintNotSupportedError = pgerror.Newf(pgcode.FeatureNotSupported, "pretty printing is not supported")
-
-var arrayToJSONImpls = makeBuiltin(jsonProps(),
-	tree.Overload{
-		Types:      tree.ArgTypes{{"array", types.AnyArray}},
-		ReturnType: tree.FixedReturnType(types.Jsonb),
-		Fn:         toJSONImpl.Fn,
-		Info:       "Returns the array as JSON or JSONB.",
-	},
-	tree.Overload{
-		Types:      tree.ArgTypes{{"array", types.AnyArray}, {"pretty_bool", types.Bool}},
-		ReturnType: tree.FixedReturnType(types.Jsonb),
-		Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-			prettyPrint := bool(tree.MustBeDBool(args[1]))
-			if prettyPrint {
-				return nil, prettyPrintNotSupportedError
-			}
-			return toJSONObject(args[0])
-		},
-		Info: "Returns the array as JSON or JSONB.",
-	},
-)
-
-var jsonBuildArrayImpl = tree.Overload{
-	Types:      tree.VariadicType{VarType: types.Any},
-	ReturnType: tree.FixedReturnType(types.Jsonb),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		builder := json.NewArrayBuilder(len(args))
-		for _, arg := range args {
-			j, err := tree.AsJSON(arg)
-			if err != nil {
-				return nil, err
-			}
-			builder.Add(j)
-		}
-		return tree.NewDJSON(builder.Build()), nil
-	},
-	Info: "Builds a possibly-heterogeneously-typed JSON or JSONB array out of a variadic argument list.",
-}
-
-var jsonObjectImpls = makeBuiltin(jsonProps(),
-	tree.Overload{
-		Types:      tree.ArgTypes{{"texts", types.StringArray}},
-		ReturnType: tree.FixedReturnType(types.Jsonb),
-		Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-			arr := tree.MustBeDArray(args[0])
-			if arr.Len()%2 != 0 {
-				return nil, errJSONObjectNotEvenNumberOfElements
-			}
-			builder := json.NewObjectBuilder(arr.Len() / 2)
-			for i := 0; i < arr.Len(); i += 2 {
-				if arr.Array[i] == tree.DNull {
-					return nil, errJSONObjectNullValueForKey
-				}
-				key, err := asJSONObjectKey(arr.Array[i])
-				if err != nil {
-					return nil, err
-				}
-				val, err := tree.AsJSON(arr.Array[i+1])
-				if err != nil {
-					return nil, err
-				}
-				builder.Add(key, val)
-			}
-			return tree.NewDJSON(builder.Build()), nil
-		},
-		Info: "Builds a JSON or JSONB object out of a text array. The array must have " +
-			"exactly one dimension with an even number of members, in which case " +
-			"they are taken as alternating key/value pairs.",
-	},
-	tree.Overload{
-		Types: tree.ArgTypes{{"keys", types.StringArray},
-			{"values", types.StringArray}},
-		ReturnType: tree.FixedReturnType(types.Jsonb),
-		Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-			keys := tree.MustBeDArray(args[0])
-			values := tree.MustBeDArray(args[1])
-			if keys.Len() != values.Len() {
-				return nil, errJSONObjectMismatchedArrayDim
-			}
-			builder := json.NewObjectBuilder(keys.Len())
-			for i := 0; i < keys.Len(); i++ {
-				if keys.Array[i] == tree.DNull {
-					return nil, errJSONObjectNullValueForKey
-				}
-				key, err := asJSONObjectKey(keys.Array[i])
-				if err != nil {
-					return nil, err
-				}
-				val, err := tree.AsJSON(values.Array[i])
-				if err != nil {
-					return nil, err
-				}
-				builder.Add(key, val)
-			}
-			return tree.NewDJSON(builder.Build()), nil
-		},
-		Info: "This form of json_object takes keys and values pairwise from two " +
-			"separate arrays. In all other respects it is identical to the " +
-			"one-argument form.",
-	},
-)
-
-var jsonStripNullsImpl = tree.Overload{
-	Types:      tree.ArgTypes{{"from_json", types.Jsonb}},
-	ReturnType: tree.FixedReturnType(types.Jsonb),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		j, _, err := tree.MustBeDJSON(args[0]).StripNulls()
-		return tree.NewDJSON(j), err
-	},
-	Info: "Returns from_json with all object fields that have null values omitted. Other null values are untouched.",
-}
-
-var jsonArrayLengthImpl = tree.Overload{
-	Types:      tree.ArgTypes{{"json", types.Jsonb}},
-	ReturnType: tree.FixedReturnType(types.Int),
-	Fn: func(_ *tree.EvalContext, args tree.Datums) (tree.Datum, error) {
-		j := tree.MustBeDJSON(args[0])
-		switch j.Type() {
-		case json.ArrayJSONType:
-			return tree.NewDInt(tree.DInt(j.Len())), nil
-		case json.ObjectJSONType:
-			return nil, pgerror.New(pgcode.InvalidParameterValue,
-				"cannot get array length of a non-array")
-		default:
-			return nil, pgerror.New(pgcode.InvalidParameterValue,
-				"cannot get array length of a scalar")
-		}
-	},
-	Info: "Returns the number of elements in the outermost JSON or JSONB array.",
 }
 
 func arrayBuiltin(impl func(*types.T) tree.Overload) builtinDefinition {
@@ -4935,42 +4492,6 @@ func truncateTimestamp(
 	return tree.MakeDTimestampTZ(toTime, time.Microsecond), nil
 }
 
-// Converts a scalar Datum to its string representation
-func asJSONBuildObjectKey(d tree.Datum) (string, error) {
-	switch t := d.(type) {
-	case *tree.DJSON, *tree.DArray, *tree.DTuple:
-		return "", pgerror.New(pgcode.InvalidParameterValue,
-			"key value must be scalar, not array, tuple, or json")
-	case *tree.DString:
-		return string(*t), nil
-	case *tree.DCollatedString:
-		return t.Contents, nil
-	case *tree.DBool, *tree.DInt, *tree.DFloat, *tree.DDecimal, *tree.DTimestamp, *tree.DTimestampTZ,
-		*tree.DDate, *tree.DUuid, *tree.DInterval, *tree.DBytes, *tree.DIPAddr, *tree.DOid,
-		*tree.DTime, *tree.DBitArray:
-		return tree.AsStringWithFlags(d, tree.FmtBareStrings), nil
-	default:
-		return "", errors.AssertionFailedf("unexpected type %T for key value", d)
-	}
-}
-
-func asJSONObjectKey(d tree.Datum) (string, error) {
-	switch t := d.(type) {
-	case *tree.DString:
-		return string(*t), nil
-	default:
-		return "", errors.AssertionFailedf("unexpected type %T for asJSONObjectKey", d)
-	}
-}
-
-func toJSONObject(d tree.Datum) (tree.Datum, error) {
-	j, err := tree.AsJSON(d)
-	if err != nil {
-		return nil, err
-	}
-	return tree.NewDJSON(j), nil
-}
-
 // padMaybeTruncate truncates the input string to length if the string is
 // longer or equal in size to length. If truncated, the first return value
 // will be true, and the last return value will be the truncated string.
@@ -5082,23 +4603,4 @@ func checkPrivilegedUser(ctx *tree.EvalContext) error {
 		return errInsufficientPriv
 	}
 	return nil
-}
-
-// EvalFollowerReadOffset is a function used often with AS OF SYSTEM TIME queries
-// to determine the appropriate offset from now which is likely to be safe for
-// follower reads. It is injected by followerreadsccl. An error may be returned
-// if an enterprise license is not installed.
-var EvalFollowerReadOffset func(clusterID uuid.UUID, _ *cluster.Settings) (time.Duration, error)
-
-func recentTimestamp(ctx *tree.EvalContext) (time.Time, error) {
-	if EvalFollowerReadOffset == nil {
-		return time.Time{}, pgerror.New(pgcode.FeatureNotSupported,
-			tree.FollowerReadTimestampFunctionName+
-				" is only available in ccl distribution")
-	}
-	offset, err := EvalFollowerReadOffset(ctx.ClusterID, ctx.Settings)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return ctx.StmtTimestamp.Add(offset), nil
 }

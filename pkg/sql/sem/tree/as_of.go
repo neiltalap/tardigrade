@@ -24,13 +24,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// FollowerReadTimestampFunctionName is the name of the function which can be
-// used with AOST clauses to generate a timestamp likely to be safe for follower
-// reads.
-const FollowerReadTimestampFunctionName = "experimental_follower_read_timestamp"
-
-var errInvalidExprForAsOf = errors.Errorf("AS OF SYSTEM TIME: only constant expressions or " +
-	FollowerReadTimestampFunctionName + " are allowed")
+var errInvalidExprForAsOf = errors.Errorf("AS OF SYSTEM TIME: only constant expressions are allowed")
 
 // EvalAsOfTimestamp evaluates the timestamp argument to an AS OF SYSTEM TIME query.
 func EvalAsOfTimestamp(
@@ -43,24 +37,9 @@ func EvalAsOfTimestamp(
 	defer scalarProps.Restore(*scalarProps)
 	scalarProps.Require("AS OF SYSTEM TIME", RejectSpecial|RejectSubqueries)
 
-	// In order to support the follower reads feature we permit this expression
-	// to be a simple invocation of the `FollowerReadTimestampFunction`.
-	// Over time we could expand the set of allowed functions or expressions.
-	// All non-function expressions must be const and must TypeCheck into a
-	// string.
+	// All expressions must be const and must TypeCheck into a string.
 	var te TypedExpr
-	if fe, ok := asOf.Expr.(*FuncExpr); ok {
-		def, err := fe.Func.Resolve(semaCtx.SearchPath)
-		if err != nil {
-			return hlc.Timestamp{}, errInvalidExprForAsOf
-		}
-		if def.Name != FollowerReadTimestampFunctionName {
-			return hlc.Timestamp{}, errInvalidExprForAsOf
-		}
-		if te, err = fe.TypeCheck(semaCtx, types.TimestampTZ); err != nil {
-			return hlc.Timestamp{}, err
-		}
-	} else {
+	{
 		var err error
 		te, err = asOf.Expr.TypeCheck(semaCtx, types.String)
 		if err != nil {

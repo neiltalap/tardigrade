@@ -60,40 +60,6 @@ func (node *ShowAllClusterSettings) Format(ctx *FmtCtx) {
 	ctx.WriteString("SHOW ALL CLUSTER SETTINGS")
 }
 
-// BackupDetails represents the type of details to display for a SHOW BACKUP
-// statement.
-type BackupDetails int
-
-const (
-	// BackupDefaultDetails identifies a bare SHOW BACKUP statement.
-	BackupDefaultDetails BackupDetails = iota
-	// BackupRangeDetails identifies a SHOW BACKUP RANGES statement.
-	BackupRangeDetails
-	// BackupFileDetails identifies a SHOW BACKUP FILES statement.
-	BackupFileDetails
-)
-
-// ShowBackup represents a SHOW BACKUP statement.
-type ShowBackup struct {
-	Path                 Expr
-	Details              BackupDetails
-	ShouldIncludeSchemas bool
-}
-
-// Format implements the NodeFormatter interface.
-func (node *ShowBackup) Format(ctx *FmtCtx) {
-	ctx.WriteString("SHOW BACKUP ")
-	if node.Details == BackupRangeDetails {
-		ctx.WriteString("RANGES ")
-	} else if node.Details == BackupFileDetails {
-		ctx.WriteString("FILES ")
-	}
-	if node.ShouldIncludeSchemas {
-		ctx.WriteString("SCHEMAS ")
-	}
-	ctx.FormatNode(node.Path)
-}
-
 // ShowColumns represents a SHOW COLUMNS statement.
 type ShowColumns struct {
 	Table       *UnresolvedObjectName
@@ -131,7 +97,6 @@ type ShowTraceType string
 const (
 	ShowTraceRaw     ShowTraceType = "TRACE"
 	ShowTraceKV      ShowTraceType = "KV TRACE"
-	ShowTraceReplica ShowTraceType = "EXPERIMENTAL_REPLICA TRACE"
 )
 
 // ShowTraceForSession represents a SHOW TRACE FOR SESSION statement.
@@ -431,17 +396,6 @@ func (node *ShowRangeForRow) Format(ctx *FmtCtx) {
 	ctx.WriteString(")")
 }
 
-// ShowFingerprints represents a SHOW EXPERIMENTAL_FINGERPRINTS statement.
-type ShowFingerprints struct {
-	Table *UnresolvedObjectName
-}
-
-// Format implements the NodeFormatter interface.
-func (node *ShowFingerprints) Format(ctx *FmtCtx) {
-	ctx.WriteString("SHOW EXPERIMENTAL_FINGERPRINTS FROM TABLE ")
-	ctx.FormatNode(node.Table)
-}
-
 // ShowTableStats represents a SHOW STATISTICS FOR TABLE statement.
 type ShowTableStats struct {
 	Table     *UnresolvedObjectName
@@ -466,30 +420,4 @@ type ShowHistogram struct {
 // Format implements the NodeFormatter interface.
 func (node *ShowHistogram) Format(ctx *FmtCtx) {
 	ctx.Printf("SHOW HISTOGRAM %d", node.HistogramID)
-}
-
-// ShowPartitions represents a SHOW PARTITIONS statement.
-type ShowPartitions struct {
-	IsDB     bool
-	Database Name
-
-	IsIndex bool
-	Index   TableIndexName
-
-	IsTable bool
-	Table   *UnresolvedObjectName
-}
-
-// Format implements the NodeFormatter interface.
-func (node *ShowPartitions) Format(ctx *FmtCtx) {
-	if node.IsDB {
-		ctx.Printf("SHOW PARTITIONS FROM DATABASE ")
-		ctx.FormatNode(&node.Database)
-	} else if node.IsIndex {
-		ctx.Printf("SHOW PARTITIONS FROM INDEX ")
-		ctx.FormatNode(&node.Index)
-	} else {
-		ctx.Printf("SHOW PARTITIONS FROM TABLE ")
-		ctx.FormatNode(node.Table)
-	}
 }

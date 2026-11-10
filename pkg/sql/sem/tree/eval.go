@@ -25,13 +25,11 @@ import (
 	"github.com/podomy/tardigrade/pkg/base"
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/lex"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/podomy/tardigrade/pkg/util/arith"
@@ -72,9 +70,6 @@ type UnaryOp struct {
 	types   TypeList
 	retType ReturnTyper
 
-	// counter, if non-nil, should be incremented every time the
-	// operator is type checked.
-	counter telemetry.Counter
 }
 
 func (op *UnaryOp) params() TypeList {
@@ -186,9 +181,6 @@ type BinOp struct {
 	types   TypeList
 	retType ReturnTyper
 
-	// counter, if non-nil, should be incremented every time the
-	// operator is type checked.
-	counter telemetry.Counter
 }
 
 func (op *BinOp) params() TypeList {
@@ -1400,7 +1392,6 @@ var BinOps = map[BinaryOperator]binOpOverload{
 			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
 				rval := MustBeDInt(right)
 				if rval < 0 || rval >= 64 {
-					telemetry.Inc(sqltelemetry.LargeLShiftArgumentCounter)
 					return nil, pgerror.Newf(pgcode.InvalidParameterValue, "shift argument out of range")
 				}
 				return NewDInt(MustBeDInt(left) << uint(rval)), nil
@@ -1438,7 +1429,6 @@ var BinOps = map[BinaryOperator]binOpOverload{
 			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
 				rval := MustBeDInt(right)
 				if rval < 0 || rval >= 64 {
-					telemetry.Inc(sqltelemetry.LargeRShiftArgumentCounter)
 					return nil, pgerror.Newf(pgcode.InvalidParameterValue, "shift argument out of range")
 				}
 				return NewDInt(MustBeDInt(left) >> uint(rval)), nil
@@ -1673,9 +1663,6 @@ type CmpOp struct {
 	types       TypeList
 	isPreferred bool
 
-	// counter, if non-nil, should be incremented every time the
-	// operator is type checked.
-	counter telemetry.Counter
 }
 
 func (op *CmpOp) params() TypeList {
@@ -2023,69 +2010,6 @@ var CmpOps = cmpOpFixups(map[ComparisonOperator]cmpOpOverload{
 		},
 	},
 
-	JSONExists: {
-		&CmpOp{
-			LeftType:  types.Jsonb,
-			RightType: types.String,
-			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
-				e, err := left.(*DJSON).JSON.Exists(string(MustBeDString(right)))
-				if err != nil {
-					return nil, err
-				}
-				if e {
-					return DBoolTrue, nil
-				}
-				return DBoolFalse, nil
-			},
-		},
-	},
-
-	JSONSomeExists: {
-		&CmpOp{
-			LeftType:  types.Jsonb,
-			RightType: types.StringArray,
-			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
-				// TODO(justin): this can be optimized.
-				for _, k := range MustBeDArray(right).Array {
-					if k == DNull {
-						continue
-					}
-					e, err := left.(*DJSON).JSON.Exists(string(MustBeDString(k)))
-					if err != nil {
-						return nil, err
-					}
-					if e {
-						return DBoolTrue, nil
-					}
-				}
-				return DBoolFalse, nil
-			},
-		},
-	},
-
-	JSONAllExists: {
-		&CmpOp{
-			LeftType:  types.Jsonb,
-			RightType: types.StringArray,
-			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
-				// TODO(justin): this can be optimized.
-				for _, k := range MustBeDArray(right).Array {
-					if k == DNull {
-						continue
-					}
-					e, err := left.(*DJSON).JSON.Exists(string(MustBeDString(k)))
-					if err != nil {
-						return nil, err
-					}
-					if !e {
-						return DBoolFalse, nil
-					}
-				}
-				return DBoolTrue, nil
-			},
-		},
-	},
-
 	Contains: {
 		&CmpOp{
 			LeftType:  types.AnyArray,
@@ -2094,17 +2018,6 @@ var CmpOps = cmpOpFixups(map[ComparisonOperator]cmpOpOverload{
 				haystack := MustBeDArray(left)
 				needles := MustBeDArray(right)
 				return ArrayContains(ctx, haystack, needles)
-			},
-		},
-		&CmpOp{
-			LeftType:  types.Jsonb,
-			RightType: types.Jsonb,
-			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
-				c, err := json.Contains(left.(*DJSON).JSON, right.(*DJSON).JSON)
-				if err != nil {
-					return nil, err
-				}
-				return MakeDBool(DBool(c)), nil
 			},
 		},
 	},
@@ -2117,17 +2030,6 @@ var CmpOps = cmpOpFixups(map[ComparisonOperator]cmpOpOverload{
 				needles := MustBeDArray(left)
 				haystack := MustBeDArray(right)
 				return ArrayContains(ctx, haystack, needles)
-			},
-		},
-		&CmpOp{
-			LeftType:  types.Jsonb,
-			RightType: types.Jsonb,
-			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
-				c, err := json.Contains(right.(*DJSON).JSON, left.(*DJSON).JSON)
-				if err != nil {
-					return nil, err
-				}
-				return MakeDBool(DBool(c)), nil
 			},
 		},
 	},

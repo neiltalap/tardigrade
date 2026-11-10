@@ -64,7 +64,7 @@ func (x *ScanVisibility) UnmarshalJSON(data []byte) error {
 	return nil
 }
 func (ScanVisibility) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{0}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{0}
 }
 
 // These mirror the aggregate functions supported by sql/parser. See
@@ -160,7 +160,7 @@ func (x *AggregatorSpec_Func) UnmarshalJSON(data []byte) error {
 	return nil
 }
 func (AggregatorSpec_Func) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{10, 0}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{10, 0}
 }
 
 type AggregatorSpec_Type int32
@@ -206,205 +206,7 @@ func (x *AggregatorSpec_Type) UnmarshalJSON(data []byte) error {
 	return nil
 }
 func (AggregatorSpec_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{10, 1}
-}
-
-type WindowerSpec_WindowFunc int32
-
-const (
-	// These mirror window functions from window_builtins.go.
-	WindowerSpec_ROW_NUMBER   WindowerSpec_WindowFunc = 0
-	WindowerSpec_RANK         WindowerSpec_WindowFunc = 1
-	WindowerSpec_DENSE_RANK   WindowerSpec_WindowFunc = 2
-	WindowerSpec_PERCENT_RANK WindowerSpec_WindowFunc = 3
-	WindowerSpec_CUME_DIST    WindowerSpec_WindowFunc = 4
-	WindowerSpec_NTILE        WindowerSpec_WindowFunc = 5
-	WindowerSpec_LAG          WindowerSpec_WindowFunc = 6
-	WindowerSpec_LEAD         WindowerSpec_WindowFunc = 7
-	WindowerSpec_FIRST_VALUE  WindowerSpec_WindowFunc = 8
-	WindowerSpec_LAST_VALUE   WindowerSpec_WindowFunc = 9
-	WindowerSpec_NTH_VALUE    WindowerSpec_WindowFunc = 10
-)
-
-var WindowerSpec_WindowFunc_name = map[int32]string{
-	0:  "ROW_NUMBER",
-	1:  "RANK",
-	2:  "DENSE_RANK",
-	3:  "PERCENT_RANK",
-	4:  "CUME_DIST",
-	5:  "NTILE",
-	6:  "LAG",
-	7:  "LEAD",
-	8:  "FIRST_VALUE",
-	9:  "LAST_VALUE",
-	10: "NTH_VALUE",
-}
-var WindowerSpec_WindowFunc_value = map[string]int32{
-	"ROW_NUMBER":   0,
-	"RANK":         1,
-	"DENSE_RANK":   2,
-	"PERCENT_RANK": 3,
-	"CUME_DIST":    4,
-	"NTILE":        5,
-	"LAG":          6,
-	"LEAD":         7,
-	"FIRST_VALUE":  8,
-	"LAST_VALUE":   9,
-	"NTH_VALUE":    10,
-}
-
-func (x WindowerSpec_WindowFunc) Enum() *WindowerSpec_WindowFunc {
-	p := new(WindowerSpec_WindowFunc)
-	*p = x
-	return p
-}
-func (x WindowerSpec_WindowFunc) String() string {
-	return proto.EnumName(WindowerSpec_WindowFunc_name, int32(x))
-}
-func (x *WindowerSpec_WindowFunc) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(WindowerSpec_WindowFunc_value, data, "WindowerSpec_WindowFunc")
-	if err != nil {
-		return err
-	}
-	*x = WindowerSpec_WindowFunc(value)
-	return nil
-}
-func (WindowerSpec_WindowFunc) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13, 0}
-}
-
-// Mode indicates which mode of framing is used.
-type WindowerSpec_Frame_Mode int32
-
-const (
-	// RANGE specifies frame in terms of logical range (e.g. 1 unit cheaper).
-	WindowerSpec_Frame_RANGE WindowerSpec_Frame_Mode = 0
-	// ROWS specifies frame in terms of physical offsets (e.g. 1 row before).
-	WindowerSpec_Frame_ROWS WindowerSpec_Frame_Mode = 1
-	// GROUPS specifies frame in terms of peer groups (where "peers" mean
-	// rows not distinct in the ordering columns).
-	WindowerSpec_Frame_GROUPS WindowerSpec_Frame_Mode = 2
-)
-
-var WindowerSpec_Frame_Mode_name = map[int32]string{
-	0: "RANGE",
-	1: "ROWS",
-	2: "GROUPS",
-}
-var WindowerSpec_Frame_Mode_value = map[string]int32{
-	"RANGE":  0,
-	"ROWS":   1,
-	"GROUPS": 2,
-}
-
-func (x WindowerSpec_Frame_Mode) Enum() *WindowerSpec_Frame_Mode {
-	p := new(WindowerSpec_Frame_Mode)
-	*p = x
-	return p
-}
-func (x WindowerSpec_Frame_Mode) String() string {
-	return proto.EnumName(WindowerSpec_Frame_Mode_name, int32(x))
-}
-func (x *WindowerSpec_Frame_Mode) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(WindowerSpec_Frame_Mode_value, data, "WindowerSpec_Frame_Mode")
-	if err != nil {
-		return err
-	}
-	*x = WindowerSpec_Frame_Mode(value)
-	return nil
-}
-func (WindowerSpec_Frame_Mode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13, 1, 0}
-}
-
-// BoundType indicates which type of boundary is used.
-type WindowerSpec_Frame_BoundType int32
-
-const (
-	WindowerSpec_Frame_UNBOUNDED_PRECEDING WindowerSpec_Frame_BoundType = 0
-	WindowerSpec_Frame_UNBOUNDED_FOLLOWING WindowerSpec_Frame_BoundType = 1
-	// Offsets are stored within Bound.
-	WindowerSpec_Frame_OFFSET_PRECEDING WindowerSpec_Frame_BoundType = 2
-	WindowerSpec_Frame_OFFSET_FOLLOWING WindowerSpec_Frame_BoundType = 3
-	WindowerSpec_Frame_CURRENT_ROW      WindowerSpec_Frame_BoundType = 4
-)
-
-var WindowerSpec_Frame_BoundType_name = map[int32]string{
-	0: "UNBOUNDED_PRECEDING",
-	1: "UNBOUNDED_FOLLOWING",
-	2: "OFFSET_PRECEDING",
-	3: "OFFSET_FOLLOWING",
-	4: "CURRENT_ROW",
-}
-var WindowerSpec_Frame_BoundType_value = map[string]int32{
-	"UNBOUNDED_PRECEDING": 0,
-	"UNBOUNDED_FOLLOWING": 1,
-	"OFFSET_PRECEDING":    2,
-	"OFFSET_FOLLOWING":    3,
-	"CURRENT_ROW":         4,
-}
-
-func (x WindowerSpec_Frame_BoundType) Enum() *WindowerSpec_Frame_BoundType {
-	p := new(WindowerSpec_Frame_BoundType)
-	*p = x
-	return p
-}
-func (x WindowerSpec_Frame_BoundType) String() string {
-	return proto.EnumName(WindowerSpec_Frame_BoundType_name, int32(x))
-}
-func (x *WindowerSpec_Frame_BoundType) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(WindowerSpec_Frame_BoundType_value, data, "WindowerSpec_Frame_BoundType")
-	if err != nil {
-		return err
-	}
-	*x = WindowerSpec_Frame_BoundType(value)
-	return nil
-}
-func (WindowerSpec_Frame_BoundType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13, 1, 1}
-}
-
-// Exclusion specifies the type of frame exclusion.
-type WindowerSpec_Frame_Exclusion int32
-
-const (
-	WindowerSpec_Frame_NO_EXCLUSION        WindowerSpec_Frame_Exclusion = 0
-	WindowerSpec_Frame_EXCLUDE_CURRENT_ROW WindowerSpec_Frame_Exclusion = 1
-	WindowerSpec_Frame_EXCLUDE_GROUP       WindowerSpec_Frame_Exclusion = 2
-	WindowerSpec_Frame_EXCLUDE_TIES        WindowerSpec_Frame_Exclusion = 3
-)
-
-var WindowerSpec_Frame_Exclusion_name = map[int32]string{
-	0: "NO_EXCLUSION",
-	1: "EXCLUDE_CURRENT_ROW",
-	2: "EXCLUDE_GROUP",
-	3: "EXCLUDE_TIES",
-}
-var WindowerSpec_Frame_Exclusion_value = map[string]int32{
-	"NO_EXCLUSION":        0,
-	"EXCLUDE_CURRENT_ROW": 1,
-	"EXCLUDE_GROUP":       2,
-	"EXCLUDE_TIES":        3,
-}
-
-func (x WindowerSpec_Frame_Exclusion) Enum() *WindowerSpec_Frame_Exclusion {
-	p := new(WindowerSpec_Frame_Exclusion)
-	*p = x
-	return p
-}
-func (x WindowerSpec_Frame_Exclusion) String() string {
-	return proto.EnumName(WindowerSpec_Frame_Exclusion_name, int32(x))
-}
-func (x *WindowerSpec_Frame_Exclusion) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(WindowerSpec_Frame_Exclusion_value, data, "WindowerSpec_Frame_Exclusion")
-	if err != nil {
-		return err
-	}
-	*x = WindowerSpec_Frame_Exclusion(value)
-	return nil
-}
-func (WindowerSpec_Frame_Exclusion) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13, 1, 2}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{10, 1}
 }
 
 // ValuesCoreSpec is the core of a processor that has no inputs and generates
@@ -424,7 +226,7 @@ func (m *ValuesCoreSpec) Reset()         { *m = ValuesCoreSpec{} }
 func (m *ValuesCoreSpec) String() string { return proto.CompactTextString(m) }
 func (*ValuesCoreSpec) ProtoMessage()    {}
 func (*ValuesCoreSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{0}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{0}
 }
 func (m *ValuesCoreSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -458,9 +260,9 @@ var xxx_messageInfo_ValuesCoreSpec proto.InternalMessageInfo
 // the post-processing stage are to be populated. If is_check is set, the
 // TableReader will run additional data checking procedures and the
 // "internal columns" are:
-//  - Error type (string).
-//  - Primary key as a string, if it was obtainable.
-//  - JSON of all decoded column values.
+//   - Error type (string).
+//   - Primary key as a string, if it was obtainable.
+//   - JSON of all decoded column values.
 type TableReaderSpec struct {
 	Table sqlbase.TableDescriptor `protobuf:"bytes,1,opt,name=table" json:"table"`
 	// If 0, we use the primary index. If non-zero, we use the index_idx-th index,
@@ -519,7 +321,7 @@ func (m *TableReaderSpec) Reset()         { *m = TableReaderSpec{} }
 func (m *TableReaderSpec) String() string { return proto.CompactTextString(m) }
 func (*TableReaderSpec) ProtoMessage()    {}
 func (*TableReaderSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{1}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{1}
 }
 func (m *TableReaderSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -567,7 +369,7 @@ func (m *IndexSkipTableReaderSpec) Reset()         { *m = IndexSkipTableReaderSp
 func (m *IndexSkipTableReaderSpec) String() string { return proto.CompactTextString(m) }
 func (*IndexSkipTableReaderSpec) ProtoMessage()    {}
 func (*IndexSkipTableReaderSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{2}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{2}
 }
 func (m *IndexSkipTableReaderSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -598,10 +400,10 @@ var xxx_messageInfo_IndexSkipTableReaderSpec proto.InternalMessageInfo
 // order of the input rows.
 //
 // The "internal columns" of a JoinReader (see ProcessorSpec) are either:
-//  - the columns of the table, if we are performing an index join (no lookup
-//    columns) or if we are performing a semi or anti join, or
-//  - the concatenation of the columns of the input stream with the table
-//    columns.
+//   - the columns of the table, if we are performing an index join (no lookup
+//     columns) or if we are performing a semi or anti join, or
+//   - the concatenation of the columns of the input stream with the table
+//     columns.
 //
 // Internally, only the values for the columns needed by the post-processing
 // stage are populated.
@@ -610,10 +412,12 @@ var xxx_messageInfo_IndexSkipTableReaderSpec proto.InternalMessageInfo
 // Input stream columns: | a | b |              Table columns: | c | d | e |
 //
 // If performing a lookup join on a = c (lookup columns is [0]):
-//        Internal columns: | a | b | c | d | e |
+//
+//	Internal columns: | a | b | c | d | e |
 //
 // If performing an index join (where a = c and b = d) (lookup columns is []):
-//        Internal columns: | c | d | e |
+//
+//	Internal columns: | c | d | e |
 type JoinReaderSpec struct {
 	Table sqlbase.TableDescriptor `protobuf:"bytes,1,opt,name=table" json:"table"`
 	// If 0, we use the primary index; each row in the input stream has a value
@@ -655,7 +459,7 @@ func (m *JoinReaderSpec) Reset()         { *m = JoinReaderSpec{} }
 func (m *JoinReaderSpec) String() string { return proto.CompactTextString(m) }
 func (*JoinReaderSpec) ProtoMessage()    {}
 func (*JoinReaderSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{3}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{3}
 }
 func (m *JoinReaderSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -699,7 +503,7 @@ func (m *SorterSpec) Reset()         { *m = SorterSpec{} }
 func (m *SorterSpec) String() string { return proto.CompactTextString(m) }
 func (*SorterSpec) ProtoMessage()    {}
 func (*SorterSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{4}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{4}
 }
 func (m *SorterSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -743,7 +547,7 @@ func (m *DistinctSpec) Reset()         { *m = DistinctSpec{} }
 func (m *DistinctSpec) String() string { return proto.CompactTextString(m) }
 func (*DistinctSpec) ProtoMessage()    {}
 func (*DistinctSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{5}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{5}
 }
 func (m *DistinctSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -778,7 +582,7 @@ func (m *OrdinalitySpec) Reset()         { *m = OrdinalitySpec{} }
 func (m *OrdinalitySpec) String() string { return proto.CompactTextString(m) }
 func (*OrdinalitySpec) ProtoMessage()    {}
 func (*OrdinalitySpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{6}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{6}
 }
 func (m *OrdinalitySpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -836,7 +640,7 @@ func (m *ZigzagJoinerSpec) Reset()         { *m = ZigzagJoinerSpec{} }
 func (m *ZigzagJoinerSpec) String() string { return proto.CompactTextString(m) }
 func (*ZigzagJoinerSpec) ProtoMessage()    {}
 func (*ZigzagJoinerSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{7}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{7}
 }
 func (m *ZigzagJoinerSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -864,7 +668,8 @@ var xxx_messageInfo_ZigzagJoinerSpec proto.InternalMessageInfo
 // MergeJoinerSpec is the specification for a merge join processor. The processor
 // has two inputs and one output. The inputs must have the same ordering on the
 // columns that have equality constraints. For example:
-//   SELECT * FROM T1 INNER JOIN T2 ON T1.C1 = T2.C5 AND T1.C2 = T2.C4
+//
+//	SELECT * FROM T1 INNER JOIN T2 ON T1.C1 = T2.C5 AND T1.C2 = T2.C4
 //
 // To perform a merge join, the streams corresponding to T1 and T2 must have the
 // same ordering on columns C1, C2 and C5, C4 respectively. For example: C1+,C2-
@@ -912,7 +717,7 @@ func (m *MergeJoinerSpec) Reset()         { *m = MergeJoinerSpec{} }
 func (m *MergeJoinerSpec) String() string { return proto.CompactTextString(m) }
 func (*MergeJoinerSpec) ProtoMessage()    {}
 func (*MergeJoinerSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{8}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{8}
 }
 func (m *MergeJoinerSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -999,7 +804,7 @@ func (m *HashJoinerSpec) Reset()         { *m = HashJoinerSpec{} }
 func (m *HashJoinerSpec) String() string { return proto.CompactTextString(m) }
 func (*HashJoinerSpec) ProtoMessage()    {}
 func (*HashJoinerSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{9}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{9}
 }
 func (m *HashJoinerSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1045,7 +850,7 @@ func (m *AggregatorSpec) Reset()         { *m = AggregatorSpec{} }
 func (m *AggregatorSpec) String() string { return proto.CompactTextString(m) }
 func (*AggregatorSpec) ProtoMessage()    {}
 func (*AggregatorSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{10}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{10}
 }
 func (m *AggregatorSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1096,7 +901,7 @@ func (m *AggregatorSpec_Aggregation) Reset()         { *m = AggregatorSpec_Aggre
 func (m *AggregatorSpec_Aggregation) String() string { return proto.CompactTextString(m) }
 func (*AggregatorSpec_Aggregation) ProtoMessage()    {}
 func (*AggregatorSpec_Aggregation) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{10, 0}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{10, 0}
 }
 func (m *AggregatorSpec_Aggregation) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1160,7 +965,7 @@ func (m *InterleavedReaderJoinerSpec) Reset()         { *m = InterleavedReaderJo
 func (m *InterleavedReaderJoinerSpec) String() string { return proto.CompactTextString(m) }
 func (*InterleavedReaderJoinerSpec) ProtoMessage()    {}
 func (*InterleavedReaderJoinerSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{11}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{11}
 }
 func (m *InterleavedReaderJoinerSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1216,7 +1021,7 @@ func (m *InterleavedReaderJoinerSpec_Table) Reset()         { *m = InterleavedRe
 func (m *InterleavedReaderJoinerSpec_Table) String() string { return proto.CompactTextString(m) }
 func (*InterleavedReaderJoinerSpec_Table) ProtoMessage()    {}
 func (*InterleavedReaderJoinerSpec_Table) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{11, 0}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{11, 0}
 }
 func (m *InterleavedReaderJoinerSpec_Table) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1256,7 +1061,7 @@ func (m *ProjectSetSpec) Reset()         { *m = ProjectSetSpec{} }
 func (m *ProjectSetSpec) String() string { return proto.CompactTextString(m) }
 func (*ProjectSetSpec) ProtoMessage()    {}
 func (*ProjectSetSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{12}
+	return fileDescriptor_processors_sql_7e8e111f06141b6f, []int{12}
 }
 func (m *ProjectSetSpec) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1281,247 +1086,6 @@ func (m *ProjectSetSpec) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ProjectSetSpec proto.InternalMessageInfo
 
-// WindowerSpec is the specification of a processor that performs computations
-// of window functions that have the same PARTITION BY clause. For a particular
-// windowFn, the processor puts result at windowFn.ArgIdxStart and "consumes"
-// all arguments to windowFn (windowFn.ArgCount of them). So if windowFn takes
-// no arguments, an extra column is added; if windowFn takes more than one
-// argument, (windowFn.ArgCount - 1) columns are removed.
-type WindowerSpec struct {
-	// PartitionBy specifies how to partition rows for all window functions.
-	PartitionBy []uint32 `protobuf:"varint,1,rep,name=partitionBy" json:"partitionBy,omitempty"`
-	// WindowFns is the specification of all window functions to be computed.
-	WindowFns []WindowerSpec_WindowFn `protobuf:"bytes,2,rep,name=windowFns" json:"windowFns"`
-}
-
-func (m *WindowerSpec) Reset()         { *m = WindowerSpec{} }
-func (m *WindowerSpec) String() string { return proto.CompactTextString(m) }
-func (*WindowerSpec) ProtoMessage()    {}
-func (*WindowerSpec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13}
-}
-func (m *WindowerSpec) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *WindowerSpec) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (dst *WindowerSpec) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WindowerSpec.Merge(dst, src)
-}
-func (m *WindowerSpec) XXX_Size() int {
-	return m.Size()
-}
-func (m *WindowerSpec) XXX_DiscardUnknown() {
-	xxx_messageInfo_WindowerSpec.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WindowerSpec proto.InternalMessageInfo
-
-// Func specifies which function to compute. It can either be built-in
-// aggregate or built-in window function.
-type WindowerSpec_Func struct {
-	AggregateFunc *AggregatorSpec_Func     `protobuf:"varint,1,opt,name=aggregateFunc,enum=cockroach.sql.distsqlrun.AggregatorSpec_Func" json:"aggregateFunc,omitempty"`
-	WindowFunc    *WindowerSpec_WindowFunc `protobuf:"varint,2,opt,name=windowFunc,enum=cockroach.sql.distsqlrun.WindowerSpec_WindowFunc" json:"windowFunc,omitempty"`
-}
-
-func (m *WindowerSpec_Func) Reset()         { *m = WindowerSpec_Func{} }
-func (m *WindowerSpec_Func) String() string { return proto.CompactTextString(m) }
-func (*WindowerSpec_Func) ProtoMessage()    {}
-func (*WindowerSpec_Func) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13, 0}
-}
-func (m *WindowerSpec_Func) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *WindowerSpec_Func) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (dst *WindowerSpec_Func) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WindowerSpec_Func.Merge(dst, src)
-}
-func (m *WindowerSpec_Func) XXX_Size() int {
-	return m.Size()
-}
-func (m *WindowerSpec_Func) XXX_DiscardUnknown() {
-	xxx_messageInfo_WindowerSpec_Func.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WindowerSpec_Func proto.InternalMessageInfo
-
-// Frame is the specification of a single window frame for a window function.
-type WindowerSpec_Frame struct {
-	Mode      WindowerSpec_Frame_Mode      `protobuf:"varint,1,opt,name=mode,enum=cockroach.sql.distsqlrun.WindowerSpec_Frame_Mode" json:"mode"`
-	Bounds    WindowerSpec_Frame_Bounds    `protobuf:"bytes,2,opt,name=bounds" json:"bounds"`
-	Exclusion WindowerSpec_Frame_Exclusion `protobuf:"varint,3,opt,name=exclusion,enum=cockroach.sql.distsqlrun.WindowerSpec_Frame_Exclusion" json:"exclusion"`
-}
-
-func (m *WindowerSpec_Frame) Reset()         { *m = WindowerSpec_Frame{} }
-func (m *WindowerSpec_Frame) String() string { return proto.CompactTextString(m) }
-func (*WindowerSpec_Frame) ProtoMessage()    {}
-func (*WindowerSpec_Frame) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13, 1}
-}
-func (m *WindowerSpec_Frame) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *WindowerSpec_Frame) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (dst *WindowerSpec_Frame) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WindowerSpec_Frame.Merge(dst, src)
-}
-func (m *WindowerSpec_Frame) XXX_Size() int {
-	return m.Size()
-}
-func (m *WindowerSpec_Frame) XXX_DiscardUnknown() {
-	xxx_messageInfo_WindowerSpec_Frame.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WindowerSpec_Frame proto.InternalMessageInfo
-
-// Bound specifies the type of boundary and the offset (if present).
-type WindowerSpec_Frame_Bound struct {
-	BoundType WindowerSpec_Frame_BoundType `protobuf:"varint,1,opt,name=boundType,enum=cockroach.sql.distsqlrun.WindowerSpec_Frame_BoundType" json:"boundType"`
-	// For UNBOUNDED_PRECEDING, UNBOUNDED_FOLLOWING, and CURRENT_ROW offset
-	// is ignored. Integer offset for ROWS and GROUPS modes is stored in
-	// int_offset while an encoded datum and the type information are stored
-	// for RANGE mode.
-	IntOffset   uint64    `protobuf:"varint,2,opt,name=int_offset,json=intOffset" json:"int_offset"`
-	TypedOffset []byte    `protobuf:"bytes,3,opt,name=typed_offset,json=typedOffset" json:"typed_offset,omitempty"`
-	OffsetType  DatumInfo `protobuf:"bytes,4,opt,name=offset_type,json=offsetType" json:"offset_type"`
-}
-
-func (m *WindowerSpec_Frame_Bound) Reset()         { *m = WindowerSpec_Frame_Bound{} }
-func (m *WindowerSpec_Frame_Bound) String() string { return proto.CompactTextString(m) }
-func (*WindowerSpec_Frame_Bound) ProtoMessage()    {}
-func (*WindowerSpec_Frame_Bound) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13, 1, 0}
-}
-func (m *WindowerSpec_Frame_Bound) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *WindowerSpec_Frame_Bound) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (dst *WindowerSpec_Frame_Bound) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WindowerSpec_Frame_Bound.Merge(dst, src)
-}
-func (m *WindowerSpec_Frame_Bound) XXX_Size() int {
-	return m.Size()
-}
-func (m *WindowerSpec_Frame_Bound) XXX_DiscardUnknown() {
-	xxx_messageInfo_WindowerSpec_Frame_Bound.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WindowerSpec_Frame_Bound proto.InternalMessageInfo
-
-// Bounds specifies boundaries of the window frame.
-type WindowerSpec_Frame_Bounds struct {
-	// Start bound must always be present whereas end bound might be omitted.
-	Start WindowerSpec_Frame_Bound  `protobuf:"bytes,1,opt,name=start" json:"start"`
-	End   *WindowerSpec_Frame_Bound `protobuf:"bytes,2,opt,name=end" json:"end,omitempty"`
-}
-
-func (m *WindowerSpec_Frame_Bounds) Reset()         { *m = WindowerSpec_Frame_Bounds{} }
-func (m *WindowerSpec_Frame_Bounds) String() string { return proto.CompactTextString(m) }
-func (*WindowerSpec_Frame_Bounds) ProtoMessage()    {}
-func (*WindowerSpec_Frame_Bounds) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13, 1, 1}
-}
-func (m *WindowerSpec_Frame_Bounds) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *WindowerSpec_Frame_Bounds) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (dst *WindowerSpec_Frame_Bounds) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WindowerSpec_Frame_Bounds.Merge(dst, src)
-}
-func (m *WindowerSpec_Frame_Bounds) XXX_Size() int {
-	return m.Size()
-}
-func (m *WindowerSpec_Frame_Bounds) XXX_DiscardUnknown() {
-	xxx_messageInfo_WindowerSpec_Frame_Bounds.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WindowerSpec_Frame_Bounds proto.InternalMessageInfo
-
-// WindowFn is the specification of a single window function.
-type WindowerSpec_WindowFn struct {
-	// Func is which function to compute.
-	Func WindowerSpec_Func `protobuf:"bytes,1,opt,name=func" json:"func"`
-	// ArgsIdxs contains indices of the columns that are arguments to the
-	// window function.
-	ArgsIdxs []uint32 `protobuf:"varint,7,rep,name=argsIdxs" json:"argsIdxs,omitempty"`
-	// Ordering specifies in which order rows should be considered by this
-	// window function. Its contents come from ORDER BY clause of the window
-	// function.
-	Ordering Ordering `protobuf:"bytes,4,opt,name=ordering" json:"ordering"`
-	// Frame specifies over which frame this window function is computed.
-	Frame *WindowerSpec_Frame `protobuf:"bytes,5,opt,name=frame" json:"frame,omitempty"`
-	// Optional index of a column over which filtering of rows will be done.
-	// Special value -1 indicates that filter is not present.
-	FilterColIdx int32 `protobuf:"varint,6,opt,name=filterColIdx" json:"filterColIdx"`
-	// OutputColIdx specifies the column index which the window function should
-	// put its output into.
-	OutputColIdx uint32 `protobuf:"varint,8,opt,name=outputColIdx" json:"outputColIdx"`
-}
-
-func (m *WindowerSpec_WindowFn) Reset()         { *m = WindowerSpec_WindowFn{} }
-func (m *WindowerSpec_WindowFn) String() string { return proto.CompactTextString(m) }
-func (*WindowerSpec_WindowFn) ProtoMessage()    {}
-func (*WindowerSpec_WindowFn) Descriptor() ([]byte, []int) {
-	return fileDescriptor_processors_sql_94e13d71ec67df8a, []int{13, 2}
-}
-func (m *WindowerSpec_WindowFn) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *WindowerSpec_WindowFn) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (dst *WindowerSpec_WindowFn) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WindowerSpec_WindowFn.Merge(dst, src)
-}
-func (m *WindowerSpec_WindowFn) XXX_Size() int {
-	return m.Size()
-}
-func (m *WindowerSpec_WindowFn) XXX_DiscardUnknown() {
-	xxx_messageInfo_WindowerSpec_WindowFn.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WindowerSpec_WindowFn proto.InternalMessageInfo
-
 func init() {
 	proto.RegisterType((*ValuesCoreSpec)(nil), "cockroach.sql.distsqlrun.ValuesCoreSpec")
 	proto.RegisterType((*TableReaderSpec)(nil), "cockroach.sql.distsqlrun.TableReaderSpec")
@@ -1538,19 +1102,9 @@ func init() {
 	proto.RegisterType((*InterleavedReaderJoinerSpec)(nil), "cockroach.sql.distsqlrun.InterleavedReaderJoinerSpec")
 	proto.RegisterType((*InterleavedReaderJoinerSpec_Table)(nil), "cockroach.sql.distsqlrun.InterleavedReaderJoinerSpec.Table")
 	proto.RegisterType((*ProjectSetSpec)(nil), "cockroach.sql.distsqlrun.ProjectSetSpec")
-	proto.RegisterType((*WindowerSpec)(nil), "cockroach.sql.distsqlrun.WindowerSpec")
-	proto.RegisterType((*WindowerSpec_Func)(nil), "cockroach.sql.distsqlrun.WindowerSpec.Func")
-	proto.RegisterType((*WindowerSpec_Frame)(nil), "cockroach.sql.distsqlrun.WindowerSpec.Frame")
-	proto.RegisterType((*WindowerSpec_Frame_Bound)(nil), "cockroach.sql.distsqlrun.WindowerSpec.Frame.Bound")
-	proto.RegisterType((*WindowerSpec_Frame_Bounds)(nil), "cockroach.sql.distsqlrun.WindowerSpec.Frame.Bounds")
-	proto.RegisterType((*WindowerSpec_WindowFn)(nil), "cockroach.sql.distsqlrun.WindowerSpec.WindowFn")
 	proto.RegisterEnum("cockroach.sql.distsqlrun.ScanVisibility", ScanVisibility_name, ScanVisibility_value)
 	proto.RegisterEnum("cockroach.sql.distsqlrun.AggregatorSpec_Func", AggregatorSpec_Func_name, AggregatorSpec_Func_value)
 	proto.RegisterEnum("cockroach.sql.distsqlrun.AggregatorSpec_Type", AggregatorSpec_Type_name, AggregatorSpec_Type_value)
-	proto.RegisterEnum("cockroach.sql.distsqlrun.WindowerSpec_WindowFunc", WindowerSpec_WindowFunc_name, WindowerSpec_WindowFunc_value)
-	proto.RegisterEnum("cockroach.sql.distsqlrun.WindowerSpec_Frame_Mode", WindowerSpec_Frame_Mode_name, WindowerSpec_Frame_Mode_value)
-	proto.RegisterEnum("cockroach.sql.distsqlrun.WindowerSpec_Frame_BoundType", WindowerSpec_Frame_BoundType_name, WindowerSpec_Frame_BoundType_value)
-	proto.RegisterEnum("cockroach.sql.distsqlrun.WindowerSpec_Frame_Exclusion", WindowerSpec_Frame_Exclusion_name, WindowerSpec_Frame_Exclusion_value)
 }
 func (m *ValuesCoreSpec) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
@@ -2377,234 +1931,6 @@ func (m *ProjectSetSpec) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *WindowerSpec) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WindowerSpec) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.PartitionBy) > 0 {
-		for _, num := range m.PartitionBy {
-			dAtA[i] = 0x8
-			i++
-			i = encodeVarintProcessorsSql(dAtA, i, uint64(num))
-		}
-	}
-	if len(m.WindowFns) > 0 {
-		for _, msg := range m.WindowFns {
-			dAtA[i] = 0x12
-			i++
-			i = encodeVarintProcessorsSql(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	return i, nil
-}
-
-func (m *WindowerSpec_Func) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WindowerSpec_Func) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if m.AggregateFunc != nil {
-		dAtA[i] = 0x8
-		i++
-		i = encodeVarintProcessorsSql(dAtA, i, uint64(*m.AggregateFunc))
-	}
-	if m.WindowFunc != nil {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintProcessorsSql(dAtA, i, uint64(*m.WindowFunc))
-	}
-	return i, nil
-}
-
-func (m *WindowerSpec_Frame) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WindowerSpec_Frame) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	dAtA[i] = 0x8
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.Mode))
-	dAtA[i] = 0x12
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.Bounds.Size()))
-	n27, err := m.Bounds.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n27
-	dAtA[i] = 0x18
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.Exclusion))
-	return i, nil
-}
-
-func (m *WindowerSpec_Frame_Bound) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WindowerSpec_Frame_Bound) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	dAtA[i] = 0x8
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.BoundType))
-	dAtA[i] = 0x10
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.IntOffset))
-	if m.TypedOffset != nil {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintProcessorsSql(dAtA, i, uint64(len(m.TypedOffset)))
-		i += copy(dAtA[i:], m.TypedOffset)
-	}
-	dAtA[i] = 0x22
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.OffsetType.Size()))
-	n28, err := m.OffsetType.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n28
-	return i, nil
-}
-
-func (m *WindowerSpec_Frame_Bounds) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WindowerSpec_Frame_Bounds) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	dAtA[i] = 0xa
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.Start.Size()))
-	n29, err := m.Start.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n29
-	if m.End != nil {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintProcessorsSql(dAtA, i, uint64(m.End.Size()))
-		n30, err := m.End.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n30
-	}
-	return i, nil
-}
-
-func (m *WindowerSpec_WindowFn) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *WindowerSpec_WindowFn) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	dAtA[i] = 0xa
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.Func.Size()))
-	n31, err := m.Func.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n31
-	dAtA[i] = 0x22
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.Ordering.Size()))
-	n32, err := m.Ordering.MarshalTo(dAtA[i:])
-	if err != nil {
-		return 0, err
-	}
-	i += n32
-	if m.Frame != nil {
-		dAtA[i] = 0x2a
-		i++
-		i = encodeVarintProcessorsSql(dAtA, i, uint64(m.Frame.Size()))
-		n33, err := m.Frame.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += n33
-	}
-	dAtA[i] = 0x30
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.FilterColIdx))
-	if len(m.ArgsIdxs) > 0 {
-		for _, num := range m.ArgsIdxs {
-			dAtA[i] = 0x38
-			i++
-			i = encodeVarintProcessorsSql(dAtA, i, uint64(num))
-		}
-	}
-	dAtA[i] = 0x40
-	i++
-	i = encodeVarintProcessorsSql(dAtA, i, uint64(m.OutputColIdx))
-	return i, nil
-}
-
 func encodeVarintProcessorsSql(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -2952,110 +2278,6 @@ func (m *ProjectSetSpec) Size() (n int) {
 	return n
 }
 
-func (m *WindowerSpec) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if len(m.PartitionBy) > 0 {
-		for _, e := range m.PartitionBy {
-			n += 1 + sovProcessorsSql(uint64(e))
-		}
-	}
-	if len(m.WindowFns) > 0 {
-		for _, e := range m.WindowFns {
-			l = e.Size()
-			n += 1 + l + sovProcessorsSql(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *WindowerSpec_Func) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.AggregateFunc != nil {
-		n += 1 + sovProcessorsSql(uint64(*m.AggregateFunc))
-	}
-	if m.WindowFunc != nil {
-		n += 1 + sovProcessorsSql(uint64(*m.WindowFunc))
-	}
-	return n
-}
-
-func (m *WindowerSpec_Frame) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += 1 + sovProcessorsSql(uint64(m.Mode))
-	l = m.Bounds.Size()
-	n += 1 + l + sovProcessorsSql(uint64(l))
-	n += 1 + sovProcessorsSql(uint64(m.Exclusion))
-	return n
-}
-
-func (m *WindowerSpec_Frame_Bound) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += 1 + sovProcessorsSql(uint64(m.BoundType))
-	n += 1 + sovProcessorsSql(uint64(m.IntOffset))
-	if m.TypedOffset != nil {
-		l = len(m.TypedOffset)
-		n += 1 + l + sovProcessorsSql(uint64(l))
-	}
-	l = m.OffsetType.Size()
-	n += 1 + l + sovProcessorsSql(uint64(l))
-	return n
-}
-
-func (m *WindowerSpec_Frame_Bounds) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = m.Start.Size()
-	n += 1 + l + sovProcessorsSql(uint64(l))
-	if m.End != nil {
-		l = m.End.Size()
-		n += 1 + l + sovProcessorsSql(uint64(l))
-	}
-	return n
-}
-
-func (m *WindowerSpec_WindowFn) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = m.Func.Size()
-	n += 1 + l + sovProcessorsSql(uint64(l))
-	l = m.Ordering.Size()
-	n += 1 + l + sovProcessorsSql(uint64(l))
-	if m.Frame != nil {
-		l = m.Frame.Size()
-		n += 1 + l + sovProcessorsSql(uint64(l))
-	}
-	n += 1 + sovProcessorsSql(uint64(m.FilterColIdx))
-	if len(m.ArgsIdxs) > 0 {
-		for _, e := range m.ArgsIdxs {
-			n += 1 + sovProcessorsSql(uint64(e))
-		}
-	}
-	n += 1 + sovProcessorsSql(uint64(m.OutputColIdx))
-	return n
-}
-
 func sovProcessorsSql(x uint64) (n int) {
 	for {
 		n++
@@ -3068,27 +2290,6 @@ func sovProcessorsSql(x uint64) (n int) {
 }
 func sozProcessorsSql(x uint64) (n int) {
 	return sovProcessorsSql(uint64((x << 1) ^ uint64((int64(x) >> 63))))
-}
-func (this *WindowerSpec_Func) GetValue() interface{} {
-	if this.AggregateFunc != nil {
-		return this.AggregateFunc
-	}
-	if this.WindowFunc != nil {
-		return this.WindowFunc
-	}
-	return nil
-}
-
-func (this *WindowerSpec_Func) SetValue(value interface{}) bool {
-	switch vt := value.(type) {
-	case *AggregatorSpec_Func:
-		this.AggregateFunc = vt
-	case *WindowerSpec_WindowFunc:
-		this.WindowFunc = vt
-	default:
-		return false
-	}
-	return true
 }
 func (m *ValuesCoreSpec) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -6032,884 +5233,6 @@ func (m *ProjectSetSpec) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *WindowerSpec) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProcessorsSql
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: WindowerSpec: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WindowerSpec: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType == 0 {
-				var v uint32
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProcessorsSql
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					v |= (uint32(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				m.PartitionBy = append(m.PartitionBy, v)
-			} else if wireType == 2 {
-				var packedLen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProcessorsSql
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if packedLen < 0 {
-					return ErrInvalidLengthProcessorsSql
-				}
-				postIndex := iNdEx + packedLen
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				var elementCount int
-				var count int
-				for _, integer := range dAtA {
-					if integer < 128 {
-						count++
-					}
-				}
-				elementCount = count
-				if elementCount != 0 && len(m.PartitionBy) == 0 {
-					m.PartitionBy = make([]uint32, 0, elementCount)
-				}
-				for iNdEx < postIndex {
-					var v uint32
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowProcessorsSql
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						v |= (uint32(b) & 0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					m.PartitionBy = append(m.PartitionBy, v)
-				}
-			} else {
-				return fmt.Errorf("proto: wrong wireType = %d for field PartitionBy", wireType)
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WindowFns", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.WindowFns = append(m.WindowFns, WindowerSpec_WindowFn{})
-			if err := m.WindowFns[len(m.WindowFns)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProcessorsSql(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *WindowerSpec_Func) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProcessorsSql
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Func: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Func: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AggregateFunc", wireType)
-			}
-			var v AggregatorSpec_Func
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= (AggregatorSpec_Func(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.AggregateFunc = &v
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WindowFunc", wireType)
-			}
-			var v WindowerSpec_WindowFunc
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= (WindowerSpec_WindowFunc(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.WindowFunc = &v
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProcessorsSql(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *WindowerSpec_Frame) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProcessorsSql
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Frame: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Frame: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Mode", wireType)
-			}
-			m.Mode = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Mode |= (WindowerSpec_Frame_Mode(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Bounds", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Bounds.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Exclusion", wireType)
-			}
-			m.Exclusion = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Exclusion |= (WindowerSpec_Frame_Exclusion(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProcessorsSql(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *WindowerSpec_Frame_Bound) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProcessorsSql
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Bound: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Bound: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BoundType", wireType)
-			}
-			m.BoundType = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.BoundType |= (WindowerSpec_Frame_BoundType(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IntOffset", wireType)
-			}
-			m.IntOffset = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.IntOffset |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TypedOffset", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.TypedOffset = append(m.TypedOffset[:0], dAtA[iNdEx:postIndex]...)
-			if m.TypedOffset == nil {
-				m.TypedOffset = []byte{}
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OffsetType", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.OffsetType.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProcessorsSql(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *WindowerSpec_Frame_Bounds) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProcessorsSql
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Bounds: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Bounds: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Start", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Start.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field End", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.End == nil {
-				m.End = &WindowerSpec_Frame_Bound{}
-			}
-			if err := m.End.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProcessorsSql(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *WindowerSpec_WindowFn) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowProcessorsSql
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: WindowFn: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WindowFn: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Func", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Func.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Ordering", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Ordering.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Frame", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Frame == nil {
-				m.Frame = &WindowerSpec_Frame{}
-			}
-			if err := m.Frame.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FilterColIdx", wireType)
-			}
-			m.FilterColIdx = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.FilterColIdx |= (int32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 7:
-			if wireType == 0 {
-				var v uint32
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProcessorsSql
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					v |= (uint32(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				m.ArgsIdxs = append(m.ArgsIdxs, v)
-			} else if wireType == 2 {
-				var packedLen int
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowProcessorsSql
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				if packedLen < 0 {
-					return ErrInvalidLengthProcessorsSql
-				}
-				postIndex := iNdEx + packedLen
-				if postIndex > l {
-					return io.ErrUnexpectedEOF
-				}
-				var elementCount int
-				var count int
-				for _, integer := range dAtA {
-					if integer < 128 {
-						count++
-					}
-				}
-				elementCount = count
-				if elementCount != 0 && len(m.ArgsIdxs) == 0 {
-					m.ArgsIdxs = make([]uint32, 0, elementCount)
-				}
-				for iNdEx < postIndex {
-					var v uint32
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowProcessorsSql
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						v |= (uint32(b) & 0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					m.ArgsIdxs = append(m.ArgsIdxs, v)
-				}
-			} else {
-				return fmt.Errorf("proto: wrong wireType = %d for field ArgsIdxs", wireType)
-			}
-		case 8:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OutputColIdx", wireType)
-			}
-			m.OutputColIdx = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProcessorsSql
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.OutputColIdx |= (uint32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipProcessorsSql(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthProcessorsSql
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
 func skipProcessorsSql(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7016,155 +5339,118 @@ var (
 )
 
 func init() {
-	proto.RegisterFile("sql/execinfrapb/processors_sql.proto", fileDescriptor_processors_sql_94e13d71ec67df8a)
+	proto.RegisterFile("sql/execinfrapb/processors_sql.proto", fileDescriptor_processors_sql_7e8e111f06141b6f)
 }
 
-var fileDescriptor_processors_sql_94e13d71ec67df8a = []byte{
-	// 2321 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x59, 0xcd, 0x73, 0xdb, 0xc6,
-	0x15, 0x17, 0x48, 0x50, 0x22, 0x1f, 0x3f, 0x84, 0x6c, 0x9c, 0x9a, 0xa5, 0x3b, 0xb2, 0xcc, 0x38,
-	0xb5, 0x9c, 0x38, 0x52, 0xab, 0x66, 0xd2, 0x49, 0xd2, 0x43, 0x40, 0x12, 0xa4, 0x29, 0x53, 0x80,
-	0x0c, 0x92, 0xf2, 0x47, 0x67, 0x8a, 0x81, 0x88, 0x15, 0x85, 0x88, 0x04, 0xa8, 0x05, 0x60, 0x51,
-	0xf9, 0x07, 0x7a, 0x6d, 0xa7, 0x97, 0x9e, 0x3a, 0xb9, 0xf4, 0x2f, 0x68, 0x0f, 0x3d, 0xf5, 0xec,
-	0x63, 0x4e, 0x6d, 0xda, 0x83, 0xa7, 0xb1, 0xef, 0xbd, 0xf6, 0xd6, 0xe9, 0xec, 0x62, 0x01, 0x81,
-	0x1a, 0xd3, 0x63, 0xda, 0x9e, 0xfa, 0xc6, 0x7d, 0x1f, 0xbf, 0x7d, 0xfb, 0xde, 0xdb, 0xf7, 0xde,
-	0x82, 0x70, 0xdd, 0x3b, 0x19, 0x6d, 0xe1, 0x29, 0x1e, 0xd8, 0xce, 0x21, 0x31, 0x27, 0x07, 0x5b,
-	0x13, 0xe2, 0x0e, 0xb0, 0xe7, 0xb9, 0xc4, 0x33, 0xbc, 0x93, 0xd1, 0xe6, 0x84, 0xb8, 0xbe, 0x8b,
-	0xca, 0x03, 0x77, 0x70, 0x4c, 0x5c, 0x73, 0x70, 0xb4, 0x49, 0x89, 0x96, 0xed, 0xf9, 0xde, 0xc9,
-	0x88, 0x04, 0x4e, 0xe5, 0x47, 0x54, 0xdf, 0x3b, 0x19, 0x1d, 0x98, 0x1e, 0xde, 0xf2, 0x7c, 0x12,
-	0x0c, 0xfc, 0x80, 0x60, 0x2b, 0xd4, 0xab, 0x5c, 0x49, 0x72, 0xbf, 0x72, 0x6d, 0xc7, 0xf0, 0xcf,
-	0x26, 0x98, 0x33, 0x2b, 0x17, 0xb7, 0xb6, 0x4c, 0xdf, 0xe4, 0xbc, 0x0f, 0x5e, 0x60, 0x16, 0x05,
-	0xe3, 0x62, 0x97, 0x86, 0xee, 0xd0, 0x65, 0x3f, 0xb7, 0xe8, 0xaf, 0x90, 0x5a, 0xfd, 0x9d, 0x00,
-	0xa5, 0x7d, 0x73, 0x14, 0x60, 0xaf, 0xee, 0x12, 0xdc, 0x9d, 0xe0, 0x01, 0xaa, 0xc3, 0xca, 0xc0,
-	0x1d, 0x05, 0x63, 0xc7, 0x2b, 0x0b, 0xeb, 0xe9, 0x8d, 0xfc, 0xf6, 0xfb, 0x9b, 0xf3, 0x8e, 0xb4,
-	0xd9, 0x30, 0xfd, 0x60, 0xdc, 0x76, 0x0e, 0xdd, 0x9a, 0xf8, 0xf8, 0xc9, 0xd5, 0x25, 0x3d, 0xd2,
-	0x44, 0x57, 0x20, 0x47, 0xcc, 0x53, 0xe3, 0xe0, 0xcc, 0xc7, 0x5e, 0x39, 0xb5, 0x9e, 0xde, 0x28,
-	0xe8, 0x59, 0x62, 0x9e, 0xd6, 0xe8, 0x1a, 0x5d, 0x85, 0xac, 0x13, 0x8c, 0x0d, 0xe2, 0x9e, 0x7a,
-	0xe5, 0xf4, 0xba, 0xb0, 0x21, 0x46, 0xda, 0x4e, 0x30, 0xd6, 0xdd, 0x53, 0xaf, 0xfa, 0x8f, 0x34,
-	0xac, 0xf6, 0xcc, 0x83, 0x11, 0xd6, 0xb1, 0x69, 0x61, 0xc2, 0xcc, 0xaa, 0x41, 0xc6, 0xa7, 0xa4,
-	0xb2, 0xb0, 0x2e, 0x6c, 0xe4, 0xb7, 0x7f, 0x7c, 0xc1, 0x28, 0xee, 0xb9, 0x4d, 0xa6, 0xd6, 0xc0,
-	0xde, 0x80, 0xd8, 0x13, 0xdf, 0x25, 0x1c, 0x39, 0x54, 0x45, 0xd7, 0x20, 0x67, 0x3b, 0x16, 0x9e,
-	0x1a, 0xb6, 0x35, 0x2d, 0xa7, 0xd6, 0x85, 0x8d, 0x22, 0xe7, 0x67, 0x19, 0xb9, 0x6d, 0x4d, 0xd1,
-	0x1a, 0xac, 0x10, 0xfc, 0x08, 0x13, 0x0f, 0x33, 0xd3, 0xb2, 0x91, 0x69, 0x9c, 0x88, 0x14, 0xc8,
-	0x78, 0x13, 0xd3, 0xf1, 0xca, 0x22, 0xf3, 0xcd, 0xcd, 0xf9, 0xbe, 0x99, 0x39, 0x80, 0xe9, 0x44,
-	0x96, 0x30, 0x6d, 0xf4, 0x3e, 0xc0, 0xc8, 0x1e, 0xdb, 0xbe, 0x71, 0x64, 0x3b, 0x7e, 0x39, 0xb3,
-	0x2e, 0x6c, 0xa4, 0xb9, 0x40, 0x8e, 0xd1, 0x6f, 0xdb, 0x8e, 0x4f, 0xfd, 0x64, 0x7b, 0xc6, 0xe0,
-	0x08, 0x0f, 0x8e, 0xcb, 0xcb, 0x49, 0x63, 0x6c, 0xaf, 0x4e, 0x89, 0x48, 0x05, 0x78, 0x64, 0x7b,
-	0xf6, 0x81, 0x3d, 0xb2, 0xfd, 0xb3, 0xf2, 0xca, 0xba, 0xb0, 0x51, 0xda, 0xde, 0x98, 0x6f, 0x51,
-	0x77, 0x60, 0x3a, 0xfb, 0xb1, 0x3c, 0x07, 0x4b, 0x20, 0xa0, 0x0f, 0x20, 0x3f, 0x36, 0xa7, 0x06,
-	0xc1, 0x5e, 0x30, 0xf2, 0xbd, 0x72, 0x36, 0x11, 0x1b, 0x18, 0x9b, 0x53, 0x3d, 0xa4, 0xa3, 0x2f,
-	0xe0, 0x32, 0x15, 0xf3, 0xed, 0x31, 0xf6, 0x7c, 0x73, 0x3c, 0x31, 0xcc, 0x21, 0x36, 0x1c, 0xd3,
-	0x71, 0xbd, 0x72, 0x2e, 0xa1, 0x72, 0x69, 0x6c, 0x4e, 0x7b, 0x91, 0x8c, 0x3c, 0xc4, 0x2a, 0x95,
-	0xa8, 0xfe, 0x25, 0x05, 0xe5, 0x36, 0xf5, 0x76, 0xf7, 0xd8, 0x9e, 0xbc, 0xa5, 0x20, 0xc7, 0x41,
-	0x4c, 0xbf, 0x56, 0x10, 0x67, 0xdd, 0x2f, 0xbe, 0xb6, 0xfb, 0x13, 0xb9, 0x97, 0x79, 0x4e, 0xee,
-	0x55, 0xff, 0x94, 0x86, 0xd2, 0x8e, 0x6b, 0x3b, 0xff, 0x7f, 0x87, 0xdd, 0x84, 0xd2, 0xc8, 0x75,
-	0x8f, 0x83, 0x89, 0x11, 0x95, 0x06, 0xea, 0xb9, 0x62, 0x2d, 0x25, 0x09, 0x7a, 0x31, 0xe4, 0xd4,
-	0xf9, 0xcd, 0xaf, 0xc3, 0x8a, 0xeb, 0x18, 0x78, 0x3a, 0x21, 0xcc, 0x23, 0xf9, 0xed, 0xeb, 0xf3,
-	0x3d, 0xa2, 0x4c, 0x27, 0x04, 0x7b, 0x9e, 0xed, 0x46, 0x8e, 0x5d, 0x76, 0x1d, 0x4a, 0x43, 0x9f,
-	0x81, 0x48, 0xab, 0x1f, 0xcb, 0xfa, 0xd2, 0xf6, 0xd5, 0x39, 0xa7, 0xa2, 0xbe, 0xe8, 0x9d, 0x4d,
-	0x30, 0x57, 0x66, 0x2a, 0x6f, 0xfc, 0x4e, 0x7c, 0x06, 0x3f, 0x98, 0x3d, 0xba, 0x61, 0x12, 0x6c,
-	0x1c, 0xe3, 0x33, 0x76, 0x3d, 0xa2, 0x18, 0xbd, 0x3b, 0xe3, 0x04, 0x99, 0xe0, 0x3b, 0xf8, 0x6c,
-	0x47, 0xcc, 0x66, 0xa4, 0x65, 0x5a, 0x62, 0xa1, 0xeb, 0x12, 0x9f, 0x47, 0xec, 0x2e, 0xac, 0xba,
-	0x81, 0x3f, 0x09, 0x7c, 0xc3, 0x25, 0x16, 0x26, 0xb6, 0x33, 0xe4, 0xb1, 0xab, 0xce, 0x37, 0x52,
-	0xe3, 0x92, 0x7c, 0xb3, 0x52, 0x08, 0x10, 0x51, 0xd1, 0x36, 0xa0, 0x08, 0xcb, 0x18, 0x9b, 0xfe,
-	0xe0, 0xc8, 0x18, 0x61, 0x67, 0x26, 0x92, 0x52, 0xc4, 0xdf, 0xa5, 0xec, 0x0e, 0x76, 0xaa, 0x07,
-	0x50, 0x68, 0xd8, 0x9e, 0x6f, 0x3b, 0x03, 0x9f, 0x99, 0x75, 0x03, 0x56, 0x99, 0x0c, 0xb6, 0x8c,
-	0x64, 0xf5, 0x2f, 0xea, 0x25, 0x4e, 0x8e, 0xe2, 0x7b, 0x13, 0x24, 0x8b, 0x2b, 0xc6, 0x92, 0x29,
-	0x26, 0xb9, 0x1a, 0xd1, 0xb9, 0x68, 0x55, 0x82, 0x92, 0x46, 0x2c, 0xdb, 0x31, 0xa9, 0x23, 0xe9,
-	0x2e, 0xd5, 0xdf, 0xa7, 0x41, 0x7a, 0x68, 0x0f, 0xbf, 0x36, 0x87, 0x34, 0x76, 0xdc, 0x23, 0x0d,
-	0x58, 0x66, 0x89, 0x18, 0xf5, 0x9b, 0xc5, 0x92, 0x98, 0xeb, 0xa2, 0x26, 0x00, 0x3e, 0x99, 0xb1,
-	0x28, 0xbf, 0x7d, 0x6d, 0xbe, 0x4b, 0xb9, 0x8d, 0x51, 0xd1, 0xc5, 0x27, 0xe7, 0xe7, 0x2b, 0x85,
-	0xb7, 0xc1, 0x0d, 0x4d, 0x9f, 0x49, 0x75, 0xc6, 0xe1, 0x67, 0x7a, 0x43, 0xa9, 0x7e, 0x07, 0x0a,
-	0x87, 0xf6, 0x14, 0x5b, 0xc6, 0x23, 0xd6, 0x86, 0xcb, 0x19, 0x66, 0xf9, 0x0b, 0x32, 0x76, 0xb6,
-	0x5d, 0xeb, 0x79, 0xa6, 0x1d, 0x12, 0x5f, 0xe3, 0xde, 0x54, 0xff, 0x96, 0x86, 0xd5, 0x5d, 0x4c,
-	0x86, 0x38, 0x11, 0x99, 0x5d, 0x28, 0x8e, 0xf0, 0xe1, 0x6b, 0x64, 0x6a, 0x81, 0xaa, 0xc7, 0x79,
-	0xaa, 0x41, 0x89, 0xd8, 0xc3, 0xa3, 0x04, 0x5e, 0x6a, 0x41, 0xbc, 0x22, 0xd3, 0x8f, 0x01, 0x13,
-	0x01, 0xc8, 0xbc, 0x8d, 0x5a, 0x73, 0x13, 0x8a, 0x4e, 0x30, 0x1a, 0x19, 0xf8, 0x24, 0x30, 0xe3,
-	0x72, 0x13, 0x95, 0x84, 0x02, 0x65, 0x29, 0x9c, 0x83, 0x3e, 0x87, 0xcb, 0xcc, 0x95, 0xe7, 0x39,
-	0x3a, 0xa7, 0x8e, 0xe0, 0x43, 0x5f, 0x39, 0x99, 0xa9, 0x23, 0xe8, 0x17, 0x50, 0x0e, 0xfd, 0xf6,
-	0x1c, 0xe5, 0x5c, 0x42, 0xf9, 0x12, 0x93, 0xba, 0xa0, 0x5d, 0xfd, 0x6d, 0x1a, 0x4a, 0xb7, 0x4d,
-	0xef, 0x28, 0x11, 0xd7, 0x0f, 0x61, 0xf5, 0x82, 0x31, 0xe1, 0x65, 0xe7, 0xf5, 0x3c, 0x69, 0x02,
-	0xba, 0x05, 0xd2, 0xc5, 0xcd, 0xc3, 0xfb, 0xce, 0x84, 0x4b, 0xb3, 0x5b, 0xbe, 0xf5, 0x88, 0x7c,
-	0x04, 0xa5, 0x31, 0x4d, 0xe2, 0xf3, 0x2a, 0x96, 0x0c, 0x49, 0x31, 0xe4, 0x45, 0xc6, 0xbe, 0xbd,
-	0x98, 0xfc, 0x7b, 0x19, 0x4a, 0xf2, 0x70, 0x48, 0xf0, 0xd0, 0xf4, 0xdd, 0x30, 0x26, 0xd7, 0x00,
-	0x86, 0xc4, 0x0d, 0xdb, 0x4c, 0xd2, 0xc3, 0x39, 0x46, 0xad, 0xbb, 0x23, 0x0f, 0xfd, 0x0a, 0x0a,
-	0x26, 0x57, 0xb2, 0xdd, 0x78, 0x7a, 0xf9, 0x64, 0xbe, 0x87, 0x67, 0xb7, 0x88, 0x97, 0xe7, 0x1e,
-	0x9f, 0xc1, 0x43, 0x3f, 0xe1, 0x7d, 0x04, 0x5b, 0x46, 0xc2, 0x14, 0x31, 0x36, 0x45, 0xe2, 0xdc,
-	0x56, 0x6c, 0x51, 0x8b, 0x47, 0x2a, 0xc3, 0x22, 0xf5, 0xf1, 0x4b, 0x5b, 0x72, 0x31, 0x6e, 0x95,
-	0x5f, 0xa7, 0x20, 0x9f, 0x30, 0x8f, 0x02, 0x1f, 0x06, 0xce, 0x80, 0x15, 0x9c, 0x45, 0x80, 0x9b,
-	0x81, 0x33, 0x88, 0x80, 0x29, 0x00, 0x5a, 0x87, 0x6c, 0xd4, 0x96, 0x58, 0xb5, 0x89, 0xe2, 0x12,
-	0x53, 0xd1, 0x75, 0x28, 0x1d, 0xda, 0x23, 0x1f, 0x13, 0x7a, 0x5c, 0x36, 0x03, 0xd1, 0x62, 0x5e,
-	0xd4, 0x0b, 0x21, 0xb5, 0xee, 0x8e, 0xe8, 0x04, 0x74, 0x99, 0xbd, 0x8a, 0x18, 0x3b, 0xc3, 0xba,
-	0xdd, 0xf2, 0x20, 0x64, 0xdc, 0x86, 0x9c, 0x49, 0x86, 0xc1, 0x18, 0x3b, 0xbe, 0x57, 0x5e, 0x66,
-	0x11, 0x59, 0x24, 0xe7, 0xcf, 0x95, 0x77, 0xc4, 0x6c, 0x5a, 0x12, 0xab, 0x7f, 0x4c, 0x81, 0x48,
-	0x4f, 0x81, 0x24, 0x28, 0xc8, 0xea, 0x03, 0x43, 0xd5, 0x7a, 0x86, 0xda, 0xef, 0x74, 0xa4, 0x25,
-	0xb4, 0x02, 0x69, 0x79, 0xbf, 0x25, 0x09, 0xa8, 0x00, 0xd9, 0x9a, 0xa6, 0x75, 0x0c, 0x59, 0x6d,
-	0x48, 0x29, 0x94, 0x87, 0x15, 0xb6, 0xd2, 0x74, 0x29, 0x8d, 0x4a, 0x00, 0x75, 0x4d, 0xad, 0xcb,
-	0x3d, 0x43, 0x6e, 0xb5, 0x24, 0x11, 0xe5, 0x20, 0x53, 0xd7, 0xfa, 0x6a, 0x4f, 0xca, 0x50, 0xf5,
-	0x5d, 0xf9, 0xbe, 0xb4, 0xc2, 0x7e, 0xb4, 0x55, 0x29, 0x8b, 0x00, 0x96, 0xbb, 0xbd, 0x46, 0x43,
-	0xd9, 0x97, 0x72, 0x94, 0xd8, 0xed, 0xef, 0x4a, 0x40, 0xe1, 0xba, 0xfd, 0x5d, 0xa3, 0xad, 0xf6,
-	0xa4, 0x3c, 0xdd, 0x69, 0x5f, 0xd6, 0xdb, 0xb2, 0x5a, 0x57, 0xa4, 0x02, 0x65, 0xdd, 0xd7, 0x74,
-	0x86, 0x5c, 0x0c, 0x77, 0xea, 0xab, 0x3d, 0x43, 0xd7, 0xee, 0x75, 0xa5, 0x12, 0xd3, 0xbb, 0xab,
-	0x37, 0xda, 0xcd, 0xa6, 0xb4, 0x8a, 0x10, 0x94, 0x9a, 0x6d, 0x55, 0xee, 0x18, 0xb1, 0xb6, 0x44,
-	0x0f, 0x14, 0xd2, 0xf8, 0x9e, 0xef, 0xa0, 0x22, 0xe4, 0x64, 0x5d, 0x97, 0x1f, 0x30, 0x44, 0x44,
-	0x37, 0xdb, 0xe9, 0x6a, 0x2a, 0x5b, 0xbd, 0x4b, 0x99, 0x74, 0x55, 0x63, 0xcb, 0x4b, 0x74, 0xbb,
-	0x6e, 0x4f, 0x6f, 0xab, 0x2d, 0xb6, 0x7e, 0xaf, 0x7a, 0x0b, 0x44, 0x9a, 0x45, 0x28, 0x0b, 0xa2,
-	0xdc, 0xef, 0x69, 0xd2, 0x12, 0x3b, 0x4d, 0x5d, 0xee, 0xc8, 0xba, 0x24, 0x50, 0x69, 0x55, 0x53,
-	0x0d, 0xbe, 0x4e, 0x55, 0xff, 0x2b, 0xc2, 0x95, 0xb6, 0xe3, 0x63, 0x32, 0xc2, 0xe6, 0x23, 0x6c,
-	0x85, 0x13, 0x74, 0xa2, 0x22, 0x3e, 0xb8, 0x30, 0x83, 0x7c, 0x31, 0x3f, 0x84, 0x2f, 0x80, 0x09,
-	0x47, 0x94, 0x0b, 0x83, 0x49, 0x62, 0xaa, 0x4f, 0x3d, 0xef, 0x45, 0x39, 0xfb, 0x14, 0x4c, 0x3f,
-	0xff, 0x29, 0xf8, 0x46, 0xa7, 0xea, 0xcc, 0xc2, 0x75, 0xb5, 0xf2, 0xd7, 0x14, 0x64, 0xd8, 0xe1,
-	0xd0, 0x97, 0x20, 0x5a, 0xd8, 0x1b, 0xbc, 0xd2, 0x83, 0x83, 0x69, 0xbe, 0xcc, 0x7b, 0xa3, 0x0e,
-	0xe2, 0xc4, 0xf5, 0x42, 0x6f, 0xbc, 0xf0, 0x7d, 0xb6, 0xe7, 0x7a, 0xfe, 0x5e, 0xf8, 0xbd, 0x83,
-	0x06, 0x20, 0xda, 0x87, 0x2a, 0xa3, 0x06, 0x64, 0xe3, 0x41, 0x43, 0x5c, 0x70, 0xd0, 0x88, 0x35,
-	0xcf, 0xdf, 0x8a, 0x99, 0xd7, 0x79, 0x2b, 0x56, 0x9f, 0x08, 0x50, 0xda, 0x23, 0xee, 0x57, 0x78,
-	0xe0, 0x77, 0x71, 0x38, 0x72, 0x7f, 0x09, 0x19, 0x1a, 0xd0, 0x28, 0xe5, 0x16, 0x89, 0x68, 0xa8,
-	0x88, 0x4c, 0x78, 0x67, 0x88, 0x1d, 0x4c, 0x4c, 0x3f, 0xd1, 0xf0, 0xd8, 0xd7, 0x96, 0xda, 0x27,
-	0x54, 0xee, 0x9f, 0x4f, 0xae, 0xde, 0x1a, 0xda, 0xfe, 0x51, 0x70, 0xb0, 0x39, 0x70, 0xc7, 0x5b,
-	0x13, 0xd7, 0x72, 0xc7, 0x67, 0x5b, 0xbe, 0x49, 0x2c, 0x7b, 0x48, 0x4c, 0x0b, 0x6f, 0x4d, 0x8e,
-	0x87, 0x5b, 0xde, 0xc9, 0x68, 0x8b, 0xc6, 0xd8, 0xdb, 0xec, 0xe9, 0x52, 0x0c, 0x17, 0xf5, 0xc8,
-	0x1b, 0x20, 0x39, 0xc1, 0x98, 0x75, 0x02, 0x63, 0x82, 0x89, 0x31, 0xc4, 0x4e, 0x38, 0x10, 0xeb,
-	0x45, 0x27, 0x18, 0xd3, 0x26, 0xb0, 0x87, 0x49, 0x0b, 0x3b, 0xd5, 0xef, 0x8b, 0x50, 0xb8, 0x67,
-	0x3b, 0x96, 0x7b, 0xca, 0xaf, 0xd4, 0x3a, 0xe4, 0x27, 0x26, 0xf1, 0x6d, 0xd6, 0x6e, 0xce, 0xf8,
-	0x6b, 0x22, 0x49, 0x42, 0x5d, 0xc8, 0x9d, 0x32, 0x8d, 0x66, 0x3c, 0xb1, 0x6f, 0xcd, 0x77, 0x42,
-	0x12, 0x9c, 0x2f, 0x9a, 0x71, 0x15, 0x8d, 0x71, 0x2a, 0x7f, 0x16, 0x78, 0xfd, 0xec, 0x42, 0x31,
-	0xea, 0x6e, 0xb8, 0xf9, 0xaa, 0xbd, 0x44, 0x9f, 0xc5, 0x40, 0x77, 0x01, 0xf8, 0x56, 0x14, 0x31,
-	0xc5, 0x10, 0x7f, 0xba, 0x98, 0xcd, 0x14, 0x35, 0x01, 0xf2, 0xb9, 0xf8, 0xf8, 0x9b, 0xab, 0x42,
-	0xe5, 0x9b, 0x15, 0xc8, 0x34, 0x89, 0x39, 0xc6, 0xe8, 0x0e, 0x88, 0x63, 0xd7, 0xc2, 0xdc, 0xdc,
-	0x97, 0x05, 0x67, 0xba, 0x9b, 0xbb, 0xae, 0x15, 0xdf, 0x5b, 0x0a, 0x82, 0xee, 0xc2, 0xf2, 0x81,
-	0x1b, 0x38, 0x96, 0xc7, 0x47, 0xed, 0x9f, 0x2d, 0x04, 0x57, 0x63, 0xaa, 0x51, 0x15, 0x09, 0x81,
-	0xd0, 0x43, 0xc8, 0xe1, 0xe9, 0x60, 0x14, 0xd0, 0x74, 0x64, 0x17, 0xb4, 0xb4, 0xfd, 0xe9, 0x42,
-	0xa8, 0x4a, 0xa4, 0x1d, 0x3f, 0xbe, 0x22, 0x42, 0xe5, 0x3f, 0x02, 0x64, 0xd8, 0xa6, 0x74, 0x17,
-	0xb6, 0x1f, 0xad, 0x44, 0xdc, 0x15, 0x9f, 0x2e, 0x6e, 0x7b, 0xa2, 0x8e, 0x9d, 0xc3, 0xd1, 0x8a,
-	0x6b, 0x3b, 0xbe, 0xe1, 0x1e, 0x1e, 0x7a, 0x38, 0x9c, 0x0a, 0xa2, 0x4f, 0x56, 0x39, 0xdb, 0xf1,
-	0x35, 0x46, 0x46, 0xd7, 0xa0, 0x40, 0x6f, 0x85, 0x15, 0x89, 0xd1, 0x93, 0x16, 0xf4, 0x3c, 0xa3,
-	0x71, 0x91, 0x1d, 0xc8, 0x87, 0x4c, 0xf6, 0xa9, 0x96, 0xd7, 0x98, 0x05, 0xbe, 0x96, 0x42, 0xa8,
-	0x4d, 0x6d, 0xaa, 0xfc, 0x41, 0x80, 0xe5, 0xd0, 0xdd, 0x48, 0x85, 0x8c, 0xe7, 0x9b, 0xc4, 0xe7,
-	0x25, 0x76, 0x7b, 0xf1, 0x63, 0xc7, 0xa5, 0x87, 0xc2, 0xa0, 0x06, 0xa4, 0xb1, 0x63, 0xf1, 0x04,
-	0x78, 0x05, 0x34, 0x9d, 0xaa, 0x57, 0x6f, 0x80, 0x48, 0xb3, 0x8b, 0x0e, 0x14, 0xba, 0xac, 0xb6,
-	0x14, 0x69, 0x89, 0xb6, 0x5e, 0xd6, 0xfb, 0x05, 0xda, 0x7a, 0x5b, 0xba, 0xd6, 0xdf, 0xeb, 0x4a,
-	0xa9, 0xea, 0xd7, 0x90, 0x8b, 0x7d, 0x8f, 0x2e, 0xc3, 0xbb, 0x7d, 0xb5, 0xa6, 0xf5, 0xd5, 0x86,
-	0xd2, 0x30, 0xf6, 0x74, 0xa5, 0xae, 0x34, 0xda, 0x6a, 0x4b, 0x5a, 0x9a, 0x65, 0x34, 0xb5, 0x4e,
-	0x47, 0xbb, 0x47, 0x19, 0x02, 0xba, 0x04, 0x92, 0xd6, 0x6c, 0x76, 0x95, 0x5e, 0x42, 0x3c, 0x95,
-	0xa0, 0x9e, 0xcb, 0xa6, 0xd1, 0x2a, 0xe4, 0xeb, 0x7d, 0x5d, 0x57, 0xc2, 0x21, 0x44, 0x12, 0xab,
-	0xbf, 0x84, 0x5c, 0x9c, 0x5d, 0x74, 0xde, 0x50, 0x35, 0x43, 0xb9, 0x5f, 0xef, 0xf4, 0xbb, 0x6d,
-	0x4d, 0x0d, 0x37, 0x65, 0xcb, 0x86, 0x62, 0x24, 0xf5, 0x04, 0xf4, 0x0e, 0x14, 0x23, 0x06, 0x3b,
-	0x87, 0x94, 0xa2, 0xda, 0x11, 0xa9, 0xd7, 0x56, 0xba, 0x52, 0xba, 0xf2, 0xf7, 0x14, 0x64, 0xa3,
-	0xba, 0x83, 0x94, 0xc4, 0x80, 0x9a, 0xdf, 0xfe, 0xe8, 0x65, 0xbd, 0x7a, 0x71, 0x3c, 0x7d, 0x33,
-	0x3d, 0xaa, 0x06, 0x99, 0x43, 0x1a, 0x2f, 0xfe, 0xe6, 0xba, 0xb5, 0x48, 0x8c, 0xf5, 0x50, 0x15,
-	0x6d, 0xc0, 0xcc, 0xc0, 0xcb, 0x1e, 0x5f, 0x99, 0xe8, 0x99, 0x30, 0x33, 0x0a, 0x57, 0x20, 0x6b,
-	0x92, 0xa1, 0xd7, 0xb6, 0xa6, 0xf4, 0x75, 0x45, 0xab, 0x7a, 0xbc, 0xa6, 0x28, 0xe1, 0xc7, 0x29,
-	0x8e, 0x92, 0x4d, 0xb4, 0xf7, 0x19, 0xce, 0x8e, 0x98, 0x4d, 0x49, 0xe9, 0x68, 0xe6, 0x15, 0x00,
-	0xce, 0xab, 0x23, 0x1d, 0xde, 0x74, 0xed, 0x9e, 0xa1, 0xf6, 0x77, 0x6b, 0x8a, 0xce, 0xf3, 0x4c,
-	0x56, 0xef, 0x84, 0x63, 0x5d, 0x43, 0x51, 0xbb, 0x8a, 0xc1, 0xd6, 0x2c, 0x48, 0x7b, 0x8a, 0x5e,
-	0x67, 0x81, 0xa4, 0x94, 0x34, 0x9d, 0x1a, 0xeb, 0xfd, 0x5d, 0xc5, 0x68, 0xb4, 0xbb, 0xbd, 0x70,
-	0xfc, 0x55, 0x7b, 0xed, 0x8e, 0x12, 0x8e, 0xbf, 0x1d, 0xb9, 0x25, 0x2d, 0x53, 0xb8, 0x8e, 0x22,
-	0x37, 0xa4, 0x15, 0x9a, 0x3f, 0xcd, 0xb6, 0xde, 0xed, 0x19, 0xfb, 0x72, 0xa7, 0xaf, 0x48, 0x59,
-	0x8a, 0xdf, 0x91, 0xe3, 0x75, 0x8e, 0xa2, 0xa9, 0xbd, 0xdb, 0x7c, 0x09, 0x1f, 0xfe, 0x1c, 0x4a,
-	0xb3, 0xdf, 0x0b, 0x69, 0xe2, 0xef, 0xf5, 0x6b, 0x9d, 0x76, 0x5d, 0x5a, 0x42, 0x3f, 0x84, 0xf7,
-	0xc2, 0xdf, 0x74, 0x2e, 0x67, 0x73, 0x3b, 0x67, 0x09, 0xb5, 0x8f, 0x1f, 0x7f, 0xbf, 0xb6, 0xf4,
-	0xf8, 0xe9, 0x9a, 0xf0, 0xed, 0xd3, 0x35, 0xe1, 0xbb, 0xa7, 0x6b, 0xc2, 0xbf, 0x9e, 0xae, 0x09,
-	0xbf, 0x79, 0xb6, 0xb6, 0xf4, 0xed, 0xb3, 0xb5, 0xa5, 0xef, 0x9e, 0xad, 0x2d, 0x3d, 0xcc, 0x27,
-	0xfe, 0xc1, 0xf9, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x15, 0xd5, 0x82, 0xcd, 0x6a, 0x1a, 0x00,
-	0x00,
+var fileDescriptor_processors_sql_7e8e111f06141b6f = []byte{
+	// 1730 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x58, 0x4f, 0x73, 0xdb, 0xc6,
+	0x15, 0x17, 0xff, 0x49, 0xe4, 0x23, 0x09, 0x21, 0x1b, 0xa7, 0x66, 0xe5, 0x0e, 0x2d, 0x33, 0x4e,
+	0x23, 0xa7, 0x8e, 0xd8, 0xd1, 0x64, 0xa6, 0x93, 0xa6, 0x87, 0xf0, 0x8f, 0x24, 0xd3, 0x91, 0x40,
+	0x05, 0xa4, 0xd4, 0x38, 0x87, 0x62, 0x56, 0xc0, 0x0a, 0x42, 0x04, 0x60, 0xc1, 0x5d, 0xc0, 0xa6,
+	0xfa, 0x05, 0x7a, 0x6d, 0xa7, 0x97, 0x7e, 0x81, 0x7e, 0x82, 0x5e, 0x7a, 0xea, 0xd9, 0xc7, 0x9c,
+	0x3a, 0x69, 0x0f, 0x9e, 0xd6, 0xbe, 0xf7, 0x23, 0x74, 0x3a, 0xbb, 0x00, 0x28, 0x50, 0x63, 0x7a,
+	0xa2, 0xca, 0x13, 0xdd, 0xb0, 0xef, 0xbd, 0xdf, 0xdb, 0xb7, 0xef, 0xf7, 0xf6, 0xed, 0x2e, 0xe0,
+	0x3e, 0x9f, 0xb8, 0x6d, 0x32, 0x25, 0xa6, 0xe3, 0x9f, 0x30, 0x1c, 0x1c, 0xb7, 0x03, 0x46, 0x4d,
+	0xc2, 0x39, 0x65, 0xdc, 0xe0, 0x13, 0x77, 0x33, 0x60, 0x34, 0xa4, 0xa8, 0x61, 0x52, 0xf3, 0x8c,
+	0x51, 0x6c, 0x9e, 0x6e, 0x0a, 0xa1, 0xe5, 0xf0, 0x90, 0x4f, 0x5c, 0x16, 0xf9, 0x6b, 0x3f, 0x11,
+	0x78, 0x3e, 0x71, 0x8f, 0x31, 0x27, 0x6d, 0x1e, 0xb2, 0xc8, 0x0c, 0x23, 0x46, 0xac, 0x18, 0xb7,
+	0x76, 0x27, 0xab, 0xfd, 0x86, 0x3a, 0xbe, 0x11, 0x9e, 0x07, 0x24, 0x51, 0xae, 0x5d, 0x9e, 0xda,
+	0xc2, 0x21, 0x4e, 0x74, 0x1f, 0xbc, 0x21, 0x2c, 0xe1, 0x2c, 0x31, 0xbb, 0x65, 0x53, 0x9b, 0xca,
+	0xcf, 0xb6, 0xf8, 0x8a, 0xa5, 0xad, 0x3f, 0xe6, 0x40, 0x39, 0xc2, 0x6e, 0x44, 0x78, 0x8f, 0x32,
+	0x32, 0x0a, 0x88, 0x89, 0x7a, 0xb0, 0x62, 0x52, 0x37, 0xf2, 0x7c, 0xde, 0xc8, 0xad, 0x17, 0x36,
+	0xaa, 0x5b, 0xef, 0x6f, 0x2e, 0x5a, 0xd2, 0x66, 0x1f, 0x87, 0x91, 0x37, 0xf0, 0x4f, 0x68, 0xb7,
+	0xf8, 0xfc, 0xc5, 0xdd, 0x25, 0x3d, 0x45, 0xa2, 0x3b, 0x50, 0x61, 0xf8, 0x99, 0x71, 0x7c, 0x1e,
+	0x12, 0xde, 0xc8, 0xaf, 0x17, 0x36, 0x6a, 0x7a, 0x99, 0xe1, 0x67, 0x5d, 0x31, 0x46, 0x77, 0xa1,
+	0xec, 0x47, 0x9e, 0xc1, 0xe8, 0x33, 0xde, 0x28, 0xac, 0xe7, 0x36, 0x8a, 0x29, 0xda, 0x8f, 0x3c,
+	0x9d, 0x3e, 0xe3, 0xad, 0x7f, 0x14, 0x60, 0x75, 0x8c, 0x8f, 0x5d, 0xa2, 0x13, 0x6c, 0x11, 0x26,
+	0xc3, 0xea, 0x42, 0x29, 0x14, 0xa2, 0x46, 0x6e, 0x3d, 0xb7, 0x51, 0xdd, 0xfa, 0xe9, 0xa5, 0xa0,
+	0x92, 0xcc, 0x6d, 0x4a, 0x58, 0x9f, 0x70, 0x93, 0x39, 0x41, 0x48, 0x59, 0xe2, 0x39, 0x86, 0xa2,
+	0x7b, 0x50, 0x71, 0x7c, 0x8b, 0x4c, 0x0d, 0xc7, 0x9a, 0x36, 0xf2, 0xeb, 0xb9, 0x8d, 0x7a, 0xa2,
+	0x2f, 0x4b, 0xf1, 0xc0, 0x9a, 0xa2, 0x26, 0xac, 0x30, 0xf2, 0x94, 0x30, 0x4e, 0x64, 0x68, 0xe5,
+	0x34, 0xb4, 0x44, 0x88, 0xb6, 0xa1, 0xc4, 0x03, 0xec, 0xf3, 0x46, 0x51, 0xe6, 0xe6, 0xc1, 0xe2,
+	0xdc, 0xcc, 0x2d, 0x00, 0xfb, 0x69, 0x24, 0x12, 0x8d, 0xde, 0x07, 0x70, 0x1d, 0xcf, 0x09, 0x8d,
+	0x53, 0xc7, 0x0f, 0x1b, 0xa5, 0xf5, 0xdc, 0x46, 0x21, 0x31, 0xa8, 0x48, 0xf9, 0x23, 0xc7, 0x0f,
+	0x45, 0x9e, 0x1c, 0x6e, 0x98, 0xa7, 0xc4, 0x3c, 0x6b, 0x2c, 0x67, 0x83, 0x71, 0x78, 0x4f, 0x08,
+	0x91, 0x06, 0xf0, 0xd4, 0xe1, 0xce, 0xb1, 0xe3, 0x3a, 0xe1, 0x79, 0x63, 0x65, 0x3d, 0xb7, 0xa1,
+	0x6c, 0x6d, 0x2c, 0x8e, 0x68, 0x64, 0x62, 0xff, 0x68, 0x66, 0x9f, 0x38, 0xcb, 0x78, 0x40, 0x1f,
+	0x40, 0xd5, 0xc3, 0x53, 0x83, 0x11, 0x1e, 0xb9, 0x21, 0x6f, 0x94, 0x33, 0xdc, 0x80, 0x87, 0xa7,
+	0x7a, 0x2c, 0x47, 0x9f, 0xc1, 0x6d, 0x61, 0x16, 0x3a, 0x1e, 0xe1, 0x21, 0xf6, 0x02, 0x03, 0xdb,
+	0xc4, 0xf0, 0xb1, 0x4f, 0x79, 0xa3, 0x92, 0x81, 0xdc, 0xf2, 0xf0, 0x74, 0x9c, 0xda, 0x74, 0x6c,
+	0xa2, 0x09, 0x8b, 0xd6, 0x5f, 0xf3, 0xd0, 0x18, 0x88, 0x6c, 0x8f, 0xce, 0x9c, 0xe0, 0x86, 0x48,
+	0x9e, 0x91, 0x58, 0xb8, 0x16, 0x89, 0xf3, 0xe9, 0x2f, 0x5e, 0x3b, 0xfd, 0x99, 0xda, 0x2b, 0xbd,
+	0xa6, 0xf6, 0x5a, 0x7f, 0x29, 0x80, 0xf2, 0x98, 0x3a, 0xfe, 0x0f, 0x9f, 0xb0, 0x07, 0xa0, 0xb8,
+	0x94, 0x9e, 0x45, 0x81, 0x91, 0xb6, 0x06, 0x91, 0xb9, 0x7a, 0x37, 0xaf, 0xe6, 0xf4, 0x7a, 0xac,
+	0xe9, 0x25, 0x3b, 0xbf, 0x07, 0x2b, 0xd4, 0x37, 0xc8, 0x34, 0x60, 0x32, 0x23, 0xd5, 0xad, 0xfb,
+	0x8b, 0x33, 0xb2, 0x3d, 0x0d, 0x18, 0xe1, 0xdc, 0xa1, 0x69, 0x62, 0x97, 0xa9, 0x2f, 0x64, 0xe8,
+	0x53, 0x28, 0x8a, 0xee, 0x27, 0xab, 0x5e, 0xd9, 0xba, 0xbb, 0x60, 0x55, 0x22, 0x17, 0xe3, 0xf3,
+	0x80, 0x24, 0x60, 0x09, 0x79, 0xeb, 0x7b, 0xe2, 0x53, 0xf8, 0xd1, 0xfc, 0xd2, 0x0d, 0xcc, 0x88,
+	0x71, 0x46, 0xce, 0xe5, 0xf6, 0x48, 0x39, 0x7a, 0x77, 0x2e, 0x09, 0x1d, 0x46, 0xbe, 0x20, 0xe7,
+	0x8f, 0x8b, 0xe5, 0x92, 0xba, 0x2c, 0x5a, 0x2c, 0x8c, 0x28, 0x0b, 0x13, 0xc6, 0xbe, 0x84, 0x55,
+	0x1a, 0x85, 0x41, 0x14, 0x1a, 0x94, 0x59, 0x84, 0x39, 0xbe, 0x9d, 0x70, 0xd7, 0x5a, 0x1c, 0xe4,
+	0x30, 0xb1, 0x4c, 0x26, 0x53, 0x62, 0x07, 0xa9, 0x14, 0x6d, 0x01, 0x4a, 0x7d, 0x19, 0x1e, 0x0e,
+	0xcd, 0x53, 0xc3, 0x25, 0xfe, 0x1c, 0x93, 0x6a, 0xaa, 0xdf, 0x17, 0xea, 0x3d, 0xe2, 0xb7, 0x8e,
+	0xa1, 0xd6, 0x77, 0x78, 0xe8, 0xf8, 0x66, 0x28, 0xc3, 0xfa, 0x10, 0x56, 0xa5, 0x0d, 0xb1, 0x8c,
+	0x6c, 0xf7, 0xaf, 0xeb, 0x4a, 0x22, 0x4e, 0xf9, 0x7d, 0x00, 0xaa, 0x95, 0x00, 0x67, 0x96, 0x79,
+	0x69, 0xb9, 0x9a, 0xca, 0x13, 0xd3, 0x96, 0x0a, 0xca, 0x90, 0x59, 0x8e, 0x8f, 0x45, 0x22, 0xc5,
+	0x2c, 0xad, 0x3f, 0x15, 0x40, 0xfd, 0xda, 0xb1, 0x7f, 0x8b, 0x6d, 0xc1, 0x5d, 0x92, 0x91, 0x3e,
+	0x2c, 0xcb, 0x42, 0x4c, 0xcf, 0x9b, 0xab, 0x15, 0x71, 0x82, 0x45, 0x3b, 0x00, 0x64, 0x32, 0x17,
+	0x51, 0x75, 0xeb, 0xde, 0xe2, 0x94, 0x26, 0x31, 0xa6, 0x4d, 0x97, 0x4c, 0x2e, 0xd6, 0xa7, 0xc4,
+	0xbb, 0x81, 0xc6, 0xa1, 0xcf, 0x95, 0xba, 0xd4, 0x24, 0x6b, 0x7a, 0x4b, 0xa5, 0xfe, 0x05, 0xd4,
+	0x4e, 0x9c, 0x29, 0xb1, 0x8c, 0xa7, 0xf2, 0x18, 0x6e, 0x94, 0x64, 0xe4, 0x6f, 0xa8, 0xd8, 0xf9,
+	0xe3, 0x5a, 0xaf, 0x4a, 0x74, 0x2c, 0xbc, 0xc6, 0xbe, 0x69, 0xfd, 0xbd, 0x00, 0xab, 0xfb, 0x84,
+	0xd9, 0x24, 0xc3, 0xcc, 0x3e, 0xd4, 0x5d, 0x72, 0x72, 0x8d, 0x4a, 0xad, 0x09, 0xf8, 0xac, 0x4e,
+	0x87, 0xa0, 0x30, 0xc7, 0x3e, 0xcd, 0xf8, 0xcb, 0x5f, 0xd1, 0x5f, 0x5d, 0xe2, 0x67, 0x0e, 0x33,
+	0x04, 0x94, 0x6e, 0xa2, 0xd7, 0x3c, 0x80, 0xba, 0x1f, 0xb9, 0xae, 0x41, 0x26, 0x11, 0x9e, 0xb5,
+	0x9b, 0xb4, 0x25, 0xd4, 0x84, 0x6a, 0x3b, 0xd1, 0xa0, 0x5f, 0xc2, 0x6d, 0x99, 0xca, 0x8b, 0x1a,
+	0x5d, 0xd0, 0x47, 0xc8, 0x49, 0xb8, 0x3d, 0x99, 0xeb, 0x23, 0xe8, 0x57, 0xd0, 0x88, 0xf3, 0xf6,
+	0x1a, 0x70, 0x25, 0x03, 0xbe, 0x25, 0xad, 0x2e, 0xa1, 0x5b, 0x7f, 0x28, 0x80, 0xf2, 0x08, 0xf3,
+	0xd3, 0x0c, 0xaf, 0x1f, 0xc1, 0xea, 0xa5, 0x60, 0xe2, 0xcd, 0x9e, 0xf4, 0xf3, 0x6c, 0x08, 0xe8,
+	0x21, 0xa8, 0x97, 0x27, 0x8f, 0xf7, 0xbb, 0x34, 0x56, 0xe6, 0xa7, 0xbc, 0x71, 0x46, 0x7e, 0x06,
+	0x8a, 0x27, 0x8a, 0xf8, 0xa2, 0x8b, 0x65, 0x29, 0xa9, 0xc7, 0xba, 0x34, 0xd8, 0x9b, 0xe3, 0xe4,
+	0x3f, 0xcb, 0xa0, 0x74, 0x6c, 0x9b, 0x11, 0x1b, 0x87, 0x34, 0xe6, 0xe4, 0x1e, 0x80, 0xcd, 0x68,
+	0x7c, 0xcc, 0x64, 0x33, 0x5c, 0x91, 0xd2, 0x1e, 0x75, 0x39, 0xfa, 0x0d, 0xd4, 0x70, 0x02, 0x72,
+	0xe8, 0xec, 0xf6, 0xf2, 0xc9, 0xe2, 0x0c, 0xcf, 0x4f, 0x31, 0x1b, 0x5e, 0x64, 0x7c, 0xce, 0x1f,
+	0xfa, 0x79, 0x72, 0x8e, 0x10, 0xcb, 0xc8, 0x84, 0x52, 0x9c, 0x85, 0xa2, 0x26, 0xda, 0xdd, 0x59,
+	0x44, 0xbb, 0x09, 0x53, 0x25, 0xc9, 0xd4, 0xc7, 0xdf, 0x3b, 0x92, 0xcb, 0xbc, 0xad, 0xfd, 0x2e,
+	0x0f, 0xd5, 0x4c, 0x78, 0xc2, 0xf1, 0x49, 0xe4, 0x9b, 0xb2, 0xe1, 0x5c, 0xc5, 0xf1, 0x4e, 0xe4,
+	0x9b, 0xa9, 0x63, 0xe1, 0x00, 0xad, 0x43, 0x39, 0x3d, 0x96, 0x64, 0xb7, 0x49, 0x79, 0x99, 0x49,
+	0xd1, 0x7d, 0x50, 0x4e, 0x1c, 0x37, 0x24, 0x4c, 0x2c, 0x57, 0xde, 0x81, 0x44, 0x33, 0xaf, 0xeb,
+	0xb5, 0x58, 0xda, 0xa3, 0xae, 0xb8, 0x01, 0xdd, 0x96, 0xaf, 0x22, 0xa9, 0x2e, 0xc9, 0xd3, 0x6e,
+	0xd9, 0x8c, 0x15, 0x8f, 0xa0, 0x82, 0x99, 0x1d, 0x79, 0xc4, 0x0f, 0x79, 0x63, 0x59, 0x32, 0x72,
+	0x95, 0x9a, 0xbf, 0x00, 0x3f, 0x2e, 0x96, 0x0b, 0x6a, 0xb1, 0xf5, 0xe7, 0x3c, 0x14, 0xc5, 0x2a,
+	0x90, 0x0a, 0xb5, 0x8e, 0xf6, 0xc4, 0xd0, 0x86, 0x63, 0x43, 0x3b, 0xdc, 0xdb, 0x53, 0x97, 0xd0,
+	0x0a, 0x14, 0x3a, 0x47, 0xbb, 0x6a, 0x0e, 0xd5, 0xa0, 0xdc, 0x1d, 0x0e, 0xf7, 0x8c, 0x8e, 0xd6,
+	0x57, 0xf3, 0xa8, 0x0a, 0x2b, 0x72, 0x34, 0xd4, 0xd5, 0x02, 0x52, 0x00, 0x7a, 0x43, 0xad, 0xd7,
+	0x19, 0x1b, 0x9d, 0xdd, 0x5d, 0xb5, 0x88, 0x2a, 0x50, 0xea, 0x0d, 0x0f, 0xb5, 0xb1, 0x5a, 0x12,
+	0xf0, 0xfd, 0xce, 0x57, 0xea, 0x8a, 0xfc, 0x18, 0x68, 0x6a, 0x19, 0x01, 0x2c, 0x8f, 0xc6, 0xfd,
+	0xfe, 0xf6, 0x91, 0x5a, 0x11, 0xc2, 0xd1, 0xe1, 0xbe, 0x0a, 0xc2, 0xdd, 0xe8, 0x70, 0xdf, 0x18,
+	0x68, 0x63, 0xb5, 0x2a, 0x66, 0x3a, 0xea, 0xe8, 0x83, 0x8e, 0xd6, 0xdb, 0x56, 0x6b, 0x42, 0xf5,
+	0xd5, 0x50, 0x97, 0x9e, 0xeb, 0xf1, 0x4c, 0x87, 0xda, 0xd8, 0xd0, 0x87, 0xbf, 0x1e, 0xa9, 0x8a,
+	0xc4, 0x7d, 0xa9, 0xf7, 0x07, 0x3b, 0x3b, 0xea, 0x2a, 0x42, 0xa0, 0xec, 0x0c, 0xb4, 0xce, 0x9e,
+	0x31, 0x43, 0xab, 0x62, 0x41, 0xb1, 0x2c, 0x99, 0xf3, 0x1d, 0x54, 0x87, 0x4a, 0x47, 0xd7, 0x3b,
+	0x4f, 0xa4, 0x47, 0x24, 0x26, 0x7b, 0x3c, 0x1a, 0x6a, 0x72, 0xf4, 0xae, 0x50, 0x8a, 0x51, 0x57,
+	0x0e, 0x6f, 0x89, 0xe9, 0x46, 0x63, 0x7d, 0xa0, 0xed, 0xca, 0xf1, 0x7b, 0xad, 0x87, 0x50, 0x14,
+	0x55, 0x84, 0xca, 0x50, 0xec, 0x1c, 0x8e, 0x87, 0xea, 0x92, 0x5c, 0x4d, 0xaf, 0xb3, 0xd7, 0xd1,
+	0xd5, 0x9c, 0xb0, 0xd6, 0x86, 0x9a, 0x91, 0x8c, 0xf3, 0xad, 0xff, 0x16, 0xe1, 0xce, 0xc0, 0x0f,
+	0x09, 0x73, 0x09, 0x7e, 0x4a, 0xac, 0xf8, 0x06, 0x9d, 0xe9, 0x88, 0x4f, 0x2e, 0xdd, 0x41, 0x3e,
+	0x5b, 0x4c, 0xe1, 0x1b, 0xdc, 0xc4, 0x57, 0x94, 0x4b, 0x17, 0x93, 0xcc, 0xad, 0x3e, 0xff, 0xba,
+	0x17, 0xe5, 0xfc, 0x53, 0xb0, 0xf0, 0xfa, 0xa7, 0xe0, 0x5b, 0xbd, 0x55, 0x97, 0xae, 0xdc, 0x57,
+	0xd7, 0xfe, 0x96, 0x87, 0x92, 0x5c, 0x1c, 0xfa, 0x1c, 0x8a, 0x16, 0xe1, 0xe6, 0xff, 0xf5, 0xe0,
+	0x90, 0xc8, 0xef, 0xf3, 0xde, 0xe8, 0x41, 0x31, 0xa0, 0x3c, 0xce, 0xc6, 0x1b, 0xdf, 0x67, 0x07,
+	0x94, 0x87, 0x07, 0xf1, 0xff, 0x0e, 0x41, 0x40, 0x3a, 0x8f, 0x00, 0xa3, 0x3e, 0x94, 0x67, 0x17,
+	0x8d, 0xe2, 0x15, 0x2f, 0x1a, 0x33, 0xe4, 0xc5, 0x5b, 0xb1, 0x74, 0x9d, 0xb7, 0x62, 0xeb, 0x45,
+	0x0e, 0x94, 0x03, 0x46, 0xbf, 0x21, 0x66, 0x38, 0x22, 0xf1, 0x95, 0xfb, 0x73, 0x28, 0x09, 0x42,
+	0xd3, 0x92, 0xbb, 0x0a, 0xa3, 0x31, 0x10, 0x61, 0x78, 0xc7, 0x26, 0x3e, 0x61, 0x38, 0xcc, 0x1c,
+	0x78, 0xf2, 0x6f, 0x4b, 0xf7, 0x13, 0x61, 0xf7, 0xcf, 0x17, 0x77, 0x1f, 0xda, 0x4e, 0x78, 0x1a,
+	0x1d, 0x6f, 0x9a, 0xd4, 0x6b, 0x07, 0xd4, 0xa2, 0xde, 0x79, 0x3b, 0xc4, 0xcc, 0x72, 0x6c, 0x86,
+	0x2d, 0xd2, 0x0e, 0xce, 0xec, 0x36, 0x9f, 0xb8, 0x6d, 0xc1, 0x31, 0xdf, 0x1c, 0xeb, 0xea, 0xcc,
+	0x5d, 0x7a, 0x46, 0x7e, 0x08, 0xaa, 0x1f, 0x79, 0xf2, 0x24, 0x30, 0x02, 0xc2, 0x0c, 0x9b, 0xf8,
+	0xf1, 0x85, 0x58, 0xaf, 0xfb, 0x91, 0x27, 0x0e, 0x81, 0x03, 0xc2, 0x76, 0x89, 0xff, 0xd1, 0x2f,
+	0x40, 0x99, 0x7f, 0x4b, 0x89, 0xfd, 0x78, 0x70, 0xd8, 0xdd, 0x1b, 0xf4, 0xd4, 0x25, 0xf4, 0x63,
+	0x78, 0x2f, 0xfe, 0x16, 0x3d, 0x4b, 0xf6, 0xb4, 0x44, 0x95, 0xeb, 0x7e, 0xfc, 0xfc, 0xdf, 0xcd,
+	0xa5, 0xe7, 0x2f, 0x9b, 0xb9, 0x6f, 0x5f, 0x36, 0x73, 0xdf, 0xbd, 0x6c, 0xe6, 0xfe, 0xf5, 0xb2,
+	0x99, 0xfb, 0xfd, 0xab, 0xe6, 0xd2, 0xb7, 0xaf, 0x9a, 0x4b, 0xdf, 0xbd, 0x6a, 0x2e, 0x7d, 0x5d,
+	0xcd, 0xfc, 0xdd, 0xfa, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x52, 0xc8, 0xdb, 0xb2, 0x86, 0x13,
+	0x00, 0x00,
 }

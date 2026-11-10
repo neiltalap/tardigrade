@@ -723,56 +723,6 @@ func walkReturningClause(v Visitor, clause ReturningClause) (ReturningClause, bo
 }
 
 // copyNode makes a copy of this Statement without recursing in any child Statements.
-func (stmt *Backup) copyNode() *Backup {
-	stmtCopy := *stmt
-	stmtCopy.IncrementalFrom = append(Exprs(nil), stmt.IncrementalFrom...)
-	stmtCopy.Options = append(KVOptions(nil), stmt.Options...)
-	return &stmtCopy
-}
-
-// walkStmt is part of the walkableStmt interface.
-func (stmt *Backup) walkStmt(v Visitor) Statement {
-	ret := stmt
-	if stmt.AsOf.Expr != nil {
-		e, changed := WalkExpr(v, stmt.AsOf.Expr)
-		if changed {
-			if ret == stmt {
-				ret = stmt.copyNode()
-			}
-			ret.AsOf.Expr = e
-		}
-	}
-	for i, expr := range stmt.To {
-		e, changed := WalkExpr(v, expr)
-		if changed {
-			if ret == stmt {
-				ret = stmt.copyNode()
-			}
-			ret.To[i] = e
-		}
-	}
-	for i, expr := range stmt.IncrementalFrom {
-		e, changed := WalkExpr(v, expr)
-		if changed {
-			if ret == stmt {
-				ret = stmt.copyNode()
-			}
-			ret.IncrementalFrom[i] = e
-		}
-	}
-	{
-		opts, changed := walkKVOptions(v, stmt.Options)
-		if changed {
-			if ret == stmt {
-				ret = stmt.copyNode()
-			}
-			ret.Options = opts
-		}
-	}
-	return ret
-}
-
-// copyNode makes a copy of this Statement without recursing in any child Statements.
 func (stmt *Delete) copyNode() *Delete {
 	stmtCopy := *stmt
 	if stmt.Where != nil {
@@ -914,47 +864,6 @@ func (stmt *ControlJobs) walkStmt(v Visitor) Statement {
 	return stmt
 }
 
-// copyNode makes a copy of this Statement without recursing in any child Statements.
-func (stmt *Import) copyNode() *Import {
-	stmtCopy := *stmt
-	stmtCopy.Files = append(Exprs(nil), stmt.Files...)
-	stmtCopy.Options = append(KVOptions(nil), stmt.Options...)
-	return &stmtCopy
-}
-
-// walkStmt is part of the walkableStmt interface.
-func (stmt *Import) walkStmt(v Visitor) Statement {
-	ret := stmt
-	if stmt.CreateFile != nil {
-		e, changed := WalkExpr(v, stmt.CreateFile)
-		if changed {
-			if ret == stmt {
-				ret = stmt.copyNode()
-			}
-			ret.CreateFile = e
-		}
-	}
-	for i, expr := range stmt.Files {
-		e, changed := WalkExpr(v, expr)
-		if changed {
-			if ret == stmt {
-				ret = stmt.copyNode()
-			}
-			ret.Files[i] = e
-		}
-	}
-	{
-		opts, changed := walkKVOptions(v, stmt.Options)
-		if changed {
-			if ret == stmt {
-				ret = stmt.copyNode()
-			}
-			ret.Options = opts
-		}
-	}
-	return ret
-}
-
 // walkStmt is part of the walkableStmt interface.
 func (stmt *ParenSelect) walkStmt(v Visitor) Statement {
 	sel, changed := walkStmt(v, stmt.Select)
@@ -962,49 +871,6 @@ func (stmt *ParenSelect) walkStmt(v Visitor) Statement {
 		return &ParenSelect{sel.(*Select)}
 	}
 	return stmt
-}
-
-// copyNode makes a copy of this Statement without recursing in any child Statements.
-func (stmt *Restore) copyNode() *Restore {
-	stmtCopy := *stmt
-	stmtCopy.From = append([]PartitionedBackup(nil), stmt.From...)
-	stmtCopy.Options = append(KVOptions(nil), stmt.Options...)
-	return &stmtCopy
-}
-
-// walkStmt is part of the walkableStmt interface.
-func (stmt *Restore) walkStmt(v Visitor) Statement {
-	ret := stmt
-	if stmt.AsOf.Expr != nil {
-		e, changed := WalkExpr(v, stmt.AsOf.Expr)
-		if changed {
-			if ret == stmt {
-				ret = stmt.copyNode()
-			}
-			ret.AsOf.Expr = e
-		}
-	}
-	for i, backup := range stmt.From {
-		for j, expr := range backup {
-			e, changed := WalkExpr(v, expr)
-			if changed {
-				if ret == stmt {
-					ret = stmt.copyNode()
-				}
-				ret.From[i][j] = e
-			}
-		}
-	}
-	{
-		opts, changed := walkKVOptions(v, stmt.Options)
-		if changed {
-			if ret == stmt {
-				ret = stmt.copyNode()
-			}
-			ret.Options = opts
-		}
-	}
-	return ret
 }
 
 // copyNode makes a copy of this Statement without recursing in any child Statements.
@@ -1339,13 +1205,10 @@ func (stmt *BeginTransaction) walkStmt(v Visitor) Statement {
 }
 
 var _ walkableStmt = &CreateTable{}
-var _ walkableStmt = &Backup{}
 var _ walkableStmt = &Delete{}
 var _ walkableStmt = &Explain{}
 var _ walkableStmt = &Insert{}
-var _ walkableStmt = &Import{}
 var _ walkableStmt = &ParenSelect{}
-var _ walkableStmt = &Restore{}
 var _ walkableStmt = &Select{}
 var _ walkableStmt = &SelectClause{}
 var _ walkableStmt = &SetClusterSetting{}

@@ -872,10 +872,6 @@ func (b *logicalPropsBuilder) buildCancelSessionsProps(
 	b.buildBasicProps(cancel, opt.ColList{}, rel)
 }
 
-func (b *logicalPropsBuilder) buildExportProps(export *ExportExpr, rel *props.Relational) {
-	b.buildBasicProps(export, export.Columns, rel)
-}
-
 func (b *logicalPropsBuilder) buildLimitProps(limit *LimitExpr, rel *props.Relational) {
 	BuildSharedProps(b.mem, limit, &rel.Shared)
 
@@ -1059,54 +1055,6 @@ func (b *logicalPropsBuilder) buildOrdinalityProps(ord *OrdinalityExpr, rel *pro
 	// ----------
 	if !b.disableStats {
 		b.sb.buildOrdinality(ord, rel)
-	}
-}
-
-func (b *logicalPropsBuilder) buildWindowProps(window *WindowExpr, rel *props.Relational) {
-	BuildSharedProps(b.mem, window, &rel.Shared)
-
-	inputProps := window.Input.Relational()
-
-	// Output Columns
-	// --------------
-	// Output columns are all the passthrough columns with the addition of the
-	// window function column.
-	rel.OutputCols = inputProps.OutputCols.Copy()
-	for _, w := range window.Windows {
-		rel.OutputCols.Add(w.Col)
-	}
-
-	// Not Null Columns
-	// ----------------
-	// Inherit not null columns from input.
-	// TODO(justin): in many cases the added column may not be nullable.
-	rel.NotNullCols = inputProps.NotNullCols.Intersection(rel.OutputCols)
-
-	// Outer Columns
-	// -------------
-	// Outer columns were derived by BuildSharedProps; remove any that are bound
-	// by input columns.
-	rel.OuterCols.DifferenceWith(inputProps.OutputCols)
-
-	// Functional Dependencies
-	// -----------------------
-	// Functional dependencies are the same as the input.
-	// TODO(justin): in many cases there are more FDs to be derived, some
-	// examples include:
-	// * row_number+the partition is a key.
-	// * rank is determined by the partition and the value being ordered by.
-	// * aggregations/first_value/last_value are determined by the partition.
-	rel.FuncDeps.CopyFrom(&inputProps.FuncDeps)
-
-	// Cardinality
-	// -----------
-	// Window functions never change the cardinality of their input.
-	rel.Cardinality = inputProps.Cardinality
-
-	// Statistics
-	// ----------
-	if !b.disableStats {
-		b.sb.buildWindow(window, rel)
 	}
 }
 
@@ -1320,11 +1268,6 @@ func (b *logicalPropsBuilder) buildAggregationsItemProps(
 ) {
 	item.Typ = item.Agg.DataType()
 	BuildSharedProps(b.mem, item.Agg, &scalar.Shared)
-}
-
-func (b *logicalPropsBuilder) buildWindowsItemProps(item *WindowsItem, scalar *props.Scalar) {
-	item.Typ = item.Function.DataType()
-	BuildSharedProps(b.mem, item.Function, &scalar.Shared)
 }
 
 func (b *logicalPropsBuilder) buildZipItemProps(item *ZipItem, scalar *props.Scalar) {

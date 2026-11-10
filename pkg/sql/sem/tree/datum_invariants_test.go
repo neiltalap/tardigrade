@@ -20,7 +20,7 @@ import (
 func TestAllTypesCastableToString(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	for _, typ := range types.Scalar {
-		if ok, _ := isCastDeepValid(typ, types.String); !ok {
+		if !isCastDeepValid(typ, types.String) {
 			t.Errorf("%s is not castable to STRING, all types should be", typ)
 		}
 	}
@@ -29,7 +29,7 @@ func TestAllTypesCastableToString(t *testing.T) {
 func TestAllTypesCastableFromString(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	for _, typ := range types.Scalar {
-		if ok, _ := isCastDeepValid(types.String, typ); !ok {
+		if !isCastDeepValid(types.String, typ) {
 			t.Errorf("%s is not castable from STRING, all types should be", typ)
 		}
 	}

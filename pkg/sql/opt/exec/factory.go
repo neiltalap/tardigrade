@@ -259,10 +259,6 @@ type Factory interface {
 		n Node, exprs tree.TypedExprs, zipCols sqlbase.ResultColumns, numColsPerGen []int,
 	) (Node, error)
 
-	// ConstructWindow returns a node that executes a window function over the
-	// given node.
-	ConstructWindow(input Node, window WindowInfo) (Node, error)
-
 	// RenameColumns modifies the column names of a node.
 	RenameColumns(input Node, colNames []string) (Node, error)
 
@@ -488,14 +484,6 @@ type Factory interface {
 
 	// ConstructCancelSessions creates a node that implements CANCEL SESSIONS.
 	ConstructCancelSessions(input Node, ifExists bool) (Node, error)
-
-	// ConstructExport creates a node that implements EXPORT.
-	ConstructExport(
-		input Node,
-		fileName tree.TypedExpr,
-		fileFormat string,
-		options []KVOption,
-	) (Node, error)
 }
 
 // OutputOrdering indicates the required output ordering on a Node that is being
@@ -569,34 +557,6 @@ type AggInfo struct {
 	Filter ColumnOrdinal
 }
 
-// WindowInfo represents the information about a window function that must be
-// passed through to the execution engine.
-type WindowInfo struct {
-	// Cols is the set of columns that are returned from the windowing operator.
-	Cols sqlbase.ResultColumns
-
-	// TODO(justin): refactor this to be a single array of structs.
-
-	// Exprs is the list of window function expressions.
-	Exprs []*tree.FuncExpr
-
-	// OutputIdxs are the indexes that the various window functions being computed
-	// should put their output in.
-	OutputIdxs []int
-
-	// ArgIdxs is the list of column ordinals each function takes as arguments,
-	// in the same order as Exprs.
-	ArgIdxs [][]ColumnOrdinal
-
-	// FilterIdxs is the list of column indices to use as filters.
-	FilterIdxs []int
-
-	// Partition is the set of input columns to partition on.
-	Partition []ColumnOrdinal
-
-	// Ordering is the set of input columns to order on.
-	Ordering sqlbase.ColumnOrdering
-}
 
 // ExplainEnvData represents the data that's going to be displayed in EXPLAIN (env).
 type ExplainEnvData struct {

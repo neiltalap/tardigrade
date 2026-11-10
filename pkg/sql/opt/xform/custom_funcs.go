@@ -982,92 +982,13 @@ func (c *CustomFuncs) GenerateMergeJoins(
 	on memo.FiltersExpr,
 	joinPrivate *memo.JoinPrivate,
 ) {
-	if joinPrivate.Flags.DisallowMergeJoin {
-		return
-	}
-
-	leftProps := left.Relational()
-	rightProps := right.Relational()
-
-	leftEq, rightEq := memo.ExtractJoinEqualityColumns(
-		leftProps.OutputCols, rightProps.OutputCols, on,
-	)
-	n := len(leftEq)
-	if n == 0 {
-		return
-	}
-
-	// We generate MergeJoin expressions based on interesting orderings from the
-	// left side. The CommuteJoin rule will ensure that we actually try both
-	// sides.
-	orders := DeriveInterestingOrderings(left).Copy()
-	orders.RestrictToCols(leftEq.ToSet())
-
-	if joinPrivate.Flags.DisallowHashJoin {
-		// If we are using a hint, CommuteJoin won't run. Add the orderings
-		// from the right side.
-		rightOrders := DeriveInterestingOrderings(right).Copy()
-		rightOrders.RestrictToCols(leftEq.ToSet())
-		orders = append(orders, rightOrders...)
-
-		// Also append an arbitrary ordering (in case the interesting orderings
-		// don't result in any merge joins).
-		o := make(opt.Ordering, len(leftEq))
-		for i := range o {
-			o[i] = opt.MakeOrderingColumn(leftEq[i], false /* descending */)
-		}
-		orders.Add(o)
-	}
-
-	if len(orders) == 0 {
-		return
-	}
-
-	var colToEq util.FastIntMap
-	for i := range leftEq {
-		colToEq.Set(int(leftEq[i]), i)
-		colToEq.Set(int(rightEq[i]), i)
-	}
-
-	var remainingFilters memo.FiltersExpr
-
-	for _, o := range orders {
-		if len(o) < n {
-			// TODO(radu): we have a partial ordering on the equality columns. We
-			// should augment it with the other columns (in arbitrary order) in the
-			// hope that we can get the full ordering cheaply using a "streaming"
-			// sort. This would not useful now since we don't support streaming sorts.
-			continue
-		}
-
-		if remainingFilters == nil {
-			remainingFilters = memo.ExtractRemainingJoinFilters(on, leftEq, rightEq)
-		}
-
-		merge := memo.MergeJoinExpr{Left: left, Right: right, On: remainingFilters}
-		merge.JoinPrivate = *joinPrivate
-		merge.JoinType = originalOp
-		merge.LeftEq = make(opt.Ordering, n)
-		merge.RightEq = make(opt.Ordering, n)
-		merge.LeftOrdering.Columns = make([]physical.OrderingColumnChoice, 0, n)
-		merge.RightOrdering.Columns = make([]physical.OrderingColumnChoice, 0, n)
-		for i := 0; i < n; i++ {
-			eqIdx, _ := colToEq.Get(int(o[i].ID()))
-			l, r, descending := leftEq[eqIdx], rightEq[eqIdx], o[i].Descending()
-			merge.LeftEq[i] = opt.MakeOrderingColumn(l, descending)
-			merge.RightEq[i] = opt.MakeOrderingColumn(r, descending)
-			merge.LeftOrdering.AppendCol(l, descending)
-			merge.RightOrdering.AppendCol(r, descending)
-		}
-
-		// Simplify the orderings with the corresponding FD sets.
-		merge.LeftOrdering.Simplify(&leftProps.FuncDeps)
-		merge.RightOrdering.Simplify(&rightProps.FuncDeps)
-
-		c.e.mem.AddMergeJoinToGroup(&merge, grp)
-	}
+	// The merge join executor has been removed, so no executable plan may
+	// contain a merge join. Never explore them, regardless of JoinPrivate
+	// flags (norm-created joins carry zero-value flags that would otherwise
+	// bypass the optbuilder-level disallowal and produce plans whose output
+	// ordering the hash-join fallback cannot honor).
+	return
 }
-
 // GenerateLookupJoins looks at the possible indexes and creates lookup join
 // expressions in the current group. A lookup join can be created when the ON
 // condition has equality constraints on a prefix of the index columns.

@@ -43,6 +43,7 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/types"
+	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
 	"github.com/cockroachdb/errors"
 )
 
@@ -113,17 +114,6 @@ type groupby struct {
 //   SELECT COUNT(*), k + v FROM kv GROUP BY k - v
 //
 type groupByStrSet map[string]*scopeColumn
-
-// hasNonCommutativeAggregates checks whether any of the aggregates are
-// non-commutative or ordering sensitive.
-func (g *groupby) hasNonCommutativeAggregates() bool {
-	for i := range g.aggs {
-		if !g.aggs[i].isCommutative() {
-			return true
-		}
-	}
-	return false
-}
 
 // groupingCols returns the columns in the aggInScope corresponding to grouping
 // columns.
@@ -330,12 +320,6 @@ func (b *Builder) buildAggregation(having opt.ScalarExpr, fromScope *scope) (out
 		groupingColSet.Add(groupingCols[i].id)
 	}
 
-	// If there are any aggregates that are ordering sensitive, build the aggregations
-	// as window functions over each group.
-	if g.hasNonCommutativeAggregates() {
-		return b.buildAggregationAsWindow(groupingColSet, having, fromScope)
-	}
-
 	aggInfos := g.aggs
 
 	// Construct the aggregation operators.
@@ -377,6 +361,13 @@ func (b *Builder) buildAggregation(having opt.ScalarExpr, fromScope *scope) (out
 		aggCols[i].scalar = b.constructAggregate(agg.def.Name, args).(opt.ScalarExpr)
 
 		if agg.isOrderingSensitive() {
+			if agg.OrderBy != nil {
+				// Ordering-sensitive aggregates were previously implemented
+				// using window functions, which have been removed.
+				panic(unimplemented.New(
+					"ordered aggregate",
+					"ORDER BY in aggregates is not supported"))
+			}
 			haveOrderingSensitiveAgg = true
 		}
 
@@ -709,39 +700,6 @@ func (b *Builder) buildAggregateFunction(
 	return &info
 }
 
-func (b *Builder) constructWindowFn(name string, args []opt.ScalarExpr) opt.ScalarExpr {
-	switch name {
-	case "rank":
-		return b.factory.ConstructRank()
-	case "row_number":
-		return b.factory.ConstructRowNumber()
-	case "dense_rank":
-		return b.factory.ConstructDenseRank()
-	case "percent_rank":
-		return b.factory.ConstructPercentRank()
-	case "cume_dist":
-		return b.factory.ConstructCumeDist()
-	case "ntile":
-		return b.factory.ConstructNtile(args[0])
-	case "lag":
-		return b.factory.ConstructLag(args[0], args[1], args[2])
-	case "lead":
-		return b.factory.ConstructLead(args[0], args[1], args[2])
-	case "first_value":
-		return b.factory.ConstructFirstValue(args[0])
-	case "last_value":
-		return b.factory.ConstructLastValue(args[0])
-	case "nth_value":
-		return b.factory.ConstructNthValue(args[0], args[1])
-	case "string_agg":
-		// We can handle non-constant second arguments for string_agg in window
-		// fns (but not aggregates).
-		return b.factory.ConstructStringAgg(args[0], args[1])
-	default:
-		return b.constructAggregate(name, args)
-	}
-}
-
 func (b *Builder) constructAggregate(name string, args []opt.ScalarExpr) opt.ScalarExpr {
 	switch name {
 	case "array_agg":
@@ -790,10 +748,6 @@ func (b *Builder) constructAggregate(name string, args []opt.ScalarExpr) opt.Sca
 
 func isAggregate(def *tree.FunctionDefinition) bool {
 	return def.Class == tree.AggregateClass
-}
-
-func isWindow(def *tree.FunctionDefinition) bool {
-	return def.Class == tree.WindowClass
 }
 
 func isGenerator(def *tree.FunctionDefinition) bool {

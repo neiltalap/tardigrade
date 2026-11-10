@@ -48,10 +48,6 @@ func initAggregateBuiltins() {
 				panic(fmt.Sprintf("%s: aggregate functions should have tree.AggregateFunc constructors, "+
 					"found %v", k, a))
 			}
-			if a.WindowFunc == nil {
-				panic(fmt.Sprintf("%s: aggregate functions should have tree.WindowFunc constructors, "+
-					"found %v", k, a))
-			}
 		}
 
 		// The aggregate functions are considered "row dependent". This is
@@ -158,14 +154,6 @@ var aggregates = map[string]builtinDefinition{
 			Types:         tree.ArgTypes{},
 			ReturnType:    tree.FixedReturnType(types.Int),
 			AggregateFunc: newCountRowsAggregate,
-			WindowFunc: func(params []*types.T, evalCtx *tree.EvalContext) tree.WindowFunc {
-				return newFramableAggregateWindow(
-					newCountRowsAggregate(params, evalCtx, nil /* arguments */),
-					func(evalCtx *tree.EvalContext, arguments tree.Datums) tree.AggregateFunc {
-						return newCountRowsAggregate(params, evalCtx, arguments)
-					},
-				)
-			},
 			Info: "Calculates the number of rows.",
 		},
 	),
@@ -281,6 +269,8 @@ var aggregates = map[string]builtinDefinition{
 			"Calculates the bitwise XOR of the selected values."),
 	),
 
+	// json_agg/jsonb_agg aggregate values as a JSON array. Retained for
+	// core introspection (plan reproduction, range-log inspection).
 	"json_agg": makeBuiltin(aggPropsNullableArgs(),
 		makeAggOverload([]*types.T{types.Any}, types.Jsonb, newJSONAggregate,
 			"Aggregates values as a JSON or JSONB array."),
@@ -290,9 +280,6 @@ var aggregates = map[string]builtinDefinition{
 		makeAggOverload([]*types.T{types.Any}, types.Jsonb, newJSONAggregate,
 			"Aggregates values as a JSON or JSONB array."),
 	),
-
-	"json_object_agg":  makeBuiltin(tree.FunctionProperties{UnsupportedWithIssue: 33285, Class: tree.AggregateClass, Impure: true}),
-	"jsonb_object_agg": makeBuiltin(tree.FunctionProperties{UnsupportedWithIssue: 33285, Class: tree.AggregateClass, Impure: true}),
 
 	AnyNotNull: makePrivate(makeBuiltin(aggProps(),
 		makeAggOverloadWithReturnType(
@@ -343,41 +330,6 @@ func makeAggOverloadWithReturnType(
 		Types:         argTypes,
 		ReturnType:    retType,
 		AggregateFunc: f,
-		WindowFunc: func(params []*types.T, evalCtx *tree.EvalContext) tree.WindowFunc {
-			aggWindowFunc := f(params, evalCtx, nil /* arguments */)
-			switch w := aggWindowFunc.(type) {
-			case *MinAggregate:
-				min := &slidingWindowFunc{}
-				min.sw = makeSlidingWindow(evalCtx, func(evalCtx *tree.EvalContext, a, b tree.Datum) int {
-					return -a.Compare(evalCtx, b)
-				})
-				return min
-			case *MaxAggregate:
-				max := &slidingWindowFunc{}
-				max.sw = makeSlidingWindow(evalCtx, func(evalCtx *tree.EvalContext, a, b tree.Datum) int {
-					return a.Compare(evalCtx, b)
-				})
-				return max
-			case *intSumAggregate:
-				return newSlidingWindowSumFunc(aggWindowFunc)
-			case *decimalSumAggregate:
-				return newSlidingWindowSumFunc(aggWindowFunc)
-			case *floatSumAggregate:
-				return newSlidingWindowSumFunc(aggWindowFunc)
-			case *intervalSumAggregate:
-				return newSlidingWindowSumFunc(aggWindowFunc)
-			case *avgAggregate:
-				// w.agg is a sum aggregate.
-				return &avgWindowFunc{sum: newSlidingWindowSumFunc(w.agg)}
-			}
-
-			return newFramableAggregateWindow(
-				aggWindowFunc,
-				func(evalCtx *tree.EvalContext, arguments tree.Datums) tree.AggregateFunc {
-					return f(params, evalCtx, arguments)
-				},
-			)
-		},
 		Info: info,
 	}
 }
@@ -408,7 +360,6 @@ var _ tree.AggregateFunc = &boolAndAggregate{}
 var _ tree.AggregateFunc = &boolOrAggregate{}
 var _ tree.AggregateFunc = &bytesXorAggregate{}
 var _ tree.AggregateFunc = &intXorAggregate{}
-var _ tree.AggregateFunc = &jsonAggregate{}
 
 const sizeOfArrayAggregate = int64(unsafe.Sizeof(arrayAggregate{}))
 const sizeOfAvgAggregate = int64(unsafe.Sizeof(avgAggregate{}))
@@ -436,7 +387,6 @@ const sizeOfBoolAndAggregate = int64(unsafe.Sizeof(boolAndAggregate{}))
 const sizeOfBoolOrAggregate = int64(unsafe.Sizeof(boolOrAggregate{}))
 const sizeOfBytesXorAggregate = int64(unsafe.Sizeof(bytesXorAggregate{}))
 const sizeOfIntXorAggregate = int64(unsafe.Sizeof(intXorAggregate{}))
-const sizeOfJSONAggregate = int64(unsafe.Sizeof(jsonAggregate{}))
 
 // singleDatumAggregateBase is a utility struct that helps aggregate builtins
 // that store a single datum internally track their memory usage related to
@@ -2181,6 +2131,11 @@ func (a *intXorAggregate) Close(context.Context) {}
 func (a *intXorAggregate) Size() int64 {
 	return sizeOfIntXorAggregate
 }
+
+
+var _ tree.AggregateFunc = &jsonAggregate{}
+
+const sizeOfJSONAggregate = int64(unsafe.Sizeof(jsonAggregate{}))
 
 type jsonAggregate struct {
 	singleDatumAggregateBase

@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/podomy/tardigrade/pkg/keys"
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
 	"github.com/podomy/tardigrade/pkg/util/tracing"
@@ -430,72 +429,8 @@ func (post *PostProcessSpec) summaryWithPrefix(prefix string) []string {
 }
 
 // summary implements the diagramCellType interface.
-func (c *ReadImportDataSpec) summary() (string, []string) {
-	ss := make([]string, 0, len(c.Uri))
-	for _, s := range c.Uri {
-		ss = append(ss, s)
-	}
-	return "ReadImportData", ss
-}
-
-// summary implements the diagramCellType interface.
-func (s *SSTWriterSpec) summary() (string, []string) {
-	var res []string
-	for _, span := range s.Spans {
-		res = append(res, fmt.Sprintf("%s: %s", span.Name, keys.PrettyPrint(nil, span.End)))
-	}
-	return "SSTWriter", res
-}
-
-// summary implements the diagramCellType interface.
-func (s *CSVWriterSpec) summary() (string, []string) {
-	return "CSVWriter", []string{s.Destination}
-}
-
-// summary implements the diagramCellType interface.
 func (s *BulkRowWriterSpec) summary() (string, []string) {
 	return "BulkRowWriterSpec", []string{}
-}
-
-// summary implements the diagramCellType interface.
-func (w *WindowerSpec) summary() (string, []string) {
-	details := make([]string, 0, len(w.WindowFns))
-	if len(w.PartitionBy) > 0 {
-		details = append(details, fmt.Sprintf("PARTITION BY: %s", colListStr(w.PartitionBy)))
-	}
-	for _, windowFn := range w.WindowFns {
-		var buf bytes.Buffer
-		if windowFn.Func.WindowFunc != nil {
-			buf.WriteString(windowFn.Func.WindowFunc.String())
-		} else {
-			buf.WriteString(windowFn.Func.AggregateFunc.String())
-		}
-		buf.WriteByte('(')
-		buf.WriteString(colListStr(windowFn.ArgsIdxs))
-		buf.WriteByte(')')
-		if len(windowFn.Ordering.Columns) > 0 {
-			buf.WriteString(" (ORDER BY ")
-			buf.WriteString(windowFn.Ordering.diagramString())
-			buf.WriteByte(')')
-		}
-		details = append(details, buf.String())
-	}
-
-	return "Windower", details
-}
-
-// summary implements the diagramCellType interface.
-func (s *ChangeAggregatorSpec) summary() (string, []string) {
-	var details []string
-	for _, watch := range s.Watches {
-		details = append(details, watch.Span.String())
-	}
-	return "ChangeAggregator", details
-}
-
-// summary implements the diagramCellType interface.
-func (s *ChangeFrontierSpec) summary() (string, []string) {
-	return "ChangeFrontier", []string{}
 }
 
 type diagramCell struct {

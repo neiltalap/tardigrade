@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/lex"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
@@ -1525,8 +1524,7 @@ func NewTypedCastExpr(expr TypedExpr, typ *types.T) (*CastExpr, error) {
 }
 
 type castInfo struct {
-	fromT   *types.T
-	counter telemetry.Counter
+	fromT *types.T
 }
 
 var (

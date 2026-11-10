@@ -11,13 +11,11 @@
 package optbuilder
 
 import (
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/memo"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/cockroachdb/errors"
 )
@@ -290,7 +288,6 @@ func (b *Builder) buildSubqueryProjection(
 		out = b.constructProject(out, []scopeColumn{*col})
 	}
 
-	telemetry.Inc(sqltelemetry.SubqueryUseCounter)
 
 	return out, outScope
 }

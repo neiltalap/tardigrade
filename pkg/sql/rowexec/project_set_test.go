@@ -24,6 +24,14 @@ import (
 	"github.com/podomy/tardigrade/pkg/util/leaktest"
 )
 
+func intCols(numCols int) []types.T {
+	cols := make([]types.T, numCols)
+	for i := range cols {
+		cols[i] = *types.Int
+	}
+	return cols
+}
+
 func TestProjectSet(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 

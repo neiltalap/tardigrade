@@ -191,16 +191,10 @@ var generators = map[string]builtinDefinition{
 		),
 	),
 
-	"json_array_elements":       makeBuiltin(genProps(jsonArrayGeneratorLabels), jsonArrayElementsImpl),
-	"jsonb_array_elements":      makeBuiltin(genProps(jsonArrayGeneratorLabels), jsonArrayElementsImpl),
-	"json_array_elements_text":  makeBuiltin(genProps(jsonArrayGeneratorLabels), jsonArrayElementsTextImpl),
-	"jsonb_array_elements_text": makeBuiltin(genProps(jsonArrayGeneratorLabels), jsonArrayElementsTextImpl),
-	"json_object_keys":          makeBuiltin(genProps(jsonObjectKeysGeneratorLabels), jsonObjectKeysImpl),
-	"jsonb_object_keys":         makeBuiltin(genProps(jsonObjectKeysGeneratorLabels), jsonObjectKeysImpl),
-	"json_each":                 makeBuiltin(genProps(jsonEachGeneratorLabels), jsonEachImpl),
-	"jsonb_each":                makeBuiltin(genProps(jsonEachGeneratorLabels), jsonEachImpl),
-	"json_each_text":            makeBuiltin(genProps(jsonEachGeneratorLabels), jsonEachTextImpl),
-	"jsonb_each_text":           makeBuiltin(genProps(jsonEachGeneratorLabels), jsonEachTextImpl),
+	// json_array_elements expands a JSON array to a set of JSON values.
+	// Retained for core introspection (e.g. range-log inspection in tests).
+	"json_array_elements":  makeBuiltin(genProps(jsonArrayGeneratorLabels), jsonArrayElementsImpl),
+	"jsonb_array_elements": makeBuiltin(genProps(jsonArrayGeneratorLabels), jsonArrayElementsImpl),
 
 	"crdb_internal.check_consistency": makeBuiltin(
 		tree.FunctionProperties{
@@ -645,282 +639,6 @@ var noDatums tree.Datums
 // Values implements the tree.ValueGenerator interface.
 func (s *unaryValueGenerator) Values() tree.Datums { return noDatums }
 
-func jsonAsText(j json.JSON) (tree.Datum, error) {
-	text, err := j.AsText()
-	if err != nil {
-		return nil, err
-	}
-	if text == nil {
-		return tree.DNull, nil
-	}
-	return tree.NewDString(*text), nil
-}
-
-var (
-	errJSONObjectKeysOnArray         = pgerror.New(pgcode.InvalidParameterValue, "cannot call json_object_keys on an array")
-	errJSONObjectKeysOnScalar        = pgerror.Newf(pgcode.InvalidParameterValue, "cannot call json_object_keys on a scalar")
-	errJSONDeconstructArrayAsObject  = pgerror.New(pgcode.InvalidParameterValue, "cannot deconstruct an array as an object")
-	errJSONDeconstructScalarAsObject = pgerror.Newf(pgcode.InvalidParameterValue, "cannot deconstruct a scalar")
-)
-
-var jsonArrayElementsImpl = makeGeneratorOverload(
-	tree.ArgTypes{{"input", types.Jsonb}},
-	jsonArrayGeneratorType,
-	makeJSONArrayAsJSONGenerator,
-	"Expands a JSON array to a set of JSON values.",
-)
-
-var jsonArrayElementsTextImpl = makeGeneratorOverload(
-	tree.ArgTypes{{"input", types.Jsonb}},
-	jsonArrayTextGeneratorType,
-	makeJSONArrayAsTextGenerator,
-	"Expands a JSON array to a set of text values.",
-)
-
-var jsonArrayGeneratorLabels = []string{"value"}
-
-var jsonArrayGeneratorType = types.Jsonb
-
-var jsonArrayTextGeneratorType = types.String
-
-type jsonArrayGenerator struct {
-	json      tree.DJSON
-	nextIndex int
-	asText    bool
-	buf       [1]tree.Datum
-}
-
-var errJSONCallOnNonArray = pgerror.New(pgcode.InvalidParameterValue,
-	"cannot be called on a non-array")
-
-func makeJSONArrayAsJSONGenerator(
-	_ *tree.EvalContext, args tree.Datums,
-) (tree.ValueGenerator, error) {
-	return makeJSONArrayGenerator(args, false)
-}
-
-func makeJSONArrayAsTextGenerator(
-	_ *tree.EvalContext, args tree.Datums,
-) (tree.ValueGenerator, error) {
-	return makeJSONArrayGenerator(args, true)
-}
-
-func makeJSONArrayGenerator(args tree.Datums, asText bool) (tree.ValueGenerator, error) {
-	target := tree.MustBeDJSON(args[0])
-	if target.Type() != json.ArrayJSONType {
-		return nil, errJSONCallOnNonArray
-	}
-	return &jsonArrayGenerator{
-		json:   target,
-		asText: asText,
-	}, nil
-}
-
-// ResolvedType implements the tree.ValueGenerator interface.
-func (g *jsonArrayGenerator) ResolvedType() *types.T {
-	if g.asText {
-		return jsonArrayTextGeneratorType
-	}
-	return jsonArrayGeneratorType
-}
-
-// Start implements the tree.ValueGenerator interface.
-func (g *jsonArrayGenerator) Start() error {
-	g.nextIndex = -1
-	g.json.JSON = g.json.JSON.MaybeDecode()
-	g.buf[0] = nil
-	return nil
-}
-
-// Close implements the tree.ValueGenerator interface.
-func (g *jsonArrayGenerator) Close() {}
-
-// Next implements the tree.ValueGenerator interface.
-func (g *jsonArrayGenerator) Next() (bool, error) {
-	g.nextIndex++
-	next, err := g.json.FetchValIdx(g.nextIndex)
-	if err != nil || next == nil {
-		return false, err
-	}
-	if g.asText {
-		if g.buf[0], err = jsonAsText(next); err != nil {
-			return false, err
-		}
-	} else {
-		g.buf[0] = tree.NewDJSON(next)
-	}
-	return true, nil
-}
-
-// Values implements the tree.ValueGenerator interface.
-func (g *jsonArrayGenerator) Values() tree.Datums {
-	return g.buf[:]
-}
-
-// jsonObjectKeysImpl is a key generator of a JSON object.
-var jsonObjectKeysImpl = makeGeneratorOverload(
-	tree.ArgTypes{{"input", types.Jsonb}},
-	jsonObjectKeysGeneratorType,
-	makeJSONObjectKeysGenerator,
-	"Returns sorted set of keys in the outermost JSON object.",
-)
-
-var jsonObjectKeysGeneratorLabels = []string{"json_object_keys"}
-
-var jsonObjectKeysGeneratorType = types.String
-
-type jsonObjectKeysGenerator struct {
-	iter *json.ObjectIterator
-}
-
-func makeJSONObjectKeysGenerator(
-	_ *tree.EvalContext, args tree.Datums,
-) (tree.ValueGenerator, error) {
-	target := tree.MustBeDJSON(args[0])
-	iter, err := target.ObjectIter()
-	if err != nil {
-		return nil, err
-	}
-	if iter == nil {
-		switch target.Type() {
-		case json.ArrayJSONType:
-			return nil, errJSONObjectKeysOnArray
-		default:
-			return nil, errJSONObjectKeysOnScalar
-		}
-	}
-	return &jsonObjectKeysGenerator{
-		iter: iter,
-	}, nil
-}
-
-// ResolvedType implements the tree.ValueGenerator interface.
-func (g *jsonObjectKeysGenerator) ResolvedType() *types.T {
-	return jsonObjectKeysGeneratorType
-}
-
-// Start implements the tree.ValueGenerator interface.
-func (g *jsonObjectKeysGenerator) Start() error { return nil }
-
-// Close implements the tree.ValueGenerator interface.
-func (g *jsonObjectKeysGenerator) Close() {}
-
-// Next implements the tree.ValueGenerator interface.
-func (g *jsonObjectKeysGenerator) Next() (bool, error) {
-	return g.iter.Next(), nil
-}
-
-// Values implements the tree.ValueGenerator interface.
-func (g *jsonObjectKeysGenerator) Values() tree.Datums {
-	return tree.Datums{tree.NewDString(g.iter.Key())}
-}
-
-var jsonEachImpl = makeGeneratorOverload(
-	tree.ArgTypes{{"input", types.Jsonb}},
-	jsonEachGeneratorType,
-	makeJSONEachImplGenerator,
-	"Expands the outermost JSON or JSONB object into a set of key/value pairs.",
-)
-
-var jsonEachTextImpl = makeGeneratorOverload(
-	tree.ArgTypes{{"input", types.Jsonb}},
-	jsonEachTextGeneratorType,
-	makeJSONEachTextImplGenerator,
-	"Expands the outermost JSON or JSONB object into a set of key/value pairs. "+
-		"The returned values will be of type text.",
-)
-
-var jsonEachGeneratorLabels = []string{"key", "value"}
-
-var jsonEachGeneratorType = types.MakeLabeledTuple(
-	[]types.T{*types.String, *types.Jsonb},
-	jsonEachGeneratorLabels,
-)
-
-var jsonEachTextGeneratorType = types.MakeLabeledTuple(
-	[]types.T{*types.String, *types.String},
-	jsonEachGeneratorLabels,
-)
-
-type jsonEachGenerator struct {
-	target tree.DJSON
-	iter   *json.ObjectIterator
-	key    tree.Datum
-	value  tree.Datum
-	asText bool
-}
-
-func makeJSONEachImplGenerator(_ *tree.EvalContext, args tree.Datums) (tree.ValueGenerator, error) {
-	return makeJSONEachGenerator(args, false)
-}
-
-func makeJSONEachTextImplGenerator(
-	_ *tree.EvalContext, args tree.Datums,
-) (tree.ValueGenerator, error) {
-	return makeJSONEachGenerator(args, true)
-}
-
-func makeJSONEachGenerator(args tree.Datums, asText bool) (tree.ValueGenerator, error) {
-	target := tree.MustBeDJSON(args[0])
-	return &jsonEachGenerator{
-		target: target,
-		key:    nil,
-		value:  nil,
-		asText: asText,
-	}, nil
-}
-
-// ResolvedType implements the tree.ValueGenerator interface.
-func (g *jsonEachGenerator) ResolvedType() *types.T {
-	if g.asText {
-		return jsonEachTextGeneratorType
-	}
-	return jsonEachGeneratorType
-}
-
-// Start implements the tree.ValueGenerator interface.
-func (g *jsonEachGenerator) Start() error {
-	iter, err := g.target.ObjectIter()
-	if err != nil {
-		return err
-	}
-	if iter == nil {
-		switch g.target.Type() {
-		case json.ArrayJSONType:
-			return errJSONDeconstructArrayAsObject
-		default:
-			return errJSONDeconstructScalarAsObject
-		}
-	}
-	g.iter = iter
-	return nil
-}
-
-// Close implements the tree.ValueGenerator interface.
-func (g *jsonEachGenerator) Close() {}
-
-// Next implements the tree.ValueGenerator interface.
-func (g *jsonEachGenerator) Next() (bool, error) {
-	if !g.iter.Next() {
-		return false, nil
-	}
-	g.key = tree.NewDString(g.iter.Key())
-	if g.asText {
-		var err error
-		if g.value, err = jsonAsText(g.iter.Value()); err != nil {
-			return false, err
-		}
-	} else {
-		g.value = tree.NewDJSON(g.iter.Value())
-	}
-	return true, nil
-}
-
-// Values implements the tree.ValueGenerator interface.
-func (g *jsonEachGenerator) Values() tree.Datums {
-	return tree.Datums{g.key, g.value}
-}
-
 type checkConsistencyGenerator struct {
 	ctx      context.Context
 	db       *client.DB
@@ -1027,3 +745,91 @@ func (c *checkConsistencyGenerator) Values() tree.Datums {
 
 // Close is part of the tree.ValueGenerator interface.
 func (c *checkConsistencyGenerator) Close() {}
+
+func jsonAsText(j json.JSON) (tree.Datum, error) {
+	text, err := j.AsText()
+	if err != nil {
+		return nil, err
+	}
+	if text == nil {
+		return tree.DNull, nil
+	}
+	return tree.NewDString(*text), nil
+}
+
+// jsonArrayElementsImpl is a generator of the elements of a JSON array.
+var jsonArrayElementsImpl = makeGeneratorOverload(
+	tree.ArgTypes{{"input", types.Jsonb}},
+	jsonArrayGeneratorType,
+	makeJSONArrayAsJSONGenerator,
+	"Expands a JSON array to a set of JSON values.",
+)
+
+var jsonArrayGeneratorLabels = []string{"value"}
+
+var jsonArrayGeneratorType = types.Jsonb
+
+type jsonArrayGenerator struct {
+	json      tree.DJSON
+	nextIndex int
+	asText    bool
+	buf       [1]tree.Datum
+}
+
+var errJSONCallOnNonArray = pgerror.New(pgcode.InvalidParameterValue,
+	"cannot be called on a non-array")
+
+func makeJSONArrayAsJSONGenerator(
+	_ *tree.EvalContext, args tree.Datums,
+) (tree.ValueGenerator, error) {
+	return makeJSONArrayGenerator(args, false)
+}
+
+func makeJSONArrayGenerator(args tree.Datums, asText bool) (tree.ValueGenerator, error) {
+	target := tree.MustBeDJSON(args[0])
+	if target.Type() != json.ArrayJSONType {
+		return nil, errJSONCallOnNonArray
+	}
+	return &jsonArrayGenerator{
+		json:   target,
+		asText: asText,
+	}, nil
+}
+
+// ResolvedType implements the tree.ValueGenerator interface.
+func (g *jsonArrayGenerator) ResolvedType() *types.T {
+	return jsonArrayGeneratorType
+}
+
+// Start implements the tree.ValueGenerator interface.
+func (g *jsonArrayGenerator) Start() error {
+	g.nextIndex = -1
+	g.json.JSON = g.json.JSON.MaybeDecode()
+	g.buf[0] = nil
+	return nil
+}
+
+// Close implements the tree.ValueGenerator interface.
+func (g *jsonArrayGenerator) Close() {}
+
+// Next implements the tree.ValueGenerator interface.
+func (g *jsonArrayGenerator) Next() (bool, error) {
+	g.nextIndex++
+	next, err := g.json.FetchValIdx(g.nextIndex)
+	if err != nil || next == nil {
+		return false, err
+	}
+	if g.asText {
+		if g.buf[0], err = jsonAsText(next); err != nil {
+			return false, err
+		}
+	} else {
+		g.buf[0] = tree.NewDJSON(next)
+	}
+	return true, nil
+}
+
+// Values implements the tree.ValueGenerator interface.
+func (g *jsonArrayGenerator) Values() tree.Datums {
+	return g.buf[:]
+}

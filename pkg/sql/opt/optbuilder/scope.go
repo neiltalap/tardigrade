@@ -52,14 +52,6 @@ type scope struct {
 	// it in the scope.
 	inAgg bool
 
-	// windows contains the set of window functions encountered while building
-	// the current SELECT statement.
-	windows []scopeColumn
-
-	// windowDefs is the set of named window definitions present in the nearest
-	// SELECT.
-	windowDefs []*tree.WindowDef
-
 	// ordering records the ORDER BY columns associated with this scope. Each
 	// column is either in cols or in extraCols.
 	// Must not be modified in-place after being set.
@@ -134,8 +126,6 @@ const (
 	exprKindSelect
 	exprKindValues
 	exprKindWhere
-	exprKindWindowFrameStart
-	exprKindWindowFrameEnd
 )
 
 var exprKindName = [...]string{
@@ -154,8 +144,6 @@ var exprKindName = [...]string{
 	exprKindSelect:            "SELECT",
 	exprKindValues:            "VALUES",
 	exprKindWhere:             "WHERE",
-	exprKindWindowFrameStart:  "WINDOW FRAME START",
-	exprKindWindowFrameEnd:    "WINDOW FRAME END",
 }
 
 func (k exprKind) String() string {
@@ -410,13 +398,6 @@ func (s *scope) isOuterColumn(id opt.ColumnID) bool {
 	for i := range s.cols {
 		col := &s.cols[i]
 		if col.id == id {
-			return false
-		}
-	}
-
-	for i := range s.windows {
-		w := &s.windows[i]
-		if w.id == id {
 			return false
 		}
 	}
@@ -852,13 +833,8 @@ func (s *scope) VisitPre(expr tree.Expr) (recurse bool, newExpr tree.Expr) {
 			break
 		}
 
-		if isAggregate(def) && t.WindowDef == nil {
+		if isAggregate(def) {
 			expr = s.replaceAggregate(t, def)
-			break
-		}
-
-		if t.WindowDef != nil {
-			expr = s.replaceWindowFn(t, def)
 			break
 		}
 
@@ -1027,192 +1003,6 @@ func (s *scope) replaceAggregate(f *tree.FuncExpr, def *tree.FunctionDefinition)
 	return s.builder.buildAggregateFunction(f, &private, tempScope, s)
 }
 
-func (s *scope) lookupWindowDef(name tree.Name) *tree.WindowDef {
-	for i := range s.windowDefs {
-		if s.windowDefs[i].Name == name {
-			return s.windowDefs[i]
-		}
-	}
-	panic(pgerror.Newf(pgcode.UndefinedObject, "window %q does not exist", name))
-}
-
-func (s *scope) constructWindowDef(def tree.WindowDef) tree.WindowDef {
-	switch {
-	case def.RefName != "":
-		// SELECT rank() OVER (w) FROM t WINDOW w AS (...)
-		// We copy the referenced window specification, and modify it if necessary.
-		result, err := tree.OverrideWindowDef(s.lookupWindowDef(def.RefName), def)
-		if err != nil {
-			panic(err)
-		}
-		return result
-
-	case def.Name != "":
-		// SELECT rank() OVER w FROM t WINDOW w AS (...)
-		// Note the lack of parens around w, compared to the first case.
-		// We use the referenced window specification directly, without modification.
-		return *s.lookupWindowDef(def.Name)
-
-	default:
-		return def
-	}
-}
-
-func (s *scope) replaceWindowFn(f *tree.FuncExpr, def *tree.FunctionDefinition) tree.Expr {
-	f, def = s.replaceCount(f, def)
-
-	if err := tree.CheckIsWindowOrAgg(def); err != nil {
-		panic(err)
-	}
-
-	// We need to save and restore the previous value of the field in
-	// semaCtx in case we are recursively called within a subquery
-	// context.
-	defer s.builder.semaCtx.Properties.Restore(s.builder.semaCtx.Properties)
-
-	s.builder.semaCtx.Properties.Require("window",
-		tree.RejectNestedWindowFunctions)
-
-	// Make a copy of f so we can modify the WindowDef.
-	fCopy := *f
-	newWindowDef := s.constructWindowDef(*f.WindowDef)
-	fCopy.WindowDef = &newWindowDef
-
-	expr := fCopy.Walk(s)
-
-	typedFunc, err := tree.TypeCheck(expr, s.builder.semaCtx, types.Any)
-	if err != nil {
-		panic(err)
-	}
-	if typedFunc == tree.DNull {
-		return tree.DNull
-	}
-
-	f = typedFunc.(*tree.FuncExpr)
-
-	// We will be performing type checking on expressions from PARTITION BY and
-	// ORDER BY clauses below, and we need the semantic context to know that we
-	// are in a window function. InWindowFunc is updated when type checking
-	// FuncExpr above, but it is reset upon returning from that, so we need to do
-	// this update manually.
-	defer func(ctx *tree.SemaContext, prevWindow bool) {
-		ctx.Properties.Derived.InWindowFunc = prevWindow
-	}(
-		s.builder.semaCtx,
-		s.builder.semaCtx.Properties.Derived.InWindowFunc,
-	)
-	s.builder.semaCtx.Properties.Derived.InWindowFunc = true
-
-	oldPartitions := f.WindowDef.Partitions
-	f.WindowDef.Partitions = make(tree.Exprs, len(oldPartitions))
-	for i, e := range oldPartitions {
-		typedExpr := s.resolveType(e, types.Any)
-		f.WindowDef.Partitions[i] = typedExpr
-	}
-
-	oldOrderBy := f.WindowDef.OrderBy
-	f.WindowDef.OrderBy = make(tree.OrderBy, len(oldOrderBy))
-	for i := range oldOrderBy {
-		ord := *oldOrderBy[i]
-		if ord.OrderType != tree.OrderByColumn {
-			panic(errOrderByIndexInWindow)
-		}
-		typedExpr := s.resolveType(ord.Expr, types.Any)
-		ord.Expr = typedExpr
-		f.WindowDef.OrderBy[i] = &ord
-	}
-
-	if f.WindowDef.Frame != nil {
-		if err := analyzeWindowFrame(s, f.WindowDef); err != nil {
-			panic(err)
-		}
-	}
-
-	info := windowInfo{
-		FuncExpr: f,
-		def: memo.FunctionPrivate{
-			Name:       def.Name,
-			Properties: &def.FunctionProperties,
-			Overload:   f.ResolvedOverload(),
-		},
-	}
-
-	if col := s.findExistingColInList(&info, s.windows, false /* allowSideEffects */); col != nil {
-		return col.expr
-	}
-
-	info.col = &scopeColumn{
-		name: tree.Name(def.Name),
-		typ:  f.ResolvedType(),
-		id:   s.builder.factory.Metadata().AddColumn(def.Name, f.ResolvedType()),
-		expr: &info,
-	}
-
-	s.windows = append(s.windows, *info.col)
-
-	return &info
-}
-
-var (
-	errOrderByIndexInWindow = pgerror.New(pgcode.FeatureNotSupported, "ORDER BY INDEX in window definition is not supported")
-)
-
-// analyzeWindowFrame performs semantic analysis of offset expressions of
-// the window frame.
-func analyzeWindowFrame(s *scope, windowDef *tree.WindowDef) error {
-	frame := windowDef.Frame
-	bounds := frame.Bounds
-	startBound, endBound := bounds.StartBound, bounds.EndBound
-	var requiredType *types.T
-	switch frame.Mode {
-	case tree.ROWS:
-		// In ROWS mode, offsets must be non-null, non-negative integers. Non-nullity
-		// and non-negativity will be checked later.
-		requiredType = types.Int
-	case tree.RANGE:
-		// In RANGE mode, offsets must be non-null and non-negative datums of a type
-		// dependent on the type of the ordering column. Non-nullity and
-		// non-negativity will be checked later.
-		if bounds.HasOffset() {
-			// At least one of the bounds is of type 'value' PRECEDING or 'value' FOLLOWING.
-			// We require ordering on a single column that supports addition/subtraction.
-			if len(windowDef.OrderBy) != 1 {
-				return pgerror.Newf(pgcode.Windowing, "RANGE with offset PRECEDING/FOLLOWING requires exactly one ORDER BY column")
-			}
-			requiredType = windowDef.OrderBy[0].Expr.(tree.TypedExpr).ResolvedType()
-			if !types.IsAdditiveType(requiredType) {
-				return pgerror.Newf(pgcode.Windowing, fmt.Sprintf("RANGE with offset PRECEDING/FOLLOWING is not supported for column type %s", requiredType))
-			}
-			if types.IsDateTimeType(requiredType) {
-				// Spec: for datetime ordering columns, the required type is an 'interval'.
-				requiredType = types.Interval
-			}
-		}
-	case tree.GROUPS:
-		if len(windowDef.OrderBy) == 0 {
-			return pgerror.Newf(pgcode.Windowing, "GROUPS mode requires an ORDER BY clause")
-		}
-		// In GROUPS mode, offsets must be non-null, non-negative integers.
-		// Non-nullity and non-negativity will be checked later.
-		requiredType = types.Int
-	default:
-		return errors.AssertionFailedf("unexpected WindowFrameMode: %d", errors.Safe(frame.Mode))
-	}
-	if startBound != nil && startBound.OffsetExpr != nil {
-		oldContext := s.context
-		s.context = exprKindWindowFrameStart
-		startBound.OffsetExpr = s.resolveAndRequireType(startBound.OffsetExpr, requiredType)
-		s.context = oldContext
-	}
-	if endBound != nil && endBound.OffsetExpr != nil {
-		oldContext := s.context
-		s.context = exprKindWindowFrameEnd
-		endBound.OffsetExpr = s.resolveAndRequireType(endBound.OffsetExpr, requiredType)
-		s.context = oldContext
-	}
-	return nil
-}
-
 // replaceCount replaces count(*) with count_rows().
 func (s *scope) replaceCount(
 	f *tree.FuncExpr, def *tree.FunctionDefinition,
@@ -1274,7 +1064,6 @@ func (s *scope) replaceCount(
 				panic(err)
 			}
 			e.Filter = f.Filter
-			e.WindowDef = f.WindowDef
 			return e, newDef
 		}
 		// TODO(rytaft): Add handling for tree.AllColumnsSelector to support

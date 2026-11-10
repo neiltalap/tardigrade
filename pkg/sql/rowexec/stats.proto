@@ -61,9 +61,3 @@ message SorterStats {
   int64 max_allocated_disk = 3;
 }
 
-// WindowerStats are the stats collected during a windower run.
-message WindowerStats {
-  cockroach.sql.distsqlrun.InputStats input_stats = 1 [(gogoproto.nullable) = false];
-  int64 max_allocated_mem = 2;
-  int64 max_allocated_disk = 3;
-}

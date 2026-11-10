@@ -85,7 +85,7 @@ func (node *ShowZoneConfig) Format(ctx *FmtCtx) {
 type SetZoneConfig struct {
 	ZoneSpecifier
 	// AllIndexes indicates that the zone configuration should be applied across
-	// all of a tables indexes. (ALTER PARTITION ... OF INDEX <tablename>@*)
+	// all of a tables indexes.
 	AllIndexes bool
 	SetDefault bool
 	YAMLConfig Expr

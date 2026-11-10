@@ -13,7 +13,6 @@ package tree
 import (
 	"fmt"
 
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 )
 
@@ -51,43 +50,27 @@ import (
 
 func init() {
 	// Label the unary operators.
-	for op, overloads := range UnaryOps {
+	for op := range UnaryOps {
 		if int(op) >= len(unaryOpName) || unaryOpName[op] == "" {
 			panic(fmt.Sprintf("missing name for operator %q", op.String()))
 		}
-		opName := unaryOpName[op]
-		for _, impl := range overloads {
-			o := impl.(*UnaryOp)
-			o.counter = sqltelemetry.UnaryOpCounter(opName, o.Typ.String())
-		}
+		_ = unaryOpName[op]
 	}
 
 	// Label the comparison operators.
-	for op, overloads := range CmpOps {
+	for op := range CmpOps {
 		if int(op) >= len(comparisonOpName) || comparisonOpName[op] == "" {
 			panic(fmt.Sprintf("missing name for operator %q", op.String()))
 		}
-		opName := comparisonOpName[op]
-		for _, impl := range overloads {
-			o := impl.(*CmpOp)
-			lname := o.LeftType.String()
-			rname := o.RightType.String()
-			o.counter = sqltelemetry.CmpOpCounter(opName, lname, rname)
-		}
+		_ = comparisonOpName[op]
 	}
 
 	// Label the binary operators.
-	for op, overloads := range BinOps {
+	for op := range BinOps {
 		if int(op) >= len(binaryOpName) || binaryOpName[op] == "" {
 			panic(fmt.Sprintf("missing name for operator %q", op.String()))
 		}
-		opName := binaryOpName[op]
-		for _, impl := range overloads {
-			o := impl.(*BinOp)
-			lname := o.LeftType.String()
-			rname := o.RightType.String()
-			o.counter = sqltelemetry.BinOpCounter(opName, lname, rname)
-		}
+		_ = binaryOpName[op]
 	}
 }
 
@@ -97,12 +80,6 @@ func annotateCast(toType *types.T, fromTypes []*types.T) []castInfo {
 	ci := make([]castInfo, len(fromTypes))
 	for i, fromType := range fromTypes {
 		ci[i].fromT = fromType
-	}
-	rname := toType.String()
-
-	for i, fromType := range fromTypes {
-		lname := fromType.String()
-		ci[i].counter = sqltelemetry.CastOpCounter(lname, rname)
 	}
 	return ci
 }

@@ -132,9 +132,6 @@ func NewProcessor(
 		if err := checkNumInOut(inputs, outputs, 0, 1); err != nil {
 			return nil, err
 		}
-		if core.TableReader.IsCheck {
-			return newScrubTableReader(flowCtx, processorID, core.TableReader, post, outputs[0])
-		}
 		return newTableReader(flowCtx, processorID, core.TableReader, post, outputs[0])
 	}
 	if core.JoinReader != nil {
@@ -171,28 +168,12 @@ func NewProcessor(
 		}
 		return newAggregator(flowCtx, processorID, core.Aggregator, inputs[0], post, outputs[0])
 	}
-	if core.MergeJoiner != nil {
-		if err := checkNumInOut(inputs, outputs, 2, 1); err != nil {
-			return nil, err
-		}
-		return newMergeJoiner(
-			flowCtx, processorID, core.MergeJoiner, inputs[0], inputs[1], post, outputs[0],
-		)
-	}
 	if core.InterleavedReaderJoiner != nil {
 		if err := checkNumInOut(inputs, outputs, 0, 1); err != nil {
 			return nil, err
 		}
 		return newInterleavedReaderJoiner(
 			flowCtx, processorID, core.InterleavedReaderJoiner, post, outputs[0],
-		)
-	}
-	if core.ZigzagJoiner != nil {
-		if err := checkNumInOut(inputs, outputs, 0, 1); err != nil {
-			return nil, err
-		}
-		return newZigzagJoiner(
-			flowCtx, processorID, core.ZigzagJoiner, nil, post, outputs[0],
 		)
 	}
 	if core.HashJoiner != nil {
@@ -211,45 +192,6 @@ func NewProcessor(
 		case execinfrapb.BackfillerSpec_Column:
 			return newColumnBackfiller(flowCtx, processorID, *core.Backfiller, post, outputs[0])
 		}
-	}
-	if core.Sampler != nil {
-		if err := checkNumInOut(inputs, outputs, 1, 1); err != nil {
-			return nil, err
-		}
-		return newSamplerProcessor(flowCtx, processorID, core.Sampler, inputs[0], post, outputs[0])
-	}
-	if core.SampleAggregator != nil {
-		if err := checkNumInOut(inputs, outputs, 1, 1); err != nil {
-			return nil, err
-		}
-		return newSampleAggregator(flowCtx, processorID, core.SampleAggregator, inputs[0], post, outputs[0])
-	}
-	if core.ReadImport != nil {
-		if err := checkNumInOut(inputs, outputs, 0, 1); err != nil {
-			return nil, err
-		}
-		if NewReadImportDataProcessor == nil {
-			return nil, errors.New("ReadImportData processor unimplemented")
-		}
-		return NewReadImportDataProcessor(flowCtx, processorID, *core.ReadImport, outputs[0])
-	}
-	if core.SSTWriter != nil {
-		if err := checkNumInOut(inputs, outputs, 1, 1); err != nil {
-			return nil, err
-		}
-		if NewSSTWriterProcessor == nil {
-			return nil, errors.New("SSTWriter processor unimplemented")
-		}
-		return NewSSTWriterProcessor(flowCtx, processorID, *core.SSTWriter, inputs[0], outputs[0])
-	}
-	if core.CSVWriter != nil {
-		if err := checkNumInOut(inputs, outputs, 1, 1); err != nil {
-			return nil, err
-		}
-		if NewCSVWriterProcessor == nil {
-			return nil, errors.New("CSVWriter processor unimplemented")
-		}
-		return NewCSVWriterProcessor(flowCtx, processorID, *core.CSVWriter, inputs[0], outputs[0])
 	}
 	if core.BulkRowWriter != nil {
 		if err := checkNumInOut(inputs, outputs, 1, 1); err != nil {
@@ -277,12 +219,6 @@ func NewProcessor(
 		}
 		return newProjectSetProcessor(flowCtx, processorID, core.ProjectSet, inputs[0], post, outputs[0])
 	}
-	if core.Windower != nil {
-		if err := checkNumInOut(inputs, outputs, 1, 1); err != nil {
-			return nil, err
-		}
-		return newWindower(flowCtx, processorID, core.Windower, inputs[0], post, outputs[0])
-	}
 	if core.LocalPlanNode != nil {
 		numInputs := 0
 		if core.LocalPlanNode.NumInputs != nil {
@@ -304,24 +240,6 @@ func NewProcessor(
 		}
 		return processor, nil
 	}
-	if core.ChangeAggregator != nil {
-		if err := checkNumInOut(inputs, outputs, 0, 1); err != nil {
-			return nil, err
-		}
-		if NewChangeAggregatorProcessor == nil {
-			return nil, errors.New("ChangeAggregator processor unimplemented")
-		}
-		return NewChangeAggregatorProcessor(flowCtx, processorID, *core.ChangeAggregator, outputs[0])
-	}
-	if core.ChangeFrontier != nil {
-		if err := checkNumInOut(inputs, outputs, 1, 1); err != nil {
-			return nil, err
-		}
-		if NewChangeFrontierProcessor == nil {
-			return nil, errors.New("ChangeFrontier processor unimplemented")
-		}
-		return NewChangeFrontierProcessor(flowCtx, processorID, *core.ChangeFrontier, inputs[0], outputs[0])
-	}
 	return nil, errors.Errorf("unsupported processor core %q", core)
 }
 
@@ -340,19 +258,3 @@ type VectorizeAlwaysException interface {
 	IsException() bool
 }
 
-// NewReadImportDataProcessor is externally implemented and registered by
-// ccl/sqlccl/csv.go.
-var NewReadImportDataProcessor func(*execinfra.FlowCtx, int32, execinfrapb.ReadImportDataSpec, execinfra.RowReceiver) (execinfra.Processor, error)
-
-// NewSSTWriterProcessor is externally implemented and registered by
-// ccl/sqlccl/csv.go.
-var NewSSTWriterProcessor func(*execinfra.FlowCtx, int32, execinfrapb.SSTWriterSpec, execinfra.RowSource, execinfra.RowReceiver) (execinfra.Processor, error)
-
-// NewCSVWriterProcessor is externally implemented.
-var NewCSVWriterProcessor func(*execinfra.FlowCtx, int32, execinfrapb.CSVWriterSpec, execinfra.RowSource, execinfra.RowReceiver) (execinfra.Processor, error)
-
-// NewChangeAggregatorProcessor is externally implemented.
-var NewChangeAggregatorProcessor func(*execinfra.FlowCtx, int32, execinfrapb.ChangeAggregatorSpec, execinfra.RowReceiver) (execinfra.Processor, error)
-
-// NewChangeFrontierProcessor is externally implemented.
-var NewChangeFrontierProcessor func(*execinfra.FlowCtx, int32, execinfrapb.ChangeFrontierSpec, execinfra.RowSource, execinfra.RowReceiver) (execinfra.Processor, error)

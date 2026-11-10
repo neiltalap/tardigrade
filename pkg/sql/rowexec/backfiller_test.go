@@ -23,7 +23,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/backfill"
 	"github.com/podomy/tardigrade/pkg/sql/rowexec"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sqlmigrations"
 	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
 	"github.com/podomy/tardigrade/pkg/util/leaktest"
 	"github.com/pkg/errors"
@@ -44,10 +43,6 @@ func TestWriteResumeSpan(t *testing.T) {
 				AsyncExecNotification: func() error {
 					return errors.New("async schema changer disabled")
 				},
-			},
-			// Disable backfill migrations, we still need the jobs table migration.
-			SQLMigrationManager: &sqlmigrations.MigrationManagerTestingKnobs{
-				DisableBackfillMigrations: true,
 			},
 		},
 	})

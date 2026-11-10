@@ -32,7 +32,6 @@ var AllWindowBuiltinNames []string
 
 func init() {
 	initAggregateBuiltins()
-	initWindowBuiltins()
 	initGeneratorBuiltins()
 	initPGBuiltins()
 

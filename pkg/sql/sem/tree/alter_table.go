@@ -61,10 +61,8 @@ func (*AlterTableSetNotNull) alterTableCmd()         {}
 func (*AlterTableRenameColumn) alterTableCmd()       {}
 func (*AlterTableRenameConstraint) alterTableCmd()   {}
 func (*AlterTableRenameTable) alterTableCmd()        {}
-func (*AlterTableSetAudit) alterTableCmd()           {}
 func (*AlterTableSetDefault) alterTableCmd()         {}
 func (*AlterTableValidateConstraint) alterTableCmd() {}
-func (*AlterTablePartitionBy) alterTableCmd()        {}
 func (*AlterTableInjectStats) alterTableCmd()        {}
 
 var _ AlterTableCmd = &AlterTableAddColumn{}
@@ -78,10 +76,8 @@ var _ AlterTableCmd = &AlterTableSetNotNull{}
 var _ AlterTableCmd = &AlterTableRenameColumn{}
 var _ AlterTableCmd = &AlterTableRenameConstraint{}
 var _ AlterTableCmd = &AlterTableRenameTable{}
-var _ AlterTableCmd = &AlterTableSetAudit{}
 var _ AlterTableCmd = &AlterTableSetDefault{}
 var _ AlterTableCmd = &AlterTableValidateConstraint{}
-var _ AlterTableCmd = &AlterTablePartitionBy{}
 var _ AlterTableCmd = &AlterTableInjectStats{}
 
 // ColumnMutationCmd is the subset of AlterTableCmds that modify an
@@ -369,47 +365,6 @@ func (node *AlterTableDropStored) Format(ctx *FmtCtx) {
 	ctx.WriteString(" ALTER COLUMN ")
 	ctx.FormatNode(&node.Column)
 	ctx.WriteString(" DROP STORED")
-}
-
-// AlterTablePartitionBy represents an ALTER TABLE PARTITION BY
-// command.
-type AlterTablePartitionBy struct {
-	*PartitionBy
-}
-
-// Format implements the NodeFormatter interface.
-func (node *AlterTablePartitionBy) Format(ctx *FmtCtx) {
-	ctx.FormatNode(node.PartitionBy)
-}
-
-// AuditMode represents a table audit mode
-type AuditMode int
-
-const (
-	// AuditModeDisable is the default mode - no audit.
-	AuditModeDisable AuditMode = iota
-	// AuditModeReadWrite enables audit on read or write statements.
-	AuditModeReadWrite
-)
-
-var auditModeName = [...]string{
-	AuditModeDisable:   "OFF",
-	AuditModeReadWrite: "READ WRITE",
-}
-
-func (m AuditMode) String() string {
-	return auditModeName[m]
-}
-
-// AlterTableSetAudit represents an ALTER TABLE AUDIT SET statement.
-type AlterTableSetAudit struct {
-	Mode AuditMode
-}
-
-// Format implements the NodeFormatter interface.
-func (node *AlterTableSetAudit) Format(ctx *FmtCtx) {
-	ctx.WriteString(" EXPERIMENTAL_AUDIT SET ")
-	ctx.WriteString(node.Mode.String())
 }
 
 // AlterTableInjectStats represents an ALTER TABLE INJECT STATISTICS statement.

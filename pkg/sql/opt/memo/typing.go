@@ -128,18 +128,6 @@ func findOverload(e opt.ScalarExpr, name string) (overload *tree.Overload, ok bo
 	return nil, false
 }
 
-// FindWindowOverload finds a window function overload that matches the
-// given window function expression. It panics if no match can be found.
-func FindWindowOverload(e opt.ScalarExpr) (name string, overload *tree.Overload) {
-	name = opt.WindowOpReverseMap[e.Op()]
-	overload, ok := findOverload(e, name)
-	if ok {
-		return name, overload
-	}
-	// NB: all aggregate functions can be used as window functions.
-	return FindAggregateOverload(e)
-}
-
 // FindAggregateOverload finds an aggregate function overload that matches the
 // given aggregate function expression. It panics if no match can be found.
 func FindAggregateOverload(e opt.ScalarExpr) (name string, overload *tree.Overload) {
@@ -184,15 +172,9 @@ func init() {
 	typingFuncMap[opt.AnyNotNullAggOp] = typeAsFirstArg
 	typingFuncMap[opt.FirstAggOp] = typeAsFirstArg
 
-	typingFuncMap[opt.LagOp] = typeAsFirstArg
-	typingFuncMap[opt.LeadOp] = typeAsFirstArg
-	typingFuncMap[opt.NthValueOp] = typeAsFirstArg
-
 	// Modifiers for aggregations pass through their argument.
 	typingFuncMap[opt.AggDistinctOp] = typeAsFirstArg
 	typingFuncMap[opt.AggFilterOp] = typeAsFirstArg
-	typingFuncMap[opt.WindowFromOffsetOp] = typeAsFirstArg
-	typingFuncMap[opt.WindowToOffsetOp] = typeAsFirstArg
 
 	for _, op := range opt.BinaryOperators {
 		typingFuncMap[op] = typeAsBinary
@@ -206,12 +188,6 @@ func init() {
 		// Fill in any that are not already added to the typingFuncMap above.
 		if typingFuncMap[op] == nil {
 			typingFuncMap[op] = typeAsAggregate
-		}
-	}
-
-	for _, op := range opt.WindowOperators {
-		if typingFuncMap[op] == nil {
-			typingFuncMap[op] = typeAsWindow
 		}
 	}
 }
@@ -298,18 +274,6 @@ func typeAsAggregate(e opt.ScalarExpr) *types.T {
 	if t == tree.UnknownReturnType {
 		panic(errors.AssertionFailedf("unknown aggregate return type. e:\n%s", e))
 	}
-	return t
-}
-
-// typeAsWindow returns the type of a window function expression similar to
-// typeAsAggregate.
-func typeAsWindow(e opt.ScalarExpr) *types.T {
-	_, overload := FindWindowOverload(e)
-	t := overload.ReturnType(nil)
-	if t == tree.UnknownReturnType {
-		panic(errors.AssertionFailedf("unknown window return type. e:\n%s", e))
-	}
-
 	return t
 }
 

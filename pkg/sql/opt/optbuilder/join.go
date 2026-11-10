@@ -11,14 +11,12 @@
 package optbuilder
 
 import (
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/memo"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/cockroachdb/errors"
@@ -41,12 +39,10 @@ func (b *Builder) buildJoin(join *tree.JoinTableExpr, inScope *scope) (outScope 
 	switch join.Hint {
 	case "":
 	case tree.AstHash:
-		telemetry.Inc(sqltelemetry.HashJoinHintUseCounter)
 		flags.DisallowMergeJoin = true
 		flags.DisallowLookupJoin = true
 
 	case tree.AstLookup:
-		telemetry.Inc(sqltelemetry.LookupJoinHintUseCounter)
 		flags.DisallowHashJoin = true
 		flags.DisallowMergeJoin = true
 		if joinType != sqlbase.InnerJoin && joinType != sqlbase.LeftOuterJoin {
@@ -56,7 +52,6 @@ func (b *Builder) buildJoin(join *tree.JoinTableExpr, inScope *scope) (outScope 
 		}
 
 	case tree.AstMerge:
-		telemetry.Inc(sqltelemetry.MergeJoinHintUseCounter)
 		flags.DisallowLookupJoin = true
 		flags.DisallowHashJoin = true
 

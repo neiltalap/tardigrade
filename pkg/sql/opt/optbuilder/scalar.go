@@ -14,15 +14,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/memo"
 	"github.com/podomy/tardigrade/pkg/sql/opt/norm"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
-	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/errorutil"
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
@@ -105,9 +102,6 @@ func (b *Builder) buildScalar(
 			aggOutScope = inScope.groupby.aggOutScope
 		}
 		return b.finishBuildScalarRef(t.col, aggOutScope, outScope, outCol, colRefs)
-
-	case *windowInfo:
-		return b.finishBuildScalarRef(t.col, inScope, outScope, outCol, colRefs)
 
 	case *tree.AndExpr:
 		left := b.buildScalar(t.TypedLeft(), inScope, nil, nil, colRefs)
@@ -453,12 +447,6 @@ func (b *Builder) buildAnyScalar(
 func (b *Builder) buildFunction(
 	f *tree.FuncExpr, inScope, outScope *scope, outCol *scopeColumn, colRefs *opt.ColSet,
 ) (out opt.ScalarExpr) {
-	if f.WindowDef != nil {
-		if inScope.inAgg {
-			panic(sqlbase.NewWindowInAggError())
-		}
-	}
-
 	def, err := f.Func.Resolve(b.semaCtx.SearchPath)
 	if err != nil {
 		panic(err)
@@ -466,10 +454,6 @@ func (b *Builder) buildFunction(
 
 	if isAggregate(def) {
 		panic(errors.AssertionFailedf("aggregate function should have been replaced"))
-	}
-
-	if isWindow(def) {
-		panic(errors.AssertionFailedf("window function should have been replaced"))
 	}
 
 	args := make(memo.ScalarListExpr, len(f.Exprs))
@@ -552,7 +536,6 @@ func (b *Builder) checkSubqueryOuterCols(
 	// method is called, to avoid double counting the same query.
 	if !b.isCorrelated {
 		b.isCorrelated = true
-		telemetry.Inc(sqltelemetry.CorrelatedSubqueryUseCounter)
 	}
 
 	var inScopeCols opt.ColSet
@@ -643,12 +626,6 @@ func (b *Builder) constructComparison(
 	case tree.ContainedBy:
 		// This is just syntatic sugar that reverses the operands.
 		return b.factory.ConstructContains(right, left)
-	case tree.JSONExists:
-		return b.factory.ConstructJsonExists(left, right)
-	case tree.JSONAllExists:
-		return b.factory.ConstructJsonAllExists(left, right)
-	case tree.JSONSomeExists:
-		return b.factory.ConstructJsonSomeExists(left, right)
 	case tree.Overlaps:
 		return b.factory.ConstructOverlaps(left, right)
 	}

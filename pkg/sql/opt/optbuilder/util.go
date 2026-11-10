@@ -13,7 +13,6 @@ package optbuilder
 import (
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/cat"
-	"github.com/podomy/tardigrade/pkg/sql/opt/memo"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/privilege"
@@ -23,15 +22,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
 	"github.com/cockroachdb/errors"
 )
-
-// windowAggregateFrame() returns a frame that any aggregate built as a window
-// can use.
-func windowAggregateFrame() memo.WindowFrame {
-	return memo.WindowFrame{
-		StartBoundType: unboundedStartBound.BoundType,
-		EndBoundType:   unboundedEndBound.BoundType,
-	}
-}
 
 // getTypedExprs casts the exprs into TypedExps and returns them.
 func getTypedExprs(exprs []tree.Expr) []tree.TypedExpr {

@@ -1806,45 +1806,6 @@ func (node *ReferenceActions) doc(p *PrettyCfg) pretty.Doc {
 	return pretty.Fold(pretty.ConcatSpace, docs...)
 }
 
-func (node *Backup) doc(p *PrettyCfg) pretty.Doc {
-	items := make([]pretty.TableRow, 0, 6)
-
-	items = append(items, p.row("BACKUP", pretty.Nil))
-	items = append(items, node.Targets.docRow(p))
-	items = append(items, p.row("TO", p.Doc(&node.To)))
-
-	if node.AsOf.Expr != nil {
-		items = append(items, node.AsOf.docRow(p))
-	}
-	if node.IncrementalFrom != nil {
-		items = append(items, p.row("INCREMENTAL FROM", p.Doc(&node.IncrementalFrom)))
-	}
-	if node.Options != nil {
-		items = append(items, p.row("WITH", p.Doc(&node.Options)))
-	}
-	return p.rlTable(items...)
-}
-
-func (node *Restore) doc(p *PrettyCfg) pretty.Doc {
-	items := make([]pretty.TableRow, 0, 5)
-
-	items = append(items, p.row("RESTORE", pretty.Nil))
-	items = append(items, node.Targets.docRow(p))
-	from := make([]pretty.Doc, len(node.From))
-	for i := range node.From {
-		from[i] = p.Doc(&node.From[i])
-	}
-	items = append(items, p.row("FROM", p.commaSeparated(from...)))
-
-	if node.AsOf.Expr != nil {
-		items = append(items, node.AsOf.docRow(p))
-	}
-	if node.Options != nil {
-		items = append(items, p.row("WITH", p.Doc(&node.Options)))
-	}
-	return p.rlTable(items...)
-}
-
 func (node *TargetList) doc(p *PrettyCfg) pretty.Doc {
 	return p.unrow(node.docRow(p))
 }
@@ -1878,61 +1839,6 @@ func (node *KVOptions) doc(p *PrettyCfg) pretty.Doc {
 		opts = append(opts, d)
 	}
 	return p.commaSeparated(opts...)
-}
-
-func (node *Import) doc(p *PrettyCfg) pretty.Doc {
-	items := make([]pretty.TableRow, 0, 5)
-	items = append(items, p.row("IMPORT", pretty.Nil))
-
-	if node.Bundle {
-		if node.Table != nil {
-			items = append(items, p.row("TABLE", p.Doc(node.Table)))
-			items = append(items, p.row("FROM", pretty.Nil))
-		}
-		items = append(items, p.row(node.FileFormat, p.Doc(&node.Files)))
-	} else {
-		if node.Into {
-			into := p.Doc(node.Table)
-			if node.IntoCols != nil {
-				into = p.nestUnder(into, p.bracket("(", p.Doc(&node.IntoCols), ")"))
-			}
-			items = append(items, p.row("INTO", into))
-		} else {
-			if node.CreateFile != nil {
-				items = append(items, p.row("TABLE", p.Doc(node.Table)))
-				items = append(items, p.row("CREATE USING", p.Doc(node.CreateFile)))
-			} else {
-				table := p.bracketDoc(
-					pretty.ConcatSpace(p.Doc(node.Table), pretty.Text("(")),
-					p.Doc(&node.CreateDefs),
-					pretty.Text(")"),
-				)
-				items = append(items, p.row("TABLE", table))
-			}
-		}
-
-		data := p.bracketKeyword(
-			"DATA", " (",
-			p.Doc(&node.Files),
-			")", "",
-		)
-		items = append(items, p.row(node.FileFormat, data))
-	}
-	if node.Options != nil {
-		items = append(items, p.row("WITH", p.Doc(&node.Options)))
-	}
-	return p.rlTable(items...)
-}
-
-func (node *Export) doc(p *PrettyCfg) pretty.Doc {
-	items := make([]pretty.TableRow, 0, 5)
-	items = append(items, p.row("EXPORT", pretty.Nil))
-	items = append(items, p.row("INTO "+node.FileFormat, p.Doc(node.File)))
-	if node.Options != nil {
-		items = append(items, p.row("WITH", p.Doc(&node.Options)))
-	}
-	items = append(items, p.row("FROM", p.Doc(node.Query)))
-	return p.rlTable(items...)
 }
 
 func (node *Explain) doc(p *PrettyCfg) pretty.Doc {

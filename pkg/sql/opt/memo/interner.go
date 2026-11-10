@@ -516,13 +516,6 @@ func (h *hasher) HashViewDeps(val opt.ViewDeps) {
 	}
 }
 
-func (h *hasher) HashWindowFrame(val WindowFrame) {
-	h.HashInt(int(val.StartBoundType))
-	h.HashInt(int(val.EndBoundType))
-	h.HashInt(int(val.Mode))
-	h.HashInt(int(val.FrameExclusion))
-}
-
 func (h *hasher) HashTupleOrdinal(val TupleOrdinal) {
 	h.HashUint64(uint64(val))
 }
@@ -573,15 +566,6 @@ func (h *hasher) HashAggregationsExpr(val AggregationsExpr) {
 		item := &val[i]
 		h.HashColumnID(item.Col)
 		h.HashScalarExpr(item.Agg)
-	}
-}
-
-func (h *hasher) HashWindowsExpr(val WindowsExpr) {
-	for i := range val {
-		item := &val[i]
-		h.HashColumnID(item.Col)
-		h.HashScalarExpr(item.Function)
-		h.HashWindowFrame(item.Frame)
 	}
 }
 
@@ -838,13 +822,6 @@ func (h *hasher) IsViewDepsEqual(l, r opt.ViewDeps) bool {
 	return len(l) == 0 || &l[0] == &r[0]
 }
 
-func (h *hasher) IsWindowFrameEqual(l, r WindowFrame) bool {
-	return l.StartBoundType == r.StartBoundType &&
-		l.EndBoundType == r.EndBoundType &&
-		l.Mode == r.Mode &&
-		l.FrameExclusion == r.FrameExclusion
-}
-
 func (h *hasher) IsTupleOrdinalEqual(l, r TupleOrdinal) bool {
 	return l == r
 }
@@ -907,20 +884,6 @@ func (h *hasher) IsAggregationsExprEqual(l, r AggregationsExpr) bool {
 	}
 	for i := range l {
 		if l[i].Col != r[i].Col || l[i].Agg != r[i].Agg {
-			return false
-		}
-	}
-	return true
-}
-
-func (h *hasher) IsWindowsExprEqual(l, r WindowsExpr) bool {
-	if len(l) != len(r) {
-		return false
-	}
-	for i := range l {
-		if l[i].Col != r[i].Col ||
-			l[i].Function != r[i].Function ||
-			l[i].Frame != r[i].Frame {
 			return false
 		}
 	}

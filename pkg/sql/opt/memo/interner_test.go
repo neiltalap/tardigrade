@@ -105,57 +105,6 @@ func TestInterner(t *testing.T) {
 	}
 	aggs5 := AggregationsExpr{{Agg: &CountRowsExpr{}, ColPrivate: ColPrivate{Col: 1}}}
 
-	int1 := &ConstExpr{Value: tree.NewDInt(10)}
-	int2 := &ConstExpr{Value: tree.NewDInt(20)}
-	frame1 := WindowFrame{
-		Mode:           tree.RANGE,
-		StartBoundType: tree.UnboundedPreceding,
-		EndBoundType:   tree.CurrentRow,
-		FrameExclusion: tree.NoExclusion,
-	}
-	frame2 := WindowFrame{
-		Mode:           tree.ROWS,
-		StartBoundType: tree.UnboundedPreceding,
-		EndBoundType:   tree.CurrentRow,
-		FrameExclusion: tree.NoExclusion,
-	}
-
-	wins1 := WindowsExpr{{
-		Function: RankSingleton,
-		WindowsItemPrivate: WindowsItemPrivate{
-			ColPrivate: ColPrivate{Col: 0},
-			Frame:      frame1,
-		},
-	}}
-	wins2 := WindowsExpr{{
-		Function: RankSingleton,
-		WindowsItemPrivate: WindowsItemPrivate{
-			ColPrivate: ColPrivate{Col: 0},
-			Frame:      frame1,
-		},
-	}}
-	wins3 := WindowsExpr{{
-		Function: &WindowFromOffsetExpr{Input: RankSingleton, Offset: int1},
-		WindowsItemPrivate: WindowsItemPrivate{
-			ColPrivate: ColPrivate{Col: 0},
-			Frame:      frame1,
-		},
-	}}
-	wins4 := WindowsExpr{{
-		Function: &WindowFromOffsetExpr{Input: RankSingleton, Offset: int2},
-		WindowsItemPrivate: WindowsItemPrivate{
-			ColPrivate: ColPrivate{Col: 0},
-			Frame:      frame1,
-		},
-	}}
-	wins5 := WindowsExpr{{
-		Function: RankSingleton,
-		WindowsItemPrivate: WindowsItemPrivate{
-			ColPrivate: ColPrivate{Col: 0},
-			Frame:      frame2,
-		},
-	}}
-
 	type testVariation struct {
 		val1  interface{}
 		val2  interface{}
@@ -364,28 +313,6 @@ func TestInterner(t *testing.T) {
 			{val1: tree.ShowTraceKV, val2: tree.ShowTraceRaw, equal: false},
 		}},
 
-		{hashFn: in.hasher.HashWindowFrame, eqFn: in.hasher.IsWindowFrameEqual, variations: []testVariation{
-			{
-				val1:  WindowFrame{tree.RANGE, tree.UnboundedPreceding, tree.CurrentRow, tree.NoExclusion},
-				val2:  WindowFrame{tree.RANGE, tree.UnboundedPreceding, tree.CurrentRow, tree.NoExclusion},
-				equal: true,
-			},
-			{
-				val1:  WindowFrame{tree.RANGE, tree.UnboundedPreceding, tree.CurrentRow, tree.NoExclusion},
-				val2:  WindowFrame{tree.ROWS, tree.UnboundedPreceding, tree.CurrentRow, tree.NoExclusion},
-				equal: false,
-			},
-			{
-				val1:  WindowFrame{tree.RANGE, tree.UnboundedPreceding, tree.CurrentRow, tree.NoExclusion},
-				val2:  WindowFrame{tree.RANGE, tree.UnboundedPreceding, tree.UnboundedFollowing, tree.NoExclusion},
-				equal: false,
-			},
-			{
-				val1:  WindowFrame{tree.RANGE, tree.UnboundedPreceding, tree.CurrentRow, tree.NoExclusion},
-				val2:  WindowFrame{tree.RANGE, tree.CurrentRow, tree.CurrentRow, tree.NoExclusion},
-				equal: false,
-			},
-		}},
 
 		{hashFn: in.hasher.HashTupleOrdinal, eqFn: in.hasher.IsTupleOrdinalEqual, variations: []testVariation{
 			{val1: TupleOrdinal(0), val2: TupleOrdinal(0), equal: true},
@@ -432,13 +359,6 @@ func TestInterner(t *testing.T) {
 			{val1: aggs3, val2: aggs5, equal: false},
 		}},
 
-		{hashFn: in.hasher.HashWindowsExpr, eqFn: in.hasher.IsWindowsExprEqual, variations: []testVariation{
-			{val1: wins1, val2: wins2, equal: true},
-			{val1: wins1, val2: wins3, equal: false},
-			{val1: wins2, val2: wins3, equal: false},
-			{val1: wins3, val2: wins4, equal: false},
-			{val1: wins1, val2: wins5, equal: false},
-		}},
 	}
 
 	computeHashValue := func(hashFn reflect.Value, val interface{}) internHash {

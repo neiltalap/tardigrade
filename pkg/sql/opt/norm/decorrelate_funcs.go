@@ -632,15 +632,6 @@ func (c *CustomFuncs) EnsureAggsCanIgnoreNulls(
 	return newAggs
 }
 
-// AddColsToPartition unions the given set of columns with a window private's
-// partition columns.
-func (c *CustomFuncs) AddColsToPartition(
-	priv *memo.WindowPrivate, cols opt.ColSet,
-) *memo.WindowPrivate {
-	cpy := *priv
-	cpy.Partition = cpy.Partition.Union(cols)
-	return &cpy
-}
 
 // ConstructAnyCondition builds an expression that compares the given scalar
 // expression with the first (and only) column of the input rowset, using the

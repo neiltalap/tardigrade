@@ -14,13 +14,11 @@ import (
 	"context"
 
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/execinfra"
 	"github.com/podomy/tardigrade/pkg/sql/execinfrapb"
 	"github.com/podomy/tardigrade/pkg/sql/row"
 	"github.com/podomy/tardigrade/pkg/sql/scrub"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/cockroachdb/errors"
 )
@@ -284,7 +282,6 @@ func newInterleavedReaderJoiner(
 	}
 
 	// Increment some telemetry counters about use of the interleaved table join feature.
-	telemetry.Inc(sqltelemetry.InterleavedTableJoinCounter)
 
 	// TODO(richardwu): We can relax this to < 2 (i.e. permit 2+ tables).
 	// This will require modifying JoinerBase init logic.

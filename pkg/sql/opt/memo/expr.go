@@ -115,23 +115,6 @@ var FalseSingleton = &FalseExpr{}
 // common case), to avoid allocations.
 var NullSingleton = &NullExpr{Typ: types.Unknown}
 
-// TODO(justin): perhaps these should be auto-generated.
-
-// RankSingleton is the global instance of RankExpr.
-var RankSingleton = &RankExpr{}
-
-// RowNumberSingleton is the global instance of RowNumber.
-var RowNumberSingleton = &RowNumberExpr{}
-
-// DenseRankSingleton is the global instance of DenseRankExpr.
-var DenseRankSingleton = &DenseRankExpr{}
-
-// PercentRankSingleton is the global instance of PercentRankExpr.
-var PercentRankSingleton = &PercentRankExpr{}
-
-// CumeDistSingleton is the global instance of CumeDistExpr.
-var CumeDistSingleton = &CumeDistExpr{}
-
 // CountRowsSingleton maintains a global instance of CountRowsExpr, to avoid
 // allocations.
 var CountRowsSingleton = &CountRowsExpr{}
@@ -382,20 +365,6 @@ func (jf JoinFlags) String() string {
 	return b.String()
 }
 
-// WindowFrame denotes the definition of a window frame for an individual
-// window function, excluding the OFFSET expressions, if present.
-type WindowFrame struct {
-	Mode           tree.WindowFrameMode
-	StartBoundType tree.WindowFrameBoundType
-	EndBoundType   tree.WindowFrameBoundType
-	FrameExclusion tree.WindowFrameExclusion
-}
-
-// HasOffset returns true if the WindowFrame contains a specific offset.
-func (f *WindowFrame) HasOffset() bool {
-	return f.StartBoundType.IsOffset() || f.EndBoundType.IsOffset()
-}
-
 // NeedResults returns true if the mutation operator can return the rows that
 // were mutated.
 func (m *MutationPrivate) NeedResults() bool {
@@ -509,8 +478,7 @@ func ExprIsNeverNull(e opt.ScalarExpr, notNullCols opt.ColSet) bool {
 
 	case *AndExpr, *OrExpr, *GeExpr, *GtExpr, *NeExpr, *EqExpr, *LeExpr, *LtExpr, *LikeExpr,
 		*NotLikeExpr, *ILikeExpr, *NotILikeExpr, *SimilarToExpr, *NotSimilarToExpr, *RegMatchExpr,
-		*NotRegMatchExpr, *RegIMatchExpr, *NotRegIMatchExpr, *ContainsExpr, *JsonExistsExpr,
-		*JsonAllExistsExpr, *JsonSomeExistsExpr, *AnyScalarExpr, *BitandExpr, *BitorExpr, *BitxorExpr,
+		*NotRegMatchExpr, *RegIMatchExpr, *NotRegIMatchExpr, *ContainsExpr, *AnyScalarExpr, *BitandExpr, *BitorExpr, *BitxorExpr,
 		*PlusExpr, *MinusExpr, *MultExpr, *DivExpr, *FloorDivExpr, *ModExpr, *PowExpr, *ConcatExpr,
 		*LShiftExpr, *RShiftExpr, *WhenExpr:
 		return ExprIsNeverNull(t.Child(0).(opt.ScalarExpr), notNullCols) &&

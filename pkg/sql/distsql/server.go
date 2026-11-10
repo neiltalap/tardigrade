@@ -19,8 +19,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/gossip"
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
-	"github.com/podomy/tardigrade/pkg/sql/colflow"
 	"github.com/podomy/tardigrade/pkg/sql/execinfra"
 	"github.com/podomy/tardigrade/pkg/sql/execinfrapb"
 	"github.com/podomy/tardigrade/pkg/sql/flowinfra"
@@ -28,7 +26,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/util/contextutil"
 	"github.com/podomy/tardigrade/pkg/util/duration"
 	"github.com/podomy/tardigrade/pkg/util/envutil"
@@ -327,12 +324,9 @@ func (ds *ServerImpl) setupFlow(
 		TraceKV:        req.TraceKV,
 		Local:          localState.IsLocal,
 	}
-	// req always contains the desired vectorize mode, regardless of whether we
-	// have non-nil localState.EvalContext. We don't want to update EvalContext
-	// itself when the vectorize mode needs to be changed because we would need
-	// to restore the original value which can have data races under stress.
-	isVectorized := sessiondata.VectorizeExecMode(req.EvalContext.Vectorize) != sessiondata.VectorizeOff
-	f := newFlow(flowCtx, ds.flowRegistry, syncFlowConsumer, localState.LocalProcs, isVectorized)
+	// The vectorized execution engine has been removed; all flows run through
+	// the row-based engine. The Vectorize mode in the request is ignored.
+	f := newFlow(flowCtx, ds.flowRegistry, syncFlowConsumer, localState.LocalProcs)
 	opt := flowinfra.FuseNormally
 	if localState.IsLocal {
 		// If there's no remote flows, fuse everything. This is needed in order for
@@ -354,10 +348,6 @@ func (ds *ServerImpl) setupFlow(
 	if !f.IsLocal() {
 		flowCtx.AddLogTag("f", f.GetFlowCtx().ID.Short())
 		flowCtx.AnnotateCtx(ctx)
-		telemetry.Inc(sqltelemetry.DistSQLExecCounter)
-	}
-	if f.IsVectorized() {
-		telemetry.Inc(sqltelemetry.VecExecCounter)
 	}
 
 	// Figure out what txn the flow needs to run in, if any. For gateway flows
@@ -395,12 +385,8 @@ func newFlow(
 	flowReg *flowinfra.FlowRegistry,
 	syncFlowConsumer execinfra.RowReceiver,
 	localProcessors []execinfra.LocalProcessor,
-	isVectorized bool,
 ) flowinfra.Flow {
-	base := flowinfra.NewFlowBase(flowCtx, flowReg, syncFlowConsumer, localProcessors, isVectorized)
-	if isVectorized {
-		return colflow.NewVectorizedFlow(base)
-	}
+	base := flowinfra.NewFlowBase(flowCtx, flowReg, syncFlowConsumer, localProcessors, false /* isVectorized */)
 	return rowflow.NewRowBasedFlow(base)
 }
 

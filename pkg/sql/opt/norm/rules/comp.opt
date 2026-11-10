@@ -99,7 +99,6 @@
 (Eq | Ne | Ge | Gt | Le | Lt | Like | NotLike | ILike | NotILike
         | SimilarTo | NotSimilarTo | RegMatch | NotRegMatch
         | RegIMatch | NotRegIMatch | Contains | Overlaps
-        | JsonExists | JsonSomeExists | JsonAllExists
     $left:(Null)
     *
 )
@@ -112,7 +111,6 @@
 (Eq | Ne | Ge | Gt | Le | Lt | Like | NotLike | ILike | NotILike
         | SimilarTo | NotSimilarTo | RegMatch | NotRegMatch
         | RegIMatch | NotRegIMatch | Contains | Overlaps
-        | JsonExists | JsonSomeExists | JsonAllExists
     *
     $right:(Null)
 )

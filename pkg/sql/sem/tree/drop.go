@@ -153,18 +153,3 @@ func (node *DropUser) Format(ctx *FmtCtx) {
 	}
 	ctx.FormatNode(&node.Names)
 }
-
-// DropRole represents a DROP ROLE statement
-type DropRole struct {
-	Names    Exprs
-	IfExists bool
-}
-
-// Format implements the NodeFormatter interface.
-func (node *DropRole) Format(ctx *FmtCtx) {
-	ctx.WriteString("DROP ROLE ")
-	if node.IfExists {
-		ctx.WriteString("IF EXISTS ")
-	}
-	ctx.FormatNode(&node.Names)
-}

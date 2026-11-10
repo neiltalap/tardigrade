@@ -30,9 +30,6 @@ func (b *Builder) buildShowTrace(
 			b.synthesizeResultColumns(outScope, sqlbase.ShowTraceColumns)
 		}
 
-	case tree.ShowTraceReplica:
-		b.synthesizeResultColumns(outScope, sqlbase.ShowReplicaTraceColumns)
-
 	default:
 		panic(errors.AssertionFailedf("SHOW %s not supported", showTrace.TraceType))
 	}

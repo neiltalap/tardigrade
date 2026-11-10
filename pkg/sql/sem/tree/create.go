@@ -1163,21 +1163,6 @@ func (node *AlterUserSetPassword) Format(ctx *FmtCtx) {
 	}
 }
 
-// CreateRole represents a CREATE ROLE statement.
-type CreateRole struct {
-	Name        Expr
-	IfNotExists bool
-}
-
-// Format implements the NodeFormatter interface.
-func (node *CreateRole) Format(ctx *FmtCtx) {
-	ctx.WriteString("CREATE ROLE ")
-	if node.IfNotExists {
-		ctx.WriteString("IF NOT EXISTS ")
-	}
-	ctx.FormatNode(node.Name)
-}
-
 // CreateView represents a CREATE VIEW statement.
 type CreateView struct {
 	Name        TableName

@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/types"
@@ -63,13 +62,9 @@ type Overload struct {
 	Info string
 
 	AggregateFunc func([]*types.T, *EvalContext, Datums) AggregateFunc
-	WindowFunc    func([]*types.T, *EvalContext) WindowFunc
 	Fn            func(*EvalContext, Datums) (Datum, error)
 	Generator     GeneratorFactory
 
-	// counter, if non-nil, should be incremented upon successful
-	// type check of expressions using this overload.
-	counter telemetry.Counter
 
 	// SpecializedVecBuiltin is used to let the vectorized engine
 	// know when an Overload has a specialized vectorized operator.

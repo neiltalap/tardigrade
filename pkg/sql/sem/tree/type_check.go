@@ -15,12 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/lex"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sessiondata"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/duration"
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
@@ -126,10 +124,6 @@ const (
 	// (RejectAggregates notwithstanding).
 	RejectNestedAggregates
 
-	// RejectNestedWindows rejects any use of window functions inside the
-	// argument list of another window function.
-	RejectNestedWindowFunctions
-
 	// RejectWindowApplications rejects "x() over y", etc.
 	RejectWindowApplications
 
@@ -179,8 +173,7 @@ type ScalarProperties struct {
 	inFuncExpr bool
 
 	// InWindowFunc is temporarily set to true while type checking the
-	// parameters of a window function in order to reject nested window
-	// functions.
+	// parameters of a window function.
 	InWindowFunc bool
 }
 
@@ -357,11 +350,6 @@ func (expr *BinaryExpr) TypeCheck(ctx *SemaContext, desired *types.T) (TypedExpr
 
 	binOp := fns[0].(*BinOp)
 
-	// Register operator usage in telemetry.
-	if binOp.counter != nil {
-		telemetry.Inc(binOp.counter)
-	}
-
 	expr.Left, expr.Right = leftTyped, rightTyped
 	expr.fn = binOp
 	expr.typ = binOp.returnType()(typedSubExprs)
@@ -420,20 +408,16 @@ func (expr *CaseExpr) TypeCheck(ctx *SemaContext, desired *types.T) (TypedExpr, 
 	return expr, nil
 }
 
-func isCastDeepValid(castFrom, castTo *types.T) (bool, telemetry.Counter) {
+func isCastDeepValid(castFrom, castTo *types.T) bool {
 	if castTo.Family() == types.ArrayFamily && castFrom.Family() == types.ArrayFamily {
-		ok, c := isCastDeepValid(castFrom.ArrayContents(), castTo.ArrayContents())
-		if ok {
-			telemetry.Inc(sqltelemetry.ArrayCastCounter)
-		}
-		return ok, c
+		return isCastDeepValid(castFrom.ArrayContents(), castTo.ArrayContents())
 	}
 	for _, t := range validCastTypes(castTo) {
 		if castFrom.Family() == t.fromT.Family() {
-			return true, t.counter
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
 func isEmptyArray(expr Expr) bool {
@@ -486,8 +470,7 @@ func (expr *CastExpr) TypeCheck(ctx *SemaContext, _ *types.T) (TypedExpr, error)
 
 	castFrom := typedSubExpr.ResolvedType()
 
-	if ok, c := isCastDeepValid(castFrom, expr.Type); ok {
-		telemetry.Inc(c)
+	if ok := isCastDeepValid(castFrom, expr.Type); ok {
 		expr.Expr = typedSubExpr
 		expr.typ = expr.Type
 		return expr, nil
@@ -524,7 +507,6 @@ func (expr *IndirectionExpr) TypeCheck(ctx *SemaContext, desired *types.T) (Type
 	expr.Expr = subExpr
 	expr.typ = typ.ArrayContents()
 
-	telemetry.Inc(sqltelemetry.ArraySubscriptCounter)
 	return expr, nil
 }
 
@@ -678,10 +660,6 @@ func (expr *ComparisonExpr) TypeCheck(ctx *SemaContext, desired *types.T) (Typed
 		return DNull, nil
 	}
 
-	// Register operator usage in telemetry.
-	if fn.counter != nil {
-		telemetry.Inc(fn.counter)
-	}
 
 	expr.Left, expr.Right = leftTyped, rightTyped
 	expr.fn = fn
@@ -753,10 +731,6 @@ func (sc *SemaContext) checkFunctionUsage(expr *FuncExpr, def *FunctionDefinitio
 			return NewInvalidFunctionUsageError(WindowClass, sc.Properties.required.context)
 		}
 
-		if sc.Properties.Derived.InWindowFunc &&
-			sc.Properties.required.rejectFlags&RejectNestedWindowFunctions != 0 {
-			return pgerror.Newf(pgcode.Windowing, "window function calls cannot be nested")
-		}
 		sc.Properties.Derived.SeenWindowApplication = true
 	} else {
 		// If it is an aggregate function *not used OVER a window*, then
@@ -980,9 +954,6 @@ func (expr *FuncExpr) TypeCheck(ctx *SemaContext, desired *types.T) (TypedExpr, 
 			strings.Join(typeNames, ", "),
 		)
 	}
-	if overloadImpl.counter != nil {
-		telemetry.Inc(overloadImpl.counter)
-	}
 	return expr, nil
 }
 
@@ -1019,7 +990,6 @@ func (expr *IfErrExpr) TypeCheck(ctx *SemaContext, desired *types.T) (TypedExpr,
 	expr.ErrCode = typedErrCode
 	expr.typ = retType
 
-	telemetry.Inc(sqltelemetry.IfErrCounter)
 	return expr, nil
 }
 
@@ -1203,11 +1173,6 @@ func (expr *UnaryExpr) TypeCheck(ctx *SemaContext, desired *types.T) (TypedExpr,
 
 	unaryOp := fns[0].(*UnaryOp)
 
-	// Register operator usage in telemetry.
-	if unaryOp.counter != nil {
-		telemetry.Inc(unaryOp.counter)
-	}
-
 	expr.Expr = exprTyped
 	expr.fn = unaryOp
 	expr.typ = unaryOp.returnType()(typedSubExprs)
@@ -1313,7 +1278,6 @@ func (expr *Array) TypeCheck(ctx *SemaContext, desired *types.T) (TypedExpr, err
 		expr.Exprs[i] = typedSubExprs[i]
 	}
 
-	telemetry.Inc(sqltelemetry.ArrayConstructorCounter)
 	return expr, nil
 }
 
@@ -1331,7 +1295,6 @@ func (expr *ArrayFlatten) TypeCheck(ctx *SemaContext, desired *types.T) (TypedEx
 	expr.Subquery = subqueryTyped
 	expr.typ = types.MakeArray(subqueryTyped.ResolvedType())
 
-	telemetry.Inc(sqltelemetry.ArrayFlattenCounter)
 	return expr, nil
 }
 

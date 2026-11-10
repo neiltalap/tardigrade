@@ -23,7 +23,6 @@ import "sql/execinfrapb/data.proto";
 import "sql/execinfrapb/processors_base.proto";
 import "sql/execinfrapb/processors_sql.proto";
 import "sql/execinfrapb/processors_bulk_io.proto";
-import "sql/execinfrapb/processors_changefeeds.proto";
 import "sql/execinfrapb/processors_table_stats.proto";
 import "gogoproto/gogo.proto";
 
@@ -97,10 +96,7 @@ message ProcessorCoreUnion {
   optional MetadataTestReceiverSpec metadataTestReceiver = 19;
   optional ZigzagJoinerSpec zigzagJoiner = 21;
   optional ProjectSetSpec projectSet = 22;
-  optional WindowerSpec windower = 23;
   optional LocalPlanNodeSpec localPlanNode = 24;
-  optional ChangeAggregatorSpec changeAggregator = 25;
-  optional ChangeFrontierSpec changeFrontier = 26;
   optional OrdinalitySpec ordinality = 27;
   optional BulkRowWriterSpec bulkRowWriter = 28;
 

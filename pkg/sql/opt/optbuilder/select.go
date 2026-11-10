@@ -11,7 +11,6 @@
 package optbuilder
 
 import (
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/cat"
 	"github.com/podomy/tardigrade/pkg/sql/opt/memo"
@@ -21,7 +20,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/privilege"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/errorutil/unimplemented"
 	"github.com/cockroachdb/errors"
@@ -48,7 +46,6 @@ func (b *Builder) buildDataSource(
 	switch source := texpr.(type) {
 	case *tree.AliasedTableExpr:
 		if source.IndexFlags != nil {
-			telemetry.Inc(sqltelemetry.IndexHintUseCounter)
 			indexFlags = source.IndexFlags
 		}
 
@@ -658,7 +655,6 @@ func (b *Builder) buildCTE(
 		outScope.ctes[ctes[i].Name.Alias.String()] = cte
 	}
 
-	telemetry.Inc(sqltelemetry.CteUseCounter)
 
 	return outScope, b.ctes[start:]
 }
@@ -822,7 +818,6 @@ func (b *Builder) buildSelectClause(
 	sel *tree.SelectClause, orderBy tree.OrderBy, desiredTypes []*types.T, inScope *scope,
 ) (outScope *scope) {
 	fromScope := b.buildFrom(sel.From, inScope)
-	b.processWindowDefs(sel, fromScope)
 	b.buildWhere(sel.Where, fromScope)
 
 	projectionsScope := fromScope.replace()
@@ -863,8 +858,6 @@ func (b *Builder) buildSelectClause(
 		outScope = fromScope
 	}
 
-	b.buildWindow(outScope, fromScope)
-
 	// Construct the projection.
 	b.constructProjectForScope(outScope, projectionsScope)
 	outScope = projectionsScope
@@ -903,27 +896,6 @@ func (b *Builder) buildFrom(from tree.From, inScope *scope) (outScope *scope) {
 	}
 
 	return outScope
-}
-
-// processWindowDefs validates that any window defs have unique names and adds
-// them to the given scope.
-func (b *Builder) processWindowDefs(sel *tree.SelectClause, fromScope *scope) {
-	// Just do an O(n^2) loop since the number of window defs is likely small.
-	for i := range sel.Window {
-		for j := i + 1; j < len(sel.Window); j++ {
-			if sel.Window[i].Name == sel.Window[j].Name {
-				panic(pgerror.Newf(
-					pgcode.Windowing,
-					"window %q is already defined",
-					sel.Window[i].Name,
-				))
-			}
-		}
-	}
-
-	// Pass down the set of window definitions so that they can be referenced
-	// elsewhere in the SELECT.
-	fromScope.windowDefs = sel.Window
 }
 
 // buildWhere builds a set of memo groups that represent the given WHERE clause.

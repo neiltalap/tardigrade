@@ -755,37 +755,6 @@ define ProjectSet {
     Zip ZipExpr
 }
 
-# Window represents a window function. Window functions are operators which
-# allow computations that take into consideration other rows in the same result
-# set.
-#
-# More concretely, a window function is a relational operator that takes in a
-# result set and appends a single new column whose value depends on the other
-# rows within the result set, and that row's relative position in it.
-#
-# Depending on the exact window function being computed, the value of the new
-# column could be the position of the row in the output (`row_number`), or a
-# cumulative sum, or something else.
-[Relational]
-define Window {
-    Input RelExpr
-
-    # Windows is the set of window functions to be computed for this operator.
-    Windows WindowsExpr
-    _ WindowPrivate
-}
-
-[Private]
-define WindowPrivate {
-    # Partition is the set of columns to partition on. Every set of rows
-    # sharing the values for this set of columns will be treated independently.
-    Partition ColSet
-
-    # Ordering is the ordering that the window function is computed relative to
-    # within each partition.
-    Ordering OrderingChoice
-}
-
 # With executes Binding, making its results available to Main. Within Main, the
 # results of Binding may be referenced by a WithScan expression containing the
 # ID of this With.

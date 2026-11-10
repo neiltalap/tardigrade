@@ -17,11 +17,8 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/memo"
 	"github.com/podomy/tardigrade/pkg/sql/opt/norm"
-	"github.com/podomy/tardigrade/pkg/sql/opt/testutils"
 	"github.com/podomy/tardigrade/pkg/sql/opt/testutils/testcat"
-	"github.com/podomy/tardigrade/pkg/sql/opt/xform"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
-	"github.com/podomy/tardigrade/pkg/sql/types"
 )
 
 // TestSimplifyFilters tests factory.SimplifyFilters. It's hard to fully test
@@ -60,52 +57,5 @@ func TestSimplifyFilters(t *testing.T) {
 	sel = f.ConstructSelect(vals, filters)
 	if len(sel.(*memo.SelectExpr).Filters) != 1 {
 		t.Fatalf("filters result should have filtered True operator")
-	}
-}
-
-// Test CopyAndReplace on an already optimized join. Before CopyAndReplace is
-// called, the join has a placeholder that causes the optimizer to use a merge
-// join. After CopyAndReplace substitutes a constant for the placeholder, the
-// optimizer switches to a lookup join. A similar pattern is used by the
-// ApplyJoin execution operator which replaces variables with constants in an
-// already optimized tree. The CopyAndReplace code must take care to copy over
-// the normalized tree rather than the optimized tree by using the FirstExpr
-// method.
-func TestCopyAndReplace(t *testing.T) {
-	cat := testcat.New()
-	if _, err := cat.ExecuteDDL("CREATE TABLE ab (a INT PRIMARY KEY, b INT)"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := cat.ExecuteDDL("CREATE TABLE cde (c INT PRIMARY KEY, d INT, e INT, INDEX(d))"); err != nil {
-		t.Fatal(err)
-	}
-
-	evalCtx := tree.MakeTestingEvalContext(cluster.MakeTestingClusterSettings())
-
-	var o xform.Optimizer
-	testutils.BuildQuery(t, &o, cat, &evalCtx, "SELECT * FROM ab INNER JOIN cde ON a=c AND d=$1")
-
-	if e, err := o.Optimize(); err != nil {
-		t.Fatal(err)
-	} else if e.Op() != opt.MergeJoinOp {
-		t.Errorf("expected optimizer to choose merge-join, not %v", e.Op())
-	}
-
-	m := o.Factory().DetachMemo()
-
-	o.Init(&evalCtx)
-	var replaceFn norm.ReplaceFunc
-	replaceFn = func(e opt.Expr) opt.Expr {
-		if e.Op() == opt.PlaceholderOp {
-			return o.Factory().ConstructConstVal(tree.NewDInt(1), types.Int)
-		}
-		return o.Factory().CopyAndReplaceDefault(e, replaceFn)
-	}
-	o.Factory().CopyAndReplace(m.RootExpr().(memo.RelExpr), m.RootProps(), replaceFn)
-
-	if e, err := o.Optimize(); err != nil {
-		t.Fatal(err)
-	} else if e.Op() != opt.LookupJoinOp {
-		t.Errorf("expected optimizer to choose lookup-join, not %v", e.Op())
 	}
 }

@@ -11,13 +11,11 @@
 package optbuilder
 
 import (
-	"github.com/podomy/tardigrade/pkg/server/telemetry"
 	"github.com/podomy/tardigrade/pkg/sql/opt/memo"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/sql/sqltelemetry"
 )
 
 func (b *Builder) buildExplain(explain *tree.Explain, inScope *scope) (outScope *scope) {
@@ -34,7 +32,6 @@ func (b *Builder) buildExplain(explain *tree.Explain, inScope *scope) (outScope 
 	var cols sqlbase.ResultColumns
 	switch opts.Mode {
 	case tree.ExplainPlan:
-		telemetry.Inc(sqltelemetry.ExplainPlanUseCounter)
 		if opts.Flags.Contains(tree.ExplainFlagVerbose) || opts.Flags.Contains(tree.ExplainFlagTypes) {
 			cols = sqlbase.ExplainPlanVerboseColumns
 		} else {
@@ -44,9 +41,7 @@ func (b *Builder) buildExplain(explain *tree.Explain, inScope *scope) (outScope 
 	case tree.ExplainDistSQL:
 		analyze := opts.Flags.Contains(tree.ExplainFlagAnalyze)
 		if analyze {
-			telemetry.Inc(sqltelemetry.ExplainAnalyzeUseCounter)
 		} else {
-			telemetry.Inc(sqltelemetry.ExplainDistSQLUseCounter)
 		}
 		if analyze && tree.IsStmtParallelized(explain.Statement) {
 			panic(pgerror.Newf(pgcode.FeatureNotSupported,
@@ -56,14 +51,11 @@ func (b *Builder) buildExplain(explain *tree.Explain, inScope *scope) (outScope 
 
 	case tree.ExplainOpt:
 		if opts.Flags.Contains(tree.ExplainFlagVerbose) {
-			telemetry.Inc(sqltelemetry.ExplainOptVerboseUseCounter)
 		} else {
-			telemetry.Inc(sqltelemetry.ExplainOptUseCounter)
 		}
 		cols = sqlbase.ExplainOptColumns
 
 	case tree.ExplainVec:
-		telemetry.Inc(sqltelemetry.ExplainVecUseCounter)
 		cols = sqlbase.ExplainVecColumns
 
 	default:
