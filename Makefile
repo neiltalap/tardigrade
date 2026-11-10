@@ -783,8 +783,6 @@ EXECGEN_TARGETS = \
   pkg/sql/colexec/proj_const_right_ops.eg.go \
   pkg/sql/colexec/proj_non_const_ops.eg.go \
   pkg/sql/colexec/quicksort.eg.go \
-  pkg/sql/colexec/rank.eg.go \
-  pkg/sql/colexec/row_number.eg.go \
   pkg/sql/colexec/rowstovec.eg.go \
   pkg/sql/colexec/selection_ops.eg.go \
   pkg/sql/colexec/select_in.eg.go \
@@ -814,7 +812,6 @@ go-targets-oss := \
 	bench benchshort \
 	check test testshort testslow testrace testraceslow testbuild \
 	stress stressrace \
-	roachprod-stress roachprod-stressrace \
 	generate \
 	lint lintshort
 
@@ -948,16 +945,8 @@ stress stressrace:
 	$(xgo) test $(GOFLAGS) -exec 'stress $(STRESSFLAGS)' -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' -run "$(TESTS)" -timeout 0 $(PKG) $(filter-out -v,$(TESTFLAGS)) -v -args -test.timeout $(TESTTIMEOUT)
 
 .PHONY: roachprod-stress roachprod-stressrace
-roachprod-stress roachprod-stressrace: bin/roachprod-stress
-	# The bootstrap target creates, among other things, ./bin/stress.
-	build/builder.sh make bin/.bootstrap
-	build/builder.sh mkrelease amd64-linux-gnu test GOFLAGS="$(GOFLAGS)" TESTFLAGS="-v -c -o $(notdir $(patsubst %/,%,$(PKG))).test" PKG=$(PKG)
-	@if [ -z "$(CLUSTER)" ]; then \
-	  echo "ERROR: missing or empty CLUSTER"; \
-	else \
-	  bin/roachprod-stress $(CLUSTER) $(STRESSFLAGS) $(patsubst github.com/podomy/tardigrade/%,./%,$(PKG)) \
-	    -test.run "$(TESTS)" $(filter-out -v,$(TESTFLAGS)) -test.v -test.timeout $(TESTTIMEOUT); \
-	fi
+roachprod-stress roachprod-stressrace:
+	@echo "roachprod-stress removed for core (see pkg/cmd/roachprod removal)" >&2; exit 1
 
 testlogic: testbaselogic testoptlogic
 
@@ -997,10 +986,8 @@ upload-coverage: bin/.bootstrap
 	@build/upload-coverage.sh
 
 .PHONY: acceptance
-acceptance: TESTTIMEOUT := $(ACCEPTANCETIMEOUT)
-acceptance: export TESTTIMEOUT := $(TESTTIMEOUT)
 acceptance: ## Run acceptance tests.
-	+@pkg/acceptance/run.sh
+	@echo "acceptance harness removed for core (see pkg/acceptance removal)" >&2; exit 1
 
 .PHONY: dupl
 dupl: bin/.bootstrap
@@ -1302,8 +1289,6 @@ pkg/sql/colexec/proj_const_left_ops.eg.go: pkg/sql/colexec/proj_const_ops_tmpl.g
 pkg/sql/colexec/proj_const_right_ops.eg.go: pkg/sql/colexec/proj_const_ops_tmpl.go
 pkg/sql/colexec/proj_non_const_ops.eg.go: pkg/sql/colexec/proj_non_const_ops_tmpl.go
 pkg/sql/colexec/quicksort.eg.go: pkg/sql/colexec/quicksort_tmpl.go
-pkg/sql/colexec/rank.eg.go: pkg/sql/colexec/rank_tmpl.go
-pkg/sql/colexec/row_number.eg.go: pkg/sql/colexec/row_number_tmpl.go
 pkg/sql/colexec/rowstovec.eg.go: pkg/sql/colexec/rowstovec_tmpl.go
 pkg/sql/colexec/select_in.eg.go: pkg/sql/colexec/select_in_tmpl.go
 pkg/sql/colexec/sort.eg.go: pkg/sql/colexec/sort_tmpl.go
@@ -1402,20 +1387,14 @@ bins = \
   bin/fuzz \
   bin/generate-binary \
   bin/terraformgen \
-  bin/github-post \
-  bin/github-pull-request-make \
   bin/gossipsim \
   bin/langgen \
   bin/protoc-gen-gogoroach \
-  bin/publish-artifacts \
-  bin/publish-provisional-artifacts \
   bin/optgen \
   bin/returncheck \
   bin/roachlint \
-  bin/roachprod \
   bin/roachprod-stress \
   bin/roachtest \
-  bin/teamcity-trigger \
   bin/uptodate \
   bin/urlcheck \
   bin/workload \
@@ -1447,6 +1426,10 @@ $(bins): bin/%: bin/%.d | bin/prereqs bin/.submodules-initialized
 	bin/prereqs $(if $($*-package),$($*-package),./pkg/cmd/$*) > $@.d.tmp
 	mv -f $@.d.tmp $@.d
 	@$(GO_INSTALL) -v $(if $($*-package),$($*-package),./pkg/cmd/$*)
+
+# Stubs for cloud/CI tools removed for core.
+bin/roachprod bin/github-post bin/github-pull-request-make bin/publish-artifacts bin/publish-provisional-artifacts bin/teamcity-trigger:
+	@echo "$@ removed for core (see pkg/cmd removal)" >&2; exit 1
 
 $(testbins): bin/%: bin/%.d | bin/prereqs $(SUBMODULES_TARGET)
 	@echo go test -c $($*-package)
