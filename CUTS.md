@@ -274,3 +274,27 @@ joint-config removal depends on them). Every batch ended with a green
 build and the affected suites re-run: parser, lex, tree, opt packages,
 roachpb, settings, keys, jobs, sql, storage, kv, server, cli, security,
 pgwire, colexec (while it lived), rowexec, and logictest.
+
+## Build system
+
+`make buildoss` (the CI job in `.github/workflows/build.yml`, run in
+the 20191029 builder image) needed repair after the cuts:
+
+- `bin/prereqs`: sources deleted; replaced with a stub that emits no
+  extra make dependencies.
+- `bin/uptodate`: sources deleted; replaced with a shell equivalent
+  that exits 0 when the target is newer than every file under the
+  source dirs, else 1 to trigger a rebuild.
+- `EXECGEN_TARGETS`: emptied (colexec and pkg/col deleted); the
+  colexec `find` cleanups are guarded by `test -d`.
+- `DOCGEN_TARGETS`: emptied (docs and docgen deleted); `build` no
+  longer requires the settings HTML page since the `gen` command is
+  gone (`buildoss` never needed it).
+- `bins` pruned to tools with surviving sources; removed on-demand
+  binaries (`workload`, `docgen`, `execgen`, `roachtest`, `fuzz`, …)
+  fail with an honest "removed for core" error instead of "No rule".
+- `pkg/cmd/protoc-gen-gogoroach` restored: it is build
+  infrastructure (protoc plugin over vendored gogo), required for
+  protobuf regeneration on fresh checkouts, not product bloat.
+- `build/variables.mk` regenerated (drops `C_LIBS_CCL` /
+  `LIBROACHCCL`, already gone from the Makefile).

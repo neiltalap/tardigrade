@@ -757,47 +757,18 @@ SQLPARSER_TARGETS = \
 
 PROTOBUF_TARGETS := bin/.go_protobuf_sources bin/.gw_protobuf_sources bin/.cpp_protobuf_sources
 
-DOCGEN_TARGETS := bin/.docgen_bnfs bin/.docgen_functions
+# Doc generation removed for core (docs/ and pkg/cmd/docgen deleted).
+DOCGEN_TARGETS :=
 
-EXECGEN_TARGETS = \
-  pkg/col/coldata/vec.eg.go \
-  pkg/sql/colexec/and_or_projection.eg.go \
-  pkg/sql/colexec/any_not_null_agg.eg.go \
-  pkg/sql/colexec/avg_agg.eg.go \
-  pkg/sql/colexec/cast.eg.go \
-  pkg/sql/colexec/const.eg.go \
-  pkg/sql/colexec/distinct.eg.go \
-  pkg/sql/colexec/hashjoiner.eg.go \
-  pkg/sql/colexec/joiner_util.eg.go \
-  pkg/sql/colexec/like_ops.eg.go \
-  pkg/sql/colexec/mergejoinbase.eg.go \
-  pkg/sql/colexec/mergejoiner_fullouter.eg.go \
-  pkg/sql/colexec/mergejoiner_inner.eg.go \
-  pkg/sql/colexec/mergejoiner_leftanti.eg.go \
-  pkg/sql/colexec/mergejoiner_leftouter.eg.go \
-  pkg/sql/colexec/mergejoiner_leftsemi.eg.go \
-  pkg/sql/colexec/mergejoiner_rightouter.eg.go \
-  pkg/sql/colexec/min_max_agg.eg.go \
-  pkg/sql/colexec/overloads_test_utils.eg.go \
-  pkg/sql/colexec/proj_const_left_ops.eg.go \
-  pkg/sql/colexec/proj_const_right_ops.eg.go \
-  pkg/sql/colexec/proj_non_const_ops.eg.go \
-  pkg/sql/colexec/quicksort.eg.go \
-  pkg/sql/colexec/rowstovec.eg.go \
-  pkg/sql/colexec/selection_ops.eg.go \
-  pkg/sql/colexec/select_in.eg.go \
-  pkg/sql/colexec/sort.eg.go \
-  pkg/sql/colexec/substring.eg.go \
-  pkg/sql/colexec/sum_agg.eg.go \
-  pkg/sql/colexec/tuples_differ.eg.go \
-  pkg/sql/colexec/vec_comparators.eg.go \
-  pkg/sql/colexec/zerocolumns.eg.go
+# Vectorized engine removed for core (pkg/col and pkg/sql/colexec deleted),
+# so there are no execgen targets left.
+EXECGEN_TARGETS =
 
 execgen-exclusions = $(addprefix -not -path ,$(EXECGEN_TARGETS))
 
 $(info Cleaning old generated files.)
-$(shell find pkg/sql/colexec -type f -name '*.eg.go' $(execgen-exclusions) -delete)
-$(shell find pkg/sql/exec -type f -name '*.eg.go' $(execgen-exclusions) -delete 2>/dev/null)
+$(shell test -d pkg/sql/colexec && find pkg/sql/colexec -type f -name '*.eg.go' $(execgen-exclusions) -delete)
+$(shell test -d pkg/sql/exec && find pkg/sql/exec -type f -name '*.eg.go' $(execgen-exclusions) -delete 2>/dev/null)
 
 OPTGEN_TARGETS = \
 	pkg/sql/opt/memo/expr.og.go \
@@ -885,8 +856,10 @@ buildshort: ## Build the CockroachDB binary without the admin UI.
 build: $(COCKROACH)
 buildoss: $(COCKROACHOSS)
 buildshort: $(COCKROACHSHORT)
+# DOCGEN_TARGETS is empty (docs removed for core); the settings page cannot
+# be regenerated since the `gen` command was removed, so plain `build`
+# skips generated docs. `make generate` still lists the dormant rule.
 build buildoss buildshort: $(DOCGEN_TARGETS)
-build buildshort: $(if $(is-cross-compile),,$(SETTINGS_DOC_PAGE))
 
 # For historical reasons, symlink cockroach to cockroachshort.
 # TODO(benesch): see if it would break anyone's workflow to remove this.
@@ -1004,7 +977,7 @@ dupl: bin/.bootstrap
 
 .PHONY: generate
 generate: ## Regenerate generated code.
-generate: protobuf $(DOCGEN_TARGETS) $(EXECGEN_TARGETS) $(OPTGEN_TARGETS) $(SQLPARSER_TARGETS) $(SETTINGS_DOC_PAGE) bin/langgen bin/terraformgen
+generate: protobuf $(DOCGEN_TARGETS) $(EXECGEN_TARGETS) $(OPTGEN_TARGETS) $(SQLPARSER_TARGETS) bin/langgen
 	$(GO) generate $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' $(PKG)
 
 lint lintshort: TESTTIMEOUT := $(LINTTIMEOUT)
@@ -1350,7 +1323,7 @@ unsafe-clean-c-deps:
 
 .PHONY: clean-execgen-files
 clean-execgen-files:
-	find ./pkg/sql/colexec -type f -name '*.eg.go' -exec rm {} +
+	test -d ./pkg/sql/colexec && find ./pkg/sql/colexec -type f -name '*.eg.go' -exec rm {} + || true
 	test -d ./pkg/sql/exec && find ./pkg/sql/exec -type f -name '*.eg.go' -exec rm {} + || true
 
 .PHONY: clean
@@ -1378,27 +1351,11 @@ unsafe-clean: maintainer-clean unsafe-clean-c-deps
 # [0]: http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
 
 bins = \
-  bin/allocsim \
-  bin/benchmark \
   bin/cockroach-oss \
   bin/cockroach-short \
-  bin/docgen \
-  bin/execgen \
-  bin/fuzz \
-  bin/generate-binary \
-  bin/terraformgen \
-  bin/gossipsim \
   bin/langgen \
-  bin/protoc-gen-gogoroach \
   bin/optgen \
-  bin/returncheck \
-  bin/roachlint \
-  bin/roachprod-stress \
-  bin/roachtest \
-  bin/uptodate \
-  bin/urlcheck \
-  bin/workload \
-  bin/zerosum
+  bin/protoc-gen-gogoroach
 
 testbins = \
   bin/logictest \
@@ -1416,10 +1373,9 @@ logictest-bins := bin/logictest bin/logictestopt
 # Additional dependencies for binaries that depend on generated code.
 #
 # TODO(benesch): Derive this automatically. This is getting out of hand.
-bin/workload bin/docgen bin/execgen bin/roachtest $(logictest-bins): $(SQLPARSER_TARGETS) $(PROTOBUF_TARGETS)
-bin/workload bin/roachtest $(logictest-bins): $(EXECGEN_TARGETS)
-bin/roachtest $(logictest-bins): $(C_LIBS_OSS) $(CGO_FLAGS_FILES)
-bin/roachtest bin/logictestopt: $(OPTGEN_TARGETS)
+$(logictest-bins): $(SQLPARSER_TARGETS) $(PROTOBUF_TARGETS)
+$(logictest-bins): $(C_LIBS_OSS) $(CGO_FLAGS_FILES)
+bin/logictestopt: $(OPTGEN_TARGETS)
 
 $(bins): bin/%: bin/%.d | bin/prereqs bin/.submodules-initialized
 	@echo go install -v $*
@@ -1431,20 +1387,36 @@ $(bins): bin/%: bin/%.d | bin/prereqs bin/.submodules-initialized
 bin/roachprod bin/github-post bin/github-pull-request-make bin/publish-artifacts bin/publish-provisional-artifacts bin/teamcity-trigger:
 	@echo "$@ removed for core (see pkg/cmd removal)" >&2; exit 1
 
+# Stubs for developer binaries removed for core. These are only ever built
+# on demand (never as build prerequisites), so a hard error is honest.
+bin/workload bin/docgen bin/execgen bin/roachtest bin/fuzz bin/allocsim bin/benchmark bin/gossipsim bin/returncheck bin/roachlint bin/urlcheck bin/generate-binary bin/terraformgen bin/zerosum bin/roachprod-stress:
+	@echo "$@ removed for core (see CUTS.md)" >&2; exit 1
+
 $(testbins): bin/%: bin/%.d | bin/prereqs $(SUBMODULES_TARGET)
 	@echo go test -c $($*-package)
 	bin/prereqs -bin-name=$* -test $($*-package) > $@.d.tmp
 	mv -f $@.d.tmp $@.d
 	$(xgo) test $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' -c -o $@ $($*-package)
 
-bin/prereqs: ./pkg/cmd/prereqs/*.go
-	@echo go install -v ./pkg/cmd/prereqs
-	@$(GO_INSTALL) -v ./pkg/cmd/prereqs
+# pkg/cmd/prereqs was removed for core; binaries carry no extra make deps,
+# so this is a stub that emits no dependencies.
+bin/prereqs:
+	@mkdir -p bin
+	@printf '#!/bin/sh\n# prereqs removed for core (see CUTS.md); no extra deps.\nexit 0\n' > $@
+	@chmod +x $@
+
+# pkg/cmd/uptodate was removed for core; this shell replacement keeps the
+# C-dependency fast path working: exit 0 when the target is newer than
+# every file under the source dirs, else exit 1 to trigger a rebuild.
+bin/uptodate:
+	@mkdir -p bin
+	@printf '#!/bin/sh\n# uptodate stub: uptodate <target> <srcdir>...\nupd_target=$$1; shift\n[ -e "$$upd_target" ] || exit 1\nfor d in "$$@"; do\n  [ -e "$$d" ] || continue\n  if find "$$d" -newer "$$upd_target" -print -quit 2>/dev/null | grep -q .; then exit 1; fi\ndone\nexit 0\n' > $@
+	@chmod +x $@
 
 .PHONY: fuzz
 fuzz: ## Run fuzz tests.
-fuzz: bin/fuzz
-	bin/fuzz $(TESTFLAGS) -tests $(TESTS) -timeout $(TESTTIMEOUT) $(PKG)
+fuzz:
+	@echo "fuzz harness removed for core (see pkg/cmd/fuzz removal)" >&2; exit 1
 
 .PRECIOUS: bin/%.d
 bin/%.d: ;
