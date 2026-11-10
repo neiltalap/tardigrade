@@ -1579,12 +1579,11 @@ var xxx_messageInfo_SettingsResponse_Value proto.InternalMessageInfo
 // balancer. In this mode, a successful response is returned only if the
 // node:
 //
-// - is not in the process of shutting down or booting up (including
-//   waiting for cluster bootstrap);
-// - is regarded as healthy by the cluster via the recent broadcast of
-//   a liveness beacon. Absent either of these conditions, an error
-//   code will result.
-//
+//   - is not in the process of shutting down or booting up (including
+//     waiting for cluster bootstrap);
+//   - is regarded as healthy by the cluster via the recent broadcast of
+//     a liveness beacon. Absent either of these conditions, an error
+//     code will result.
 type HealthRequest struct {
 	// ready specifies whether the client wants to know whether the
 	// target node is ready to receive traffic. If a node is unready, an
@@ -2682,17 +2681,11 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type AdminClient interface {
 	// URL: /_admin/v1/users
-	Users(ctx context.Context, in *UsersRequest, opts ...grpc.CallOption) (*UsersResponse, error)
 	// URL: /_admin/v1/databases
-	Databases(ctx context.Context, in *DatabasesRequest, opts ...grpc.CallOption) (*DatabasesResponse, error)
 	// Example URL: /_admin/v1/databases/system
-	DatabaseDetails(ctx context.Context, in *DatabaseDetailsRequest, opts ...grpc.CallOption) (*DatabaseDetailsResponse, error)
 	// Example URL: /_admin/v1/databases/system/tables/ui
-	TableDetails(ctx context.Context, in *TableDetailsRequest, opts ...grpc.CallOption) (*TableDetailsResponse, error)
 	// Example URL: /_admin/v1/databases/system/tables/ui/stats
-	TableStats(ctx context.Context, in *TableStatsRequest, opts ...grpc.CallOption) (*TableStatsResponse, error)
 	// Example URL: /_admin/v1/nontablestats
-	NonTableStats(ctx context.Context, in *NonTableStatsRequest, opts ...grpc.CallOption) (*NonTableStatsResponse, error)
 	// Example URLs:
 	// Example URLs:
 	// - /_admin/v1/events
@@ -2701,7 +2694,6 @@ type AdminClient interface {
 	// - /_admin/v1/events?type=create_table&limit=100
 	// - /_admin/v1/events?type=drop_table&target_id=4
 	// - /_admin/v1/events?type=drop_table&target_id=4&limit=100
-	Events(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error)
 	// This requires a POST. Because of the libraries we're using, the POST body
 	// must be in the following format:
 	//
@@ -2717,7 +2709,6 @@ type AdminClient interface {
 	// Together, SetUIData and GetUIData provide access to a "cookie jar" for the
 	// admin UI. The structure of the underlying data is meant to be opaque to the
 	// server.
-	SetUIData(ctx context.Context, in *SetUIDataRequest, opts ...grpc.CallOption) (*SetUIDataResponse, error)
 	// Example URLs:
 	// - /_admin/v1/uidata?keys=MYKEY
 	// - /_admin/v1/uidata?keys=MYKEY1&keys=MYKEY2
@@ -2726,21 +2717,15 @@ type AdminClient interface {
 	// "key". I would've preferred that the URL parameter be named "key". However,
 	// it's clearer for the protobuf field to be named "keys," which makes the URL
 	// parameter "keys" as well.
-	GetUIData(ctx context.Context, in *GetUIDataRequest, opts ...grpc.CallOption) (*GetUIDataResponse, error)
 	// Cluster returns metadata for the cluster.
-	Cluster(ctx context.Context, in *ClusterRequest, opts ...grpc.CallOption) (*ClusterResponse, error)
 	// Settings returns the cluster-wide settings for the cluster.
-	Settings(ctx context.Context, in *SettingsRequest, opts ...grpc.CallOption) (*SettingsResponse, error)
 	// Health returns liveness for the node target of the request.
 	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 	// Liveness returns the liveness state of all nodes on the cluster.
 	Liveness(ctx context.Context, in *LivenessRequest, opts ...grpc.CallOption) (*LivenessResponse, error)
 	// Jobs returns the job records for all jobs of the given status and type.
-	Jobs(ctx context.Context, in *JobsRequest, opts ...grpc.CallOption) (*JobsResponse, error)
 	// Locations returns the locality location records.
-	Locations(ctx context.Context, in *LocationsRequest, opts ...grpc.CallOption) (*LocationsResponse, error)
 	// QueryPlan returns the query plans for a SQL string.
-	QueryPlan(ctx context.Context, in *QueryPlanRequest, opts ...grpc.CallOption) (*QueryPlanResponse, error)
 	// Drain puts the node into the specified drain mode(s) and optionally
 	// instructs the process to terminate.
 	// We do not expose this via HTTP unless we have a way to authenticate
@@ -2758,12 +2743,8 @@ type AdminClient interface {
 	// URL: /_admin/v1/rangelog?limit=100
 	// URL: /_admin/v1/rangelog/1
 	// URL: /_admin/v1/rangelog/1?limit=100
-	RangeLog(ctx context.Context, in *RangeLogRequest, opts ...grpc.CallOption) (*RangeLogResponse, error)
-	DataDistribution(ctx context.Context, in *DataDistributionRequest, opts ...grpc.CallOption) (*DataDistributionResponse, error)
 	// URL: /_admin/v1/metricmetadata
-	AllMetricMetadata(ctx context.Context, in *MetricMetadataRequest, opts ...grpc.CallOption) (*MetricMetadataResponse, error)
 	// URL: /_admin/v1/chartcatalog
-	ChartCatalog(ctx context.Context, in *ChartCatalogRequest, opts ...grpc.CallOption) (*ChartCatalogResponse, error)
 	// EnqueueRange runs the specified range through the specified queue on the
 	// range's leaseholder store, returning the detailed trace and error
 	// information from doing so. Parameters must be provided in the body of the
@@ -2774,7 +2755,6 @@ type AdminClient interface {
 	//   "queue": "raftlog",
 	//   "rangeId": 10
 	// }
-	EnqueueRange(ctx context.Context, in *EnqueueRangeRequest, opts ...grpc.CallOption) (*EnqueueRangeResponse, error)
 }
 
 type adminClient struct {
@@ -2783,105 +2763,6 @@ type adminClient struct {
 
 func NewAdminClient(cc *grpc.ClientConn) AdminClient {
 	return &adminClient{cc}
-}
-
-func (c *adminClient) Users(ctx context.Context, in *UsersRequest, opts ...grpc.CallOption) (*UsersResponse, error) {
-	out := new(UsersResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/Users", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) Databases(ctx context.Context, in *DatabasesRequest, opts ...grpc.CallOption) (*DatabasesResponse, error) {
-	out := new(DatabasesResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/Databases", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) DatabaseDetails(ctx context.Context, in *DatabaseDetailsRequest, opts ...grpc.CallOption) (*DatabaseDetailsResponse, error) {
-	out := new(DatabaseDetailsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/DatabaseDetails", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) TableDetails(ctx context.Context, in *TableDetailsRequest, opts ...grpc.CallOption) (*TableDetailsResponse, error) {
-	out := new(TableDetailsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/TableDetails", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) TableStats(ctx context.Context, in *TableStatsRequest, opts ...grpc.CallOption) (*TableStatsResponse, error) {
-	out := new(TableStatsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/TableStats", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) NonTableStats(ctx context.Context, in *NonTableStatsRequest, opts ...grpc.CallOption) (*NonTableStatsResponse, error) {
-	out := new(NonTableStatsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/NonTableStats", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) Events(ctx context.Context, in *EventsRequest, opts ...grpc.CallOption) (*EventsResponse, error) {
-	out := new(EventsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/Events", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) SetUIData(ctx context.Context, in *SetUIDataRequest, opts ...grpc.CallOption) (*SetUIDataResponse, error) {
-	out := new(SetUIDataResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/SetUIData", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) GetUIData(ctx context.Context, in *GetUIDataRequest, opts ...grpc.CallOption) (*GetUIDataResponse, error) {
-	out := new(GetUIDataResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/GetUIData", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) Cluster(ctx context.Context, in *ClusterRequest, opts ...grpc.CallOption) (*ClusterResponse, error) {
-	out := new(ClusterResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/Cluster", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) Settings(ctx context.Context, in *SettingsRequest, opts ...grpc.CallOption) (*SettingsResponse, error) {
-	out := new(SettingsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/Settings", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *adminClient) Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
@@ -2896,33 +2777,6 @@ func (c *adminClient) Health(ctx context.Context, in *HealthRequest, opts ...grp
 func (c *adminClient) Liveness(ctx context.Context, in *LivenessRequest, opts ...grpc.CallOption) (*LivenessResponse, error) {
 	out := new(LivenessResponse)
 	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/Liveness", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) Jobs(ctx context.Context, in *JobsRequest, opts ...grpc.CallOption) (*JobsResponse, error) {
-	out := new(JobsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/Jobs", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) Locations(ctx context.Context, in *LocationsRequest, opts ...grpc.CallOption) (*LocationsResponse, error) {
-	out := new(LocationsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/Locations", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) QueryPlan(ctx context.Context, in *QueryPlanRequest, opts ...grpc.CallOption) (*QueryPlanResponse, error) {
-	out := new(QueryPlanResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/QueryPlan", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2979,65 +2833,14 @@ func (c *adminClient) DecommissionStatus(ctx context.Context, in *DecommissionSt
 	return out, nil
 }
 
-func (c *adminClient) RangeLog(ctx context.Context, in *RangeLogRequest, opts ...grpc.CallOption) (*RangeLogResponse, error) {
-	out := new(RangeLogResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/RangeLog", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) DataDistribution(ctx context.Context, in *DataDistributionRequest, opts ...grpc.CallOption) (*DataDistributionResponse, error) {
-	out := new(DataDistributionResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/DataDistribution", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) AllMetricMetadata(ctx context.Context, in *MetricMetadataRequest, opts ...grpc.CallOption) (*MetricMetadataResponse, error) {
-	out := new(MetricMetadataResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/AllMetricMetadata", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) ChartCatalog(ctx context.Context, in *ChartCatalogRequest, opts ...grpc.CallOption) (*ChartCatalogResponse, error) {
-	out := new(ChartCatalogResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/ChartCatalog", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *adminClient) EnqueueRange(ctx context.Context, in *EnqueueRangeRequest, opts ...grpc.CallOption) (*EnqueueRangeResponse, error) {
-	out := new(EnqueueRangeResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Admin/EnqueueRange", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AdminServer is the server API for Admin service.
 type AdminServer interface {
 	// URL: /_admin/v1/users
-	Users(context.Context, *UsersRequest) (*UsersResponse, error)
 	// URL: /_admin/v1/databases
-	Databases(context.Context, *DatabasesRequest) (*DatabasesResponse, error)
 	// Example URL: /_admin/v1/databases/system
-	DatabaseDetails(context.Context, *DatabaseDetailsRequest) (*DatabaseDetailsResponse, error)
 	// Example URL: /_admin/v1/databases/system/tables/ui
-	TableDetails(context.Context, *TableDetailsRequest) (*TableDetailsResponse, error)
 	// Example URL: /_admin/v1/databases/system/tables/ui/stats
-	TableStats(context.Context, *TableStatsRequest) (*TableStatsResponse, error)
 	// Example URL: /_admin/v1/nontablestats
-	NonTableStats(context.Context, *NonTableStatsRequest) (*NonTableStatsResponse, error)
 	// Example URLs:
 	// Example URLs:
 	// - /_admin/v1/events
@@ -3046,7 +2849,6 @@ type AdminServer interface {
 	// - /_admin/v1/events?type=create_table&limit=100
 	// - /_admin/v1/events?type=drop_table&target_id=4
 	// - /_admin/v1/events?type=drop_table&target_id=4&limit=100
-	Events(context.Context, *EventsRequest) (*EventsResponse, error)
 	// This requires a POST. Because of the libraries we're using, the POST body
 	// must be in the following format:
 	//
@@ -3062,7 +2864,6 @@ type AdminServer interface {
 	// Together, SetUIData and GetUIData provide access to a "cookie jar" for the
 	// admin UI. The structure of the underlying data is meant to be opaque to the
 	// server.
-	SetUIData(context.Context, *SetUIDataRequest) (*SetUIDataResponse, error)
 	// Example URLs:
 	// - /_admin/v1/uidata?keys=MYKEY
 	// - /_admin/v1/uidata?keys=MYKEY1&keys=MYKEY2
@@ -3071,21 +2872,15 @@ type AdminServer interface {
 	// "key". I would've preferred that the URL parameter be named "key". However,
 	// it's clearer for the protobuf field to be named "keys," which makes the URL
 	// parameter "keys" as well.
-	GetUIData(context.Context, *GetUIDataRequest) (*GetUIDataResponse, error)
 	// Cluster returns metadata for the cluster.
-	Cluster(context.Context, *ClusterRequest) (*ClusterResponse, error)
 	// Settings returns the cluster-wide settings for the cluster.
-	Settings(context.Context, *SettingsRequest) (*SettingsResponse, error)
 	// Health returns liveness for the node target of the request.
 	Health(context.Context, *HealthRequest) (*HealthResponse, error)
 	// Liveness returns the liveness state of all nodes on the cluster.
 	Liveness(context.Context, *LivenessRequest) (*LivenessResponse, error)
 	// Jobs returns the job records for all jobs of the given status and type.
-	Jobs(context.Context, *JobsRequest) (*JobsResponse, error)
 	// Locations returns the locality location records.
-	Locations(context.Context, *LocationsRequest) (*LocationsResponse, error)
 	// QueryPlan returns the query plans for a SQL string.
-	QueryPlan(context.Context, *QueryPlanRequest) (*QueryPlanResponse, error)
 	// Drain puts the node into the specified drain mode(s) and optionally
 	// instructs the process to terminate.
 	// We do not expose this via HTTP unless we have a way to authenticate
@@ -3103,12 +2898,8 @@ type AdminServer interface {
 	// URL: /_admin/v1/rangelog?limit=100
 	// URL: /_admin/v1/rangelog/1
 	// URL: /_admin/v1/rangelog/1?limit=100
-	RangeLog(context.Context, *RangeLogRequest) (*RangeLogResponse, error)
-	DataDistribution(context.Context, *DataDistributionRequest) (*DataDistributionResponse, error)
 	// URL: /_admin/v1/metricmetadata
-	AllMetricMetadata(context.Context, *MetricMetadataRequest) (*MetricMetadataResponse, error)
 	// URL: /_admin/v1/chartcatalog
-	ChartCatalog(context.Context, *ChartCatalogRequest) (*ChartCatalogResponse, error)
 	// EnqueueRange runs the specified range through the specified queue on the
 	// range's leaseholder store, returning the detailed trace and error
 	// information from doing so. Parameters must be provided in the body of the
@@ -3119,209 +2910,10 @@ type AdminServer interface {
 	//   "queue": "raftlog",
 	//   "rangeId": 10
 	// }
-	EnqueueRange(context.Context, *EnqueueRangeRequest) (*EnqueueRangeResponse, error)
 }
 
 func RegisterAdminServer(s *grpc.Server, srv AdminServer) {
 	s.RegisterService(&_Admin_serviceDesc, srv)
-}
-
-func _Admin_Users_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UsersRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).Users(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/Users",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).Users(ctx, req.(*UsersRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_Databases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DatabasesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).Databases(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/Databases",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).Databases(ctx, req.(*DatabasesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_DatabaseDetails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DatabaseDetailsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).DatabaseDetails(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/DatabaseDetails",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).DatabaseDetails(ctx, req.(*DatabaseDetailsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_TableDetails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TableDetailsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).TableDetails(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/TableDetails",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).TableDetails(ctx, req.(*TableDetailsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_TableStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TableStatsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).TableStats(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/TableStats",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).TableStats(ctx, req.(*TableStatsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_NonTableStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NonTableStatsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).NonTableStats(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/NonTableStats",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).NonTableStats(ctx, req.(*NonTableStatsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_Events_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EventsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).Events(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/Events",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).Events(ctx, req.(*EventsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_SetUIData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetUIDataRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).SetUIData(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/SetUIData",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).SetUIData(ctx, req.(*SetUIDataRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_GetUIData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUIDataRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).GetUIData(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/GetUIData",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).GetUIData(ctx, req.(*GetUIDataRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_Cluster_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ClusterRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).Cluster(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/Cluster",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).Cluster(ctx, req.(*ClusterRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_Settings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SettingsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).Settings(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/Settings",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).Settings(ctx, req.(*SettingsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Admin_Health_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -3356,60 +2948,6 @@ func _Admin_Liveness_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AdminServer).Liveness(ctx, req.(*LivenessRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_Jobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(JobsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).Jobs(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/Jobs",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).Jobs(ctx, req.(*JobsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_Locations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LocationsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).Locations(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/Locations",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).Locations(ctx, req.(*LocationsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_QueryPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryPlanRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).QueryPlan(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/QueryPlan",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).QueryPlan(ctx, req.(*QueryPlanRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3471,144 +3009,10 @@ func _Admin_DecommissionStatus_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Admin_RangeLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RangeLogRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).RangeLog(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/RangeLog",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).RangeLog(ctx, req.(*RangeLogRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_DataDistribution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DataDistributionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).DataDistribution(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/DataDistribution",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).DataDistribution(ctx, req.(*DataDistributionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_AllMetricMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MetricMetadataRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).AllMetricMetadata(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/AllMetricMetadata",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).AllMetricMetadata(ctx, req.(*MetricMetadataRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_ChartCatalog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChartCatalogRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).ChartCatalog(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/ChartCatalog",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).ChartCatalog(ctx, req.(*ChartCatalogRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Admin_EnqueueRange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EnqueueRangeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AdminServer).EnqueueRange(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Admin/EnqueueRange",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AdminServer).EnqueueRange(ctx, req.(*EnqueueRangeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 var _Admin_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cockroach.server.serverpb.Admin",
 	HandlerType: (*AdminServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "Users",
-			Handler:    _Admin_Users_Handler,
-		},
-		{
-			MethodName: "Databases",
-			Handler:    _Admin_Databases_Handler,
-		},
-		{
-			MethodName: "DatabaseDetails",
-			Handler:    _Admin_DatabaseDetails_Handler,
-		},
-		{
-			MethodName: "TableDetails",
-			Handler:    _Admin_TableDetails_Handler,
-		},
-		{
-			MethodName: "TableStats",
-			Handler:    _Admin_TableStats_Handler,
-		},
-		{
-			MethodName: "NonTableStats",
-			Handler:    _Admin_NonTableStats_Handler,
-		},
-		{
-			MethodName: "Events",
-			Handler:    _Admin_Events_Handler,
-		},
-		{
-			MethodName: "SetUIData",
-			Handler:    _Admin_SetUIData_Handler,
-		},
-		{
-			MethodName: "GetUIData",
-			Handler:    _Admin_GetUIData_Handler,
-		},
-		{
-			MethodName: "Cluster",
-			Handler:    _Admin_Cluster_Handler,
-		},
-		{
-			MethodName: "Settings",
-			Handler:    _Admin_Settings_Handler,
-		},
 		{
 			MethodName: "Health",
 			Handler:    _Admin_Health_Handler,
@@ -3618,44 +3022,12 @@ var _Admin_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Admin_Liveness_Handler,
 		},
 		{
-			MethodName: "Jobs",
-			Handler:    _Admin_Jobs_Handler,
-		},
-		{
-			MethodName: "Locations",
-			Handler:    _Admin_Locations_Handler,
-		},
-		{
-			MethodName: "QueryPlan",
-			Handler:    _Admin_QueryPlan_Handler,
-		},
-		{
 			MethodName: "Decommission",
 			Handler:    _Admin_Decommission_Handler,
 		},
 		{
 			MethodName: "DecommissionStatus",
 			Handler:    _Admin_DecommissionStatus_Handler,
-		},
-		{
-			MethodName: "RangeLog",
-			Handler:    _Admin_RangeLog_Handler,
-		},
-		{
-			MethodName: "DataDistribution",
-			Handler:    _Admin_DataDistribution_Handler,
-		},
-		{
-			MethodName: "AllMetricMetadata",
-			Handler:    _Admin_AllMetricMetadata_Handler,
-		},
-		{
-			MethodName: "ChartCatalog",
-			Handler:    _Admin_ChartCatalog_Handler,
-		},
-		{
-			MethodName: "EnqueueRange",
-			Handler:    _Admin_EnqueueRange_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

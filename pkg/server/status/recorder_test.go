@@ -17,7 +17,6 @@ import (
 	"reflect"
 	"runtime"
 	"sort"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -26,31 +25,12 @@ import (
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/server/status/statuspb"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
-	"github.com/podomy/tardigrade/pkg/ts/tspb"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
 	"github.com/podomy/tardigrade/pkg/util/leaktest"
 	"github.com/podomy/tardigrade/pkg/util/metric"
 	"github.com/podomy/tardigrade/pkg/util/timeutil"
 	"github.com/kr/pretty"
 )
-
-// byTimeAndName is a slice of tspb.TimeSeriesData.
-type byTimeAndName []tspb.TimeSeriesData
-
-// implement sort.Interface for byTimeAndName
-func (a byTimeAndName) Len() int      { return len(a) }
-func (a byTimeAndName) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a byTimeAndName) Less(i, j int) bool {
-	if a[i].Name != a[j].Name {
-		return a[i].Name < a[j].Name
-	}
-	if a[i].Datapoints[0].TimestampNanos != a[j].Datapoints[0].TimestampNanos {
-		return a[i].Datapoints[0].TimestampNanos < a[j].Datapoints[0].TimestampNanos
-	}
-	return a[i].Source < a[j].Source
-}
-
-var _ sort.Interface = byTimeAndName{}
 
 // byStoreID is a slice of roachpb.StoreID.
 type byStoreID []roachpb.StoreID
@@ -214,29 +194,11 @@ func TestMetricsRecorder(t *testing.T) {
 
 	// Add the metrics to each registry and set their values. At the same time,
 	// generate expected time series results and status summary metric values.
-	var expected []tspb.TimeSeriesData
 	expectedNodeSummaryMetrics := make(map[string]float64)
 	expectedStoreSummaryMetrics := make(map[string]float64)
 
 	// addExpected generates expected data for a single metric data point.
 	addExpected := func(prefix, name string, source, time, val int64, isNode bool) {
-		// Generate time series data.
-		tsPrefix := "cr.node."
-		if !isNode {
-			tsPrefix = "cr.store."
-		}
-		expect := tspb.TimeSeriesData{
-			Name:   tsPrefix + prefix + name,
-			Source: strconv.FormatInt(source, 10),
-			Datapoints: []tspb.TimeSeriesDatapoint{
-				{
-					TimestampNanos: time,
-					Value:          float64(val),
-				},
-			},
-		}
-		expected = append(expected, expect)
-
 		// Generate status summary data.
 		if isNode {
 			expectedNodeSummaryMetrics[prefix+name] = float64(val)
@@ -292,19 +254,6 @@ func TestMetricsRecorder(t *testing.T) {
 				t.Fatalf("unexpected: %+v", data)
 			}
 		}
-	}
-
-	// ========================================
-	// Verify time series data
-	// ========================================
-	actual := recorder.GetTimeSeriesData()
-
-	// Actual comparison is simple: sort the resulting arrays by time and name,
-	// and use reflect.DeepEqual.
-	sort.Sort(byTimeAndName(actual))
-	sort.Sort(byTimeAndName(expected))
-	if a, e := actual, expected; !reflect.DeepEqual(a, e) {
-		t.Errorf("recorder did not yield expected time series collection; diff:\n %v", pretty.Diff(e, a))
 	}
 
 	totalMemory, err := GetTotalMemory(context.Background())
@@ -372,7 +321,6 @@ func TestMetricsRecorder(t *testing.T) {
 				t.Error(err)
 			}
 			_ = recorder.PrintAsText(ioutil.Discard)
-			_ = recorder.GetTimeSeriesData()
 			wg.Done()
 		}()
 	}

@@ -711,46 +711,16 @@ message ChartCatalogResponse {
 // REST-style HTTP endpoints that locally proxy to the gRPC endpoints.
 service Admin {
   // URL: /_admin/v1/users
-  rpc Users(UsersRequest) returns (UsersResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/users"
-    };
-  }
 
   // URL: /_admin/v1/databases
-  rpc Databases(DatabasesRequest) returns (DatabasesResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/databases"
-    };
-  }
 
   // Example URL: /_admin/v1/databases/system
-  rpc DatabaseDetails(DatabaseDetailsRequest) returns (DatabaseDetailsResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/databases/{database}"
-    };
-  }
 
   // Example URL: /_admin/v1/databases/system/tables/ui
-  rpc TableDetails(TableDetailsRequest) returns (TableDetailsResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/databases/{database}/tables/{table}"
-    };
-  }
 
   // Example URL: /_admin/v1/databases/system/tables/ui/stats
-  rpc TableStats(TableStatsRequest) returns (TableStatsResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/databases/{database}/tables/{table}/stats"
-    };
-  }
 
   // Example URL: /_admin/v1/nontablestats
-  rpc NonTableStats(NonTableStatsRequest) returns (NonTableStatsResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/nontablestats"
-    };
-  }
 
   // Example URLs:
   // Example URLs:
@@ -760,11 +730,6 @@ service Admin {
   // - /_admin/v1/events?type=create_table&limit=100
   // - /_admin/v1/events?type=drop_table&target_id=4
   // - /_admin/v1/events?type=drop_table&target_id=4&limit=100
-  rpc Events(EventsRequest) returns (EventsResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/events"
-    };
-  }
 
   // This requires a POST. Because of the libraries we're using, the POST body
   // must be in the following format:
@@ -781,12 +746,6 @@ service Admin {
   // Together, SetUIData and GetUIData provide access to a "cookie jar" for the
   // admin UI. The structure of the underlying data is meant to be opaque to the
   // server.
-  rpc SetUIData(SetUIDataRequest) returns (SetUIDataResponse) {
-    option (google.api.http) = {
-      post: "/_admin/v1/uidata"
-      body: "*"
-    };
-  }
 
   // Example URLs:
   // - /_admin/v1/uidata?keys=MYKEY
@@ -796,25 +755,10 @@ service Admin {
   // "key". I would've preferred that the URL parameter be named "key". However,
   // it's clearer for the protobuf field to be named "keys," which makes the URL
   // parameter "keys" as well.
-  rpc GetUIData(GetUIDataRequest) returns (GetUIDataResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/uidata"
-    };
-  }
 
   // Cluster returns metadata for the cluster.
-  rpc Cluster(ClusterRequest) returns (ClusterResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/cluster"
-    };
-  }
 
   // Settings returns the cluster-wide settings for the cluster.
-  rpc Settings(SettingsRequest) returns (SettingsResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/settings"
-    };
-  }
 
   // Health returns liveness for the node target of the request.
   rpc Health(HealthRequest) returns (HealthResponse) {
@@ -832,25 +776,10 @@ service Admin {
   }
 
   // Jobs returns the job records for all jobs of the given status and type.
-  rpc Jobs(JobsRequest) returns (JobsResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/jobs"
-    };
-  }
 
   // Locations returns the locality location records.
-  rpc Locations(LocationsRequest) returns (LocationsResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/locations"
-    };
-  }
 
   // QueryPlan returns the query plans for a SQL string.
-  rpc QueryPlan(QueryPlanRequest) returns (QueryPlanResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/queryplan"
-    };
-  }
 
   // Drain puts the node into the specified drain mode(s) and optionally
   // instructs the process to terminate.
@@ -875,34 +804,13 @@ service Admin {
   // URL: /_admin/v1/rangelog?limit=100
   // URL: /_admin/v1/rangelog/1
   // URL: /_admin/v1/rangelog/1?limit=100
-  rpc RangeLog(RangeLogRequest) returns (RangeLogResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/rangelog"
-      additional_bindings {
-        get: "/_admin/v1/rangelog/{range_id}"
-     }
     };
   }
 
-  rpc DataDistribution(DataDistributionRequest) returns (DataDistributionResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/data_distribution"
-    };
-  }
 
   // URL: /_admin/v1/metricmetadata
-  rpc AllMetricMetadata(MetricMetadataRequest) returns (MetricMetadataResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/metricmetadata"
-    };
-  }
 
   // URL: /_admin/v1/chartcatalog
-  rpc ChartCatalog(ChartCatalogRequest) returns (ChartCatalogResponse) {
-    option (google.api.http) = {
-      get: "/_admin/v1/chartcatalog"
-    };
-  }
 
 
   // EnqueueRange runs the specified range through the specified queue on the
@@ -915,10 +823,4 @@ service Admin {
   //   "queue": "raftlog",
   //   "rangeId": 10
   // }
-  rpc EnqueueRange(EnqueueRangeRequest) returns (EnqueueRangeResponse) {
-    option (google.api.http) = {
-      post: "/_admin/v1/enqueue_range"
-      body : "*"
-    };
-  }
 }

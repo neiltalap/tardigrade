@@ -345,16 +345,6 @@ type authenticationMux struct {
 	allowAnonymous bool
 }
 
-func newAuthenticationMuxAllowAnonymous(
-	s *authenticationServer, inner http.Handler,
-) *authenticationMux {
-	return &authenticationMux{
-		server:         s,
-		inner:          inner,
-		allowAnonymous: true,
-	}
-}
-
 func newAuthenticationMux(s *authenticationServer, inner http.Handler) *authenticationMux {
 	return &authenticationMux{
 		server:         s,

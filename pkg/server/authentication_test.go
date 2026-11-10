@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lib/pq"
+	"github.com/pkg/errors"
 	"github.com/podomy/tardigrade/pkg/base"
 	"github.com/podomy/tardigrade/pkg/gossip"
 	"github.com/podomy/tardigrade/pkg/roachpb"
@@ -32,17 +34,11 @@ import (
 	"github.com/podomy/tardigrade/pkg/server/serverpb"
 	"github.com/podomy/tardigrade/pkg/sql/execinfrapb"
 	"github.com/podomy/tardigrade/pkg/storage"
-	"github.com/podomy/tardigrade/pkg/storage/closedts/ctpb"
 	"github.com/podomy/tardigrade/pkg/testutils"
 	"github.com/podomy/tardigrade/pkg/testutils/serverutils"
-	"github.com/podomy/tardigrade/pkg/ts"
-	"github.com/podomy/tardigrade/pkg/ts/tspb"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/podomy/tardigrade/pkg/util/httputil"
 	"github.com/podomy/tardigrade/pkg/util/leaktest"
-	"github.com/gogo/protobuf/jsonpb"
-	"github.com/lib/pq"
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -107,11 +103,11 @@ func TestSSLEnforcement(t *testing.T) {
 		// Health endpoint is special-cased; allowed to serve on HTTP.
 		{"/health", insecureContext, http.StatusOK},
 
-		// /ui/: basic file server: no auth.
-		{"", rootCertsContext, http.StatusOK},
-		{"", nodeCertsContext, http.StatusOK},
-		{"", testCertsContext, http.StatusOK},
-		{"", noCertsContext, http.StatusOK},
+		// /: web UI removed; 404 (plain HTTP still redirects to HTTPS).
+		{"", rootCertsContext, http.StatusNotFound},
+		{"", nodeCertsContext, http.StatusNotFound},
+		{"", testCertsContext, http.StatusNotFound},
+		{"", noCertsContext, http.StatusNotFound},
 		{"", insecureContext, http.StatusTemporaryRedirect},
 
 		// /_admin/: server.adminServer: no auth.
@@ -136,11 +132,11 @@ func TestSSLEnforcement(t *testing.T) {
 		{statusPrefix + "nodes", insecureContext, http.StatusTemporaryRedirect},
 
 		// /ts/: ts.Server: no auth.
-		{ts.URLPrefix, rootCertsContext, http.StatusNotFound},
-		{ts.URLPrefix, nodeCertsContext, http.StatusNotFound},
-		{ts.URLPrefix, testCertsContext, http.StatusNotFound},
-		{ts.URLPrefix, noCertsContext, http.StatusNotFound},
-		{ts.URLPrefix, insecureContext, http.StatusTemporaryRedirect},
+		{"/ts/", rootCertsContext, http.StatusNotFound},
+		{"/ts/", nodeCertsContext, http.StatusNotFound},
+		{"/ts/", testCertsContext, http.StatusNotFound},
+		{"/ts/", noCertsContext, http.StatusNotFound},
+		{"/ts/", insecureContext, http.StatusTemporaryRedirect},
 	} {
 		t.Run("", func(t *testing.T) {
 			client, err := tc.ctx.GetHTTPClient()
@@ -616,26 +612,13 @@ func TestAuthenticationMux(t *testing.T) {
 		return nil
 	}
 
-	// Generate request for time series API.
-	tsReq := tspb.TimeSeriesQueryRequest{
-		StartNanos: 0,
-		EndNanos:   100 * 1e9,
-		Queries:    []tspb.Query{{Name: "test.metric"}},
-	}
-	var tsReqBuffer bytes.Buffer
-	marshalFn := (&jsonpb.Marshaler{}).Marshal
-	if err := marshalFn(&tsReqBuffer, &tsReq); err != nil {
-		t.Fatal(err)
-	}
-
 	for _, tc := range []struct {
 		method string
 		path   string
 		body   []byte
 	}{
-		{"GET", adminPrefix + "users", nil},
-		{"GET", statusPrefix + "sessions", nil},
-		{"POST", ts.URLPrefix + "query", tsReqBuffer.Bytes()},
+		{"GET", adminPrefix + "liveness", nil},
+		{"GET", statusPrefix + "nodes", nil},
 	} {
 		t.Run("path="+tc.path, func(t *testing.T) {
 			// Verify normal client returns 401 Unauthorized.
@@ -692,15 +675,6 @@ func TestGRPCAuthentication(t *testing.T) {
 			_, err = stream.Recv()
 			return err
 		}},
-		{"closedTimestamp", func(ctx context.Context, conn *grpc.ClientConn) error {
-			stream, err := ctpb.NewClosedTimestampClient(conn).Get(ctx)
-			if err != nil {
-				return err
-			}
-			_ = stream.Send(&ctpb.Reaction{})
-			_, err = stream.Recv()
-			return err
-		}},
 		{"distSQL", func(ctx context.Context, conn *grpc.ClientConn) error {
 			stream, err := execinfrapb.NewDistSQLClient(conn).RunSyncFlow(ctx)
 			if err != nil {
@@ -715,11 +689,11 @@ func TestGRPCAuthentication(t *testing.T) {
 			return err
 		}},
 		{"admin", func(ctx context.Context, conn *grpc.ClientConn) error {
-			_, err := serverpb.NewAdminClient(conn).Databases(ctx, &serverpb.DatabasesRequest{})
+			_, err := serverpb.NewAdminClient(conn).Liveness(ctx, &serverpb.LivenessRequest{})
 			return err
 		}},
 		{"status", func(ctx context.Context, conn *grpc.ClientConn) error {
-			_, err := serverpb.NewStatusClient(conn).ListSessions(ctx, &serverpb.ListSessionsRequest{})
+			_, err := serverpb.NewStatusClient(conn).Nodes(ctx, &serverpb.NodesRequest{})
 			return err
 		}},
 	}

@@ -7,10 +7,9 @@ import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import build "github.com/podomy/tardigrade/pkg/build"
-import raftpb "github.com/podomy/tardigrade/pkg/etcd/raft/raftpb"
+import raftpb "go.etcd.io/etcd/raft/raftpb"
 import gossip "github.com/podomy/tardigrade/pkg/gossip"
 import roachpb "github.com/podomy/tardigrade/pkg/roachpb"
-import diagnosticspb "github.com/podomy/tardigrade/pkg/server/diagnosticspb"
 import statuspb "github.com/podomy/tardigrade/pkg/server/status/statuspb"
 import enginepb "github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
 import storagepb "github.com/podomy/tardigrade/pkg/storage/storagepb"
@@ -3002,16 +3001,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type StatusClient interface {
-	Certificates(ctx context.Context, in *CertificatesRequest, opts ...grpc.CallOption) (*CertificatesResponse, error)
-	Details(ctx context.Context, in *DetailsRequest, opts ...grpc.CallOption) (*DetailsResponse, error)
 	Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error)
 	Node(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*statuspb.NodeStatus, error)
-	RaftDebug(ctx context.Context, in *RaftDebugRequest, opts ...grpc.CallOption) (*RaftDebugResponse, error)
-	Ranges(ctx context.Context, in *RangesRequest, opts ...grpc.CallOption) (*RangesResponse, error)
 	Gossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*gossip.InfoStatus, error)
-	EngineStats(ctx context.Context, in *EngineStatsRequest, opts ...grpc.CallOption) (*EngineStatsResponse, error)
-	Allocator(ctx context.Context, in *AllocatorRequest, opts ...grpc.CallOption) (*AllocatorResponse, error)
-	AllocatorRange(ctx context.Context, in *AllocatorRangeRequest, opts ...grpc.CallOption) (*AllocatorRangeResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	ListLocalSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	CancelQuery(ctx context.Context, in *CancelQueryRequest, opts ...grpc.CallOption) (*CancelQueryResponse, error)
@@ -3021,20 +3013,6 @@ type StatusClient interface {
 	// in that span. This is designed to compute stats specific to a SQL table:
 	// it will be called with the highest/lowest key for a SQL table, and return
 	// information about the resources on a node used by that table.
-	SpanStats(ctx context.Context, in *SpanStatsRequest, opts ...grpc.CallOption) (*SpanStatsResponse, error)
-	Stacks(ctx context.Context, in *StacksRequest, opts ...grpc.CallOption) (*JSONResponse, error)
-	Profile(ctx context.Context, in *ProfileRequest, opts ...grpc.CallOption) (*JSONResponse, error)
-	Metrics(ctx context.Context, in *MetricsRequest, opts ...grpc.CallOption) (*JSONResponse, error)
-	GetFiles(ctx context.Context, in *GetFilesRequest, opts ...grpc.CallOption) (*GetFilesResponse, error)
-	LogFilesList(ctx context.Context, in *LogFilesListRequest, opts ...grpc.CallOption) (*LogFilesListResponse, error)
-	LogFile(ctx context.Context, in *LogFileRequest, opts ...grpc.CallOption) (*LogEntriesResponse, error)
-	Logs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogEntriesResponse, error)
-	ProblemRanges(ctx context.Context, in *ProblemRangesRequest, opts ...grpc.CallOption) (*ProblemRangesResponse, error)
-	HotRanges(ctx context.Context, in *HotRangesRequest, opts ...grpc.CallOption) (*HotRangesResponse, error)
-	Range(ctx context.Context, in *RangeRequest, opts ...grpc.CallOption) (*RangeResponse, error)
-	Diagnostics(ctx context.Context, in *DiagnosticsRequest, opts ...grpc.CallOption) (*diagnosticspb.DiagnosticReport, error)
-	Stores(ctx context.Context, in *StoresRequest, opts ...grpc.CallOption) (*StoresResponse, error)
-	Statements(ctx context.Context, in *StatementsRequest, opts ...grpc.CallOption) (*StatementsResponse, error)
 }
 
 type statusClient struct {
@@ -3043,24 +3021,6 @@ type statusClient struct {
 
 func NewStatusClient(cc *grpc.ClientConn) StatusClient {
 	return &statusClient{cc}
-}
-
-func (c *statusClient) Certificates(ctx context.Context, in *CertificatesRequest, opts ...grpc.CallOption) (*CertificatesResponse, error) {
-	out := new(CertificatesResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Certificates", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Details(ctx context.Context, in *DetailsRequest, opts ...grpc.CallOption) (*DetailsResponse, error) {
-	out := new(DetailsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Details", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *statusClient) Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error) {
@@ -3081,54 +3041,9 @@ func (c *statusClient) Node(ctx context.Context, in *NodeRequest, opts ...grpc.C
 	return out, nil
 }
 
-func (c *statusClient) RaftDebug(ctx context.Context, in *RaftDebugRequest, opts ...grpc.CallOption) (*RaftDebugResponse, error) {
-	out := new(RaftDebugResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/RaftDebug", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Ranges(ctx context.Context, in *RangesRequest, opts ...grpc.CallOption) (*RangesResponse, error) {
-	out := new(RangesResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Ranges", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *statusClient) Gossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*gossip.InfoStatus, error) {
 	out := new(gossip.InfoStatus)
 	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Gossip", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) EngineStats(ctx context.Context, in *EngineStatsRequest, opts ...grpc.CallOption) (*EngineStatsResponse, error) {
-	out := new(EngineStatsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/EngineStats", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Allocator(ctx context.Context, in *AllocatorRequest, opts ...grpc.CallOption) (*AllocatorResponse, error) {
-	out := new(AllocatorResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Allocator", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) AllocatorRange(ctx context.Context, in *AllocatorRangeRequest, opts ...grpc.CallOption) (*AllocatorRangeResponse, error) {
-	out := new(AllocatorRangeResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/AllocatorRange", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -3171,144 +3086,11 @@ func (c *statusClient) CancelSession(ctx context.Context, in *CancelSessionReque
 	return out, nil
 }
 
-func (c *statusClient) SpanStats(ctx context.Context, in *SpanStatsRequest, opts ...grpc.CallOption) (*SpanStatsResponse, error) {
-	out := new(SpanStatsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/SpanStats", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Stacks(ctx context.Context, in *StacksRequest, opts ...grpc.CallOption) (*JSONResponse, error) {
-	out := new(JSONResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Stacks", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Profile(ctx context.Context, in *ProfileRequest, opts ...grpc.CallOption) (*JSONResponse, error) {
-	out := new(JSONResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Profile", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Metrics(ctx context.Context, in *MetricsRequest, opts ...grpc.CallOption) (*JSONResponse, error) {
-	out := new(JSONResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Metrics", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) GetFiles(ctx context.Context, in *GetFilesRequest, opts ...grpc.CallOption) (*GetFilesResponse, error) {
-	out := new(GetFilesResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/GetFiles", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) LogFilesList(ctx context.Context, in *LogFilesListRequest, opts ...grpc.CallOption) (*LogFilesListResponse, error) {
-	out := new(LogFilesListResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/LogFilesList", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) LogFile(ctx context.Context, in *LogFileRequest, opts ...grpc.CallOption) (*LogEntriesResponse, error) {
-	out := new(LogEntriesResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/LogFile", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Logs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (*LogEntriesResponse, error) {
-	out := new(LogEntriesResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Logs", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) ProblemRanges(ctx context.Context, in *ProblemRangesRequest, opts ...grpc.CallOption) (*ProblemRangesResponse, error) {
-	out := new(ProblemRangesResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/ProblemRanges", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) HotRanges(ctx context.Context, in *HotRangesRequest, opts ...grpc.CallOption) (*HotRangesResponse, error) {
-	out := new(HotRangesResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/HotRanges", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Range(ctx context.Context, in *RangeRequest, opts ...grpc.CallOption) (*RangeResponse, error) {
-	out := new(RangeResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Range", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Diagnostics(ctx context.Context, in *DiagnosticsRequest, opts ...grpc.CallOption) (*diagnosticspb.DiagnosticReport, error) {
-	out := new(diagnosticspb.DiagnosticReport)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Diagnostics", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Stores(ctx context.Context, in *StoresRequest, opts ...grpc.CallOption) (*StoresResponse, error) {
-	out := new(StoresResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Stores", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *statusClient) Statements(ctx context.Context, in *StatementsRequest, opts ...grpc.CallOption) (*StatementsResponse, error) {
-	out := new(StatementsResponse)
-	err := c.cc.Invoke(ctx, "/cockroach.server.serverpb.Status/Statements", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // StatusServer is the server API for Status service.
 type StatusServer interface {
-	Certificates(context.Context, *CertificatesRequest) (*CertificatesResponse, error)
-	Details(context.Context, *DetailsRequest) (*DetailsResponse, error)
 	Nodes(context.Context, *NodesRequest) (*NodesResponse, error)
 	Node(context.Context, *NodeRequest) (*statuspb.NodeStatus, error)
-	RaftDebug(context.Context, *RaftDebugRequest) (*RaftDebugResponse, error)
-	Ranges(context.Context, *RangesRequest) (*RangesResponse, error)
 	Gossip(context.Context, *GossipRequest) (*gossip.InfoStatus, error)
-	EngineStats(context.Context, *EngineStatsRequest) (*EngineStatsResponse, error)
-	Allocator(context.Context, *AllocatorRequest) (*AllocatorResponse, error)
-	AllocatorRange(context.Context, *AllocatorRangeRequest) (*AllocatorRangeResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	ListLocalSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	CancelQuery(context.Context, *CancelQueryRequest) (*CancelQueryResponse, error)
@@ -3318,60 +3100,10 @@ type StatusServer interface {
 	// in that span. This is designed to compute stats specific to a SQL table:
 	// it will be called with the highest/lowest key for a SQL table, and return
 	// information about the resources on a node used by that table.
-	SpanStats(context.Context, *SpanStatsRequest) (*SpanStatsResponse, error)
-	Stacks(context.Context, *StacksRequest) (*JSONResponse, error)
-	Profile(context.Context, *ProfileRequest) (*JSONResponse, error)
-	Metrics(context.Context, *MetricsRequest) (*JSONResponse, error)
-	GetFiles(context.Context, *GetFilesRequest) (*GetFilesResponse, error)
-	LogFilesList(context.Context, *LogFilesListRequest) (*LogFilesListResponse, error)
-	LogFile(context.Context, *LogFileRequest) (*LogEntriesResponse, error)
-	Logs(context.Context, *LogsRequest) (*LogEntriesResponse, error)
-	ProblemRanges(context.Context, *ProblemRangesRequest) (*ProblemRangesResponse, error)
-	HotRanges(context.Context, *HotRangesRequest) (*HotRangesResponse, error)
-	Range(context.Context, *RangeRequest) (*RangeResponse, error)
-	Diagnostics(context.Context, *DiagnosticsRequest) (*diagnosticspb.DiagnosticReport, error)
-	Stores(context.Context, *StoresRequest) (*StoresResponse, error)
-	Statements(context.Context, *StatementsRequest) (*StatementsResponse, error)
 }
 
 func RegisterStatusServer(s *grpc.Server, srv StatusServer) {
 	s.RegisterService(&_Status_serviceDesc, srv)
-}
-
-func _Status_Certificates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CertificatesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Certificates(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Certificates",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Certificates(ctx, req.(*CertificatesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Details_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DetailsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Details(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Details",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Details(ctx, req.(*DetailsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Status_Nodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -3410,42 +3142,6 @@ func _Status_Node_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Status_RaftDebug_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RaftDebugRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).RaftDebug(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/RaftDebug",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).RaftDebug(ctx, req.(*RaftDebugRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Ranges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RangesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Ranges(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Ranges",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Ranges(ctx, req.(*RangesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Status_Gossip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GossipRequest)
 	if err := dec(in); err != nil {
@@ -3460,60 +3156,6 @@ func _Status_Gossip_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StatusServer).Gossip(ctx, req.(*GossipRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_EngineStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EngineStatsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).EngineStats(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/EngineStats",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).EngineStats(ctx, req.(*EngineStatsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Allocator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AllocatorRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Allocator(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Allocator",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Allocator(ctx, req.(*AllocatorRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_AllocatorRange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AllocatorRangeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).AllocatorRange(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/AllocatorRange",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).AllocatorRange(ctx, req.(*AllocatorRangeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3590,270 +3232,10 @@ func _Status_CancelSession_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Status_SpanStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SpanStatsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).SpanStats(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/SpanStats",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).SpanStats(ctx, req.(*SpanStatsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Stacks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StacksRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Stacks(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Stacks",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Stacks(ctx, req.(*StacksRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Profile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ProfileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Profile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Profile",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Profile(ctx, req.(*ProfileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Metrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MetricsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Metrics(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Metrics",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Metrics(ctx, req.(*MetricsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_GetFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetFilesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).GetFiles(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/GetFiles",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).GetFiles(ctx, req.(*GetFilesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_LogFilesList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogFilesListRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).LogFilesList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/LogFilesList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).LogFilesList(ctx, req.(*LogFilesListRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_LogFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogFileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).LogFile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/LogFile",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).LogFile(ctx, req.(*LogFileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Logs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Logs(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Logs",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Logs(ctx, req.(*LogsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_ProblemRanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ProblemRangesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).ProblemRanges(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/ProblemRanges",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).ProblemRanges(ctx, req.(*ProblemRangesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_HotRanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HotRangesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).HotRanges(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/HotRanges",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).HotRanges(ctx, req.(*HotRangesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Range_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RangeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Range(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Range",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Range(ctx, req.(*RangeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Diagnostics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DiagnosticsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Diagnostics(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Diagnostics",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Diagnostics(ctx, req.(*DiagnosticsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Stores_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StoresRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Stores(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Stores",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Stores(ctx, req.(*StoresRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Status_Statements_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StatementsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StatusServer).Statements(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cockroach.server.serverpb.Status/Statements",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Statements(ctx, req.(*StatementsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 var _Status_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cockroach.server.serverpb.Status",
 	HandlerType: (*StatusServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "Certificates",
-			Handler:    _Status_Certificates_Handler,
-		},
-		{
-			MethodName: "Details",
-			Handler:    _Status_Details_Handler,
-		},
 		{
 			MethodName: "Nodes",
 			Handler:    _Status_Nodes_Handler,
@@ -3863,28 +3245,8 @@ var _Status_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Status_Node_Handler,
 		},
 		{
-			MethodName: "RaftDebug",
-			Handler:    _Status_RaftDebug_Handler,
-		},
-		{
-			MethodName: "Ranges",
-			Handler:    _Status_Ranges_Handler,
-		},
-		{
 			MethodName: "Gossip",
 			Handler:    _Status_Gossip_Handler,
-		},
-		{
-			MethodName: "EngineStats",
-			Handler:    _Status_EngineStats_Handler,
-		},
-		{
-			MethodName: "Allocator",
-			Handler:    _Status_Allocator_Handler,
-		},
-		{
-			MethodName: "AllocatorRange",
-			Handler:    _Status_AllocatorRange_Handler,
 		},
 		{
 			MethodName: "ListSessions",
@@ -3901,62 +3263,6 @@ var _Status_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelSession",
 			Handler:    _Status_CancelSession_Handler,
-		},
-		{
-			MethodName: "SpanStats",
-			Handler:    _Status_SpanStats_Handler,
-		},
-		{
-			MethodName: "Stacks",
-			Handler:    _Status_Stacks_Handler,
-		},
-		{
-			MethodName: "Profile",
-			Handler:    _Status_Profile_Handler,
-		},
-		{
-			MethodName: "Metrics",
-			Handler:    _Status_Metrics_Handler,
-		},
-		{
-			MethodName: "GetFiles",
-			Handler:    _Status_GetFiles_Handler,
-		},
-		{
-			MethodName: "LogFilesList",
-			Handler:    _Status_LogFilesList_Handler,
-		},
-		{
-			MethodName: "LogFile",
-			Handler:    _Status_LogFile_Handler,
-		},
-		{
-			MethodName: "Logs",
-			Handler:    _Status_Logs_Handler,
-		},
-		{
-			MethodName: "ProblemRanges",
-			Handler:    _Status_ProblemRanges_Handler,
-		},
-		{
-			MethodName: "HotRanges",
-			Handler:    _Status_HotRanges_Handler,
-		},
-		{
-			MethodName: "Range",
-			Handler:    _Status_Range_Handler,
-		},
-		{
-			MethodName: "Diagnostics",
-			Handler:    _Status_Diagnostics_Handler,
-		},
-		{
-			MethodName: "Stores",
-			Handler:    _Status_Stores_Handler,
-		},
-		{
-			MethodName: "Statements",
-			Handler:    _Status_Statements_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

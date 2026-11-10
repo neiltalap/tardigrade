@@ -32,7 +32,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/server/status/statuspb"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/storage"
-	"github.com/podomy/tardigrade/pkg/ts/tspb"
 	"github.com/podomy/tardigrade/pkg/util/cgroups"
 	"github.com/podomy/tardigrade/pkg/util/envutil"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
@@ -46,13 +45,6 @@ import (
 )
 
 const (
-	// storeTimeSeriesPrefix is the common prefix for time series keys which
-	// record store-specific data.
-	storeTimeSeriesPrefix = "cr.store.%s"
-	// nodeTimeSeriesPrefix is the common prefix for time series keys which
-	// record node-specific data.
-	nodeTimeSeriesPrefix = "cr.node.%s"
-
 	advertiseAddrLabelKey = "advertise-addr"
 	httpAddrLabelKey      = "http-addr"
 	sqlAddrLabelKey       = "sql-addr"
@@ -287,46 +279,6 @@ func (mr *MetricsRecorder) ExportToGraphite(
 	return graphiteExporter.Push(ctx, endpoint)
 }
 
-// GetTimeSeriesData serializes registered metrics for consumption by
-// CockroachDB's time series system.
-func (mr *MetricsRecorder) GetTimeSeriesData() []tspb.TimeSeriesData {
-	mr.mu.RLock()
-	defer mr.mu.RUnlock()
-
-	if mr.mu.nodeRegistry == nil {
-		// We haven't yet processed initialization information; do nothing.
-		if log.V(1) {
-			log.Warning(context.TODO(), "MetricsRecorder.GetTimeSeriesData() called before NodeID allocation")
-		}
-		return nil
-	}
-
-	lastDataCount := atomic.LoadInt64(&mr.lastDataCount)
-	data := make([]tspb.TimeSeriesData, 0, lastDataCount)
-
-	// Record time series from node-level registries.
-	now := mr.clock.PhysicalNow()
-	recorder := registryRecorder{
-		registry:       mr.mu.nodeRegistry,
-		format:         nodeTimeSeriesPrefix,
-		source:         strconv.FormatInt(int64(mr.mu.desc.NodeID), 10),
-		timestampNanos: now,
-	}
-	recorder.record(&data)
-
-	// Record time series from store-level registries.
-	for storeID, r := range mr.mu.storeRegistries {
-		storeRecorder := registryRecorder{
-			registry:       r,
-			format:         storeTimeSeriesPrefix,
-			source:         strconv.FormatInt(int64(storeID), 10),
-			timestampNanos: now,
-		}
-		storeRecorder.record(&data)
-	}
-	atomic.CompareAndSwapInt64(&mr.lastDataCount, lastDataCount, int64(len(data)))
-	return data
-}
 
 // GetMetricsMetadata returns the metadata from all metrics tracked in the node's
 // nodeRegistry and a randomly selected storeRegistry.
@@ -507,14 +459,6 @@ func (mr *MetricsRecorder) WriteNodeStatus(
 	return nil
 }
 
-// registryRecorder is a helper class for recording time series datapoints
-// from a metrics Registry.
-type registryRecorder struct {
-	registry       *metric.Registry
-	format         string
-	source         string
-	timestampNanos int64
-}
 
 func extractValue(mtr interface{}) (float64, error) {
 	// TODO(tschottdorf|mrtracy): consider moving this switch to an interface
@@ -568,21 +512,6 @@ func eachRecordableValue(reg *metric.Registry, fn func(string, float64)) {
 			}
 			fn(name, val)
 		}
-	})
-}
-
-func (rr registryRecorder) record(dest *[]tspb.TimeSeriesData) {
-	eachRecordableValue(rr.registry, func(name string, val float64) {
-		*dest = append(*dest, tspb.TimeSeriesData{
-			Name:   fmt.Sprintf(rr.format, name),
-			Source: rr.source,
-			Datapoints: []tspb.TimeSeriesDatapoint{
-				{
-					TimestampNanos: rr.timestampNanos,
-					Value:          val,
-				},
-			},
-		})
 	})
 }
 

@@ -17,7 +17,6 @@ import "gossip/gossip.proto";
 import "roachpb/app_stats.proto";
 import "roachpb/data.proto";
 import "roachpb/metadata.proto";
-import "server/diagnosticspb/diagnostics.proto";
 import "server/status/statuspb/status.proto";
 import "storage/engine/enginepb/mvcc.proto";
 import "storage/engine/enginepb/rocksdb.proto";
@@ -676,12 +675,6 @@ message RangeResponse {
   reserved 4; // Previously used.
 }
 
-// DiagnosticsRequest requests a diagnostics report.
-message DiagnosticsRequest {
-  // node_id is a string so that "local" can be used to specify that no
-  // forwarding is necessary.
-  string node_id = 1;
-}
 
 message StoresRequest {
   // node_id is a string so that "local" can be used to specify that no
@@ -743,16 +736,6 @@ message StatementsResponse {
 }
 
 service Status {
-  rpc Certificates(CertificatesRequest) returns (CertificatesResponse) {
-    option (google.api.http) = {
-      get : "/_status/certificates/{node_id}"
-    };
-  }
-  rpc Details(DetailsRequest) returns (DetailsResponse) {
-    option (google.api.http) = {
-      get : "/_status/details/{node_id}"
-    };
-  }
   rpc Nodes(NodesRequest) returns (NodesResponse) {
     option (google.api.http) = {
       get : "/_status/nodes"
@@ -763,34 +746,9 @@ service Status {
       get : "/_status/nodes/{node_id}"
     };
   }
-  rpc RaftDebug(RaftDebugRequest) returns (RaftDebugResponse) {
-    option (google.api.http) = {
-      get : "/_status/raft"
-    };
-  }
-  rpc Ranges(RangesRequest) returns (RangesResponse) {
-    option (google.api.http) = {
-      get : "/_status/ranges/{node_id}"
-    };
-  }
   rpc Gossip(GossipRequest) returns (gossip.InfoStatus) {
     option (google.api.http) = {
       get : "/_status/gossip/{node_id}"
-    };
-  }
-  rpc EngineStats(EngineStatsRequest) returns (EngineStatsResponse) {
-    option (google.api.http) = {
-      get : "/_status/enginestats/{node_id}"
-    };
-  }
-  rpc Allocator(AllocatorRequest) returns (AllocatorResponse) {
-    option (google.api.http) = {
-      get : "/_status/allocator/node/{node_id}"
-    };
-  }
-  rpc AllocatorRange(AllocatorRangeRequest) returns (AllocatorRangeResponse) {
-    option (google.api.http) = {
-      get : "/_status/allocator/range/{range_id}"
     };
   }
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {
@@ -819,77 +777,5 @@ service Status {
   // in that span. This is designed to compute stats specific to a SQL table:
   // it will be called with the highest/lowest key for a SQL table, and return
   // information about the resources on a node used by that table.
-  rpc SpanStats(SpanStatsRequest) returns (SpanStatsResponse) {
-    option (google.api.http) = {
-      post : "/_status/span"
-      body : "*"
-    };
-  }
-  rpc Stacks(StacksRequest) returns (JSONResponse) {
-    option (google.api.http) = {
-      get : "/_status/stacks/{node_id}"
-    };
-  }
-  rpc Profile(ProfileRequest) returns (JSONResponse) {
-    option (google.api.http) = {
-      get : "/_status/profile/{node_id}"
-    };
-  }
-  rpc Metrics(MetricsRequest) returns (JSONResponse) {
-    option (google.api.http) = {
-      get : "/_status/metrics/{node_id}"
-    };
-  }
-  rpc GetFiles(GetFilesRequest) returns (GetFilesResponse) {
-    option (google.api.http) = {
-      get : "/_status/files/{node_id}"
-    };
-  }
-  rpc LogFilesList(LogFilesListRequest) returns (LogFilesListResponse) {
-    option (google.api.http) = {
-      get : "/_status/logfiles/{node_id}"
-    };
-  }
-  rpc LogFile(LogFileRequest) returns (LogEntriesResponse) {
-    option (google.api.http) = {
-      get : "/_status/logfiles/{node_id}/{file}"
-    };
-  }
-  rpc Logs(LogsRequest) returns (LogEntriesResponse) {
-    option (google.api.http) = {
-      get : "/_status/logs/{node_id}"
-    };
-  }
-  rpc ProblemRanges(ProblemRangesRequest) returns (ProblemRangesResponse) {
-    option (google.api.http) = {
-      get : "/_status/problemranges"
-    };
-  }
-  rpc HotRanges(HotRangesRequest) returns (HotRangesResponse) {
-    option (google.api.http) = {
-      get : "/_status/hotranges"
-    };
-  }
-  rpc Range(RangeRequest) returns (RangeResponse) {
-    option (google.api.http) = {
-      get : "/_status/range/{range_id}"
-    };
-  }
-  rpc Diagnostics(DiagnosticsRequest)
-      returns (cockroach.server.diagnosticspb.DiagnosticReport) {
-    option (google.api.http) = {
-      get : "/_status/diagnostics/{node_id}"
-    };
-  }
-  rpc Stores(StoresRequest) returns (StoresResponse) {
-    option (google.api.http) = {
-      get : "/_status/stores/{node_id}"
-    };
-  }
-  rpc Statements(StatementsRequest) returns (StatementsResponse) {
-    option (google.api.http) = {
-      get: "/_status/statements"
-    };
-  }
 }
 
