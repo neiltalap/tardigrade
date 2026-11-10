@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"go/constant"
 	"reflect"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -216,29 +215,7 @@ func TestParse(t *testing.T) {
 		{`CREATE TABLE a (b INT8 CONSTRAINT c CHECK (d))`},
 		{`CREATE TABLE a (b INT8 CONSTRAINT c REFERENCES d)`},
 
-		{`CREATE TABLE a (b INT8) PARTITION BY LIST (b) (PARTITION p1 VALUES IN (1, DEFAULT), PARTITION p2 VALUES IN ((1, 2), (3, 4)))`},
-		// This monstrosity was added on the assumption that it's more readable
-		// than all on one line. Feel free to rip it out if you come across it
-		// and disagree.
-		{regexp.MustCompile(`\n\s*`).ReplaceAllLiteralString(
-			`CREATE TABLE a (b INT8, c INT8, d INT8) PARTITION BY LIST (b) (
-				PARTITION p1 VALUES IN (1) PARTITION BY LIST (c) (
-					PARTITION p1_1 VALUES IN (3), PARTITION p1_2 VALUES IN (4, 5)
-				), PARTITION p2 VALUES IN (6) PARTITION BY RANGE (c) (
-					PARTITION p2_1 VALUES FROM (7) TO (8) PARTITION BY LIST (d) (
-						PARTITION p2_1_1 VALUES IN (8)
-					)
-				)
-			)`, ``),
-		},
-		{`CREATE TABLE a () INTERLEAVE IN PARENT b (c) PARTITION BY LIST (d) (PARTITION e VALUES IN (1))`},
-		{`CREATE TABLE IF NOT EXISTS a () PARTITION BY LIST (b) (PARTITION c VALUES IN (1))`},
-		{`CREATE TABLE a (INDEX (b) PARTITION BY LIST (c) (PARTITION d VALUES IN (1)))`},
-		{`CREATE TABLE a (UNIQUE (b) PARTITION BY LIST (c) (PARTITION d VALUES IN (1)))`},
-		{`CREATE INDEX ON a (b) PARTITION BY LIST (c) (PARTITION d VALUES IN (1))`},
-		{`CREATE INDEX IF NOT EXISTS a ON b (c) PARTITION BY LIST (d) (PARTITION e VALUES IN (1))`},
-		{`ALTER TABLE a PARTITION BY LIST (b) (PARTITION p1 VALUES IN (1))`},
-		{`ALTER INDEX a@idx PARTITION BY LIST (b) (PARTITION p1 VALUES IN (1))`},
+
 
 		{`CREATE TABLE a AS SELECT * FROM b`},
 		{`CREATE TABLE IF NOT EXISTS a AS SELECT * FROM b`},
@@ -455,8 +432,6 @@ func TestParse(t *testing.T) {
 		{`EXPLAIN SHOW TRACE FOR SESSION`},
 		{`SHOW KV TRACE FOR SESSION`},
 		{`EXPLAIN SHOW KV TRACE FOR SESSION`},
-		{`SHOW EXPERIMENTAL_REPLICA TRACE FOR SESSION`},
-		{`EXPLAIN SHOW EXPERIMENTAL_REPLICA TRACE FOR SESSION`},
 		{`SHOW STATISTICS FOR TABLE t`},
 		{`EXPLAIN SHOW STATISTICS FOR TABLE t`},
 		{`SHOW STATISTICS FOR TABLE d.t`},
@@ -474,16 +449,13 @@ func TestParse(t *testing.T) {
 		{`SHOW RANGES FROM INDEX t@i`},
 		{`SHOW RANGES FROM INDEX d.i`},
 		{`SHOW RANGES FROM INDEX i`},
-		{`SHOW EXPERIMENTAL_FINGERPRINTS FROM TABLE d.t`},
 		{`SHOW ZONE CONFIGURATIONS`},
 		{`EXPLAIN SHOW ZONE CONFIGURATIONS`},
 		{`SHOW ZONE CONFIGURATION FOR RANGE default`},
 		{`SHOW ZONE CONFIGURATION FOR RANGE meta`},
 		{`SHOW ZONE CONFIGURATION FOR DATABASE db`},
 		{`SHOW ZONE CONFIGURATION FOR TABLE db.t`},
-		{`SHOW ZONE CONFIGURATION FOR PARTITION p OF TABLE db.t`},
 		{`SHOW ZONE CONFIGURATION FOR TABLE t`},
-		{`SHOW ZONE CONFIGURATION FOR PARTITION p OF TABLE t`},
 		{`SHOW ZONE CONFIGURATION FOR INDEX db.t@i`},
 		{`SHOW ZONE CONFIGURATION FOR INDEX t@i`},
 		{`SHOW ZONE CONFIGURATION FOR INDEX i`},
@@ -522,10 +494,6 @@ func TestParse(t *testing.T) {
 		{`PREPARE a (INT8) AS UPSERT INTO a VALUES ($1)`},
 		{`PREPARE a AS DELETE FROM a`},
 		{`PREPARE a (INT8) AS DELETE FROM a WHERE b = $1`},
-		{`PREPARE a AS BACKUP DATABASE a TO 'b'`},
-		{`PREPARE a (STRING) AS BACKUP DATABASE a TO $1`},
-		{`PREPARE a AS RESTORE DATABASE a FROM 'b'`},
-		{`PREPARE a (STRING) AS RESTORE DATABASE a FROM $1`},
 		{`PREPARE a AS CANCEL QUERIES SELECT 1`},
 		{`PREPARE a (STRING) AS CANCEL QUERIES SELECT $1`},
 		{`PREPARE a AS CANCEL QUERIES IF EXISTS SELECT 1`},
@@ -540,8 +508,6 @@ func TestParse(t *testing.T) {
 		{`PREPARE a (INT8) AS PAUSE JOBS SELECT $1`},
 		{`PREPARE a AS RESUME JOBS SELECT 1`},
 		{`PREPARE a (INT8) AS RESUME JOBS SELECT $1`},
-		{`PREPARE a AS IMPORT TABLE a CREATE USING 'b' CSV DATA ('c') WITH temp = 'd'`},
-		{`PREPARE a (STRING, STRING, STRING) AS IMPORT TABLE a CREATE USING $1 CSV DATA ($2) WITH temp = $3`},
 
 		{`PREPARE a AS OPT PLAN 'some-string'`},
 		{`PREPARE a (STRING, INT8) AS OPT PLAN 'some-string'`},
@@ -565,8 +531,6 @@ func TestParse(t *testing.T) {
 		{`GRANT SELECT, INSERT ON DATABASE bar TO foo, bar, baz`},
 		{`GRANT SELECT, INSERT ON DATABASE db1, db2 TO foo, bar, baz`},
 		{`GRANT SELECT, INSERT ON DATABASE db1, db2 TO "test-user"`},
-		{`GRANT rolea, roleb TO usera, userb`},
-		{`GRANT rolea, roleb TO usera, userb WITH ADMIN OPTION`},
 
 		// Tables are the default, but can also be specified with
 		// REVOKE x ON TABLE y. However, the stringer does not output TABLE.
@@ -576,8 +540,6 @@ func TestParse(t *testing.T) {
 		{`REVOKE ALL ON DATABASE foo FROM root, test`},
 		{`REVOKE SELECT, INSERT ON DATABASE bar FROM foo, bar, baz`},
 		{`REVOKE SELECT, INSERT ON DATABASE db1, db2 FROM foo, bar, baz`},
-		{`REVOKE rolea, roleb FROM usera, userb`},
-		{`REVOKE ADMIN OPTION FOR rolea, roleb FROM usera, userb`},
 
 		{`INSERT INTO a VALUES (1)`},
 		{`EXPLAIN INSERT INTO a VALUES (1)`},
@@ -865,94 +827,7 @@ func TestParse(t *testing.T) {
 
 		{`SELECT a FROM t HAVING a = b`},
 
-		{`SELECT a FROM t WINDOW w AS ()`},
-		{`SELECT a FROM t WINDOW w AS (w2)`},
-		{`SELECT a FROM t WINDOW w AS (PARTITION BY b)`},
-		{`SELECT a FROM t WINDOW w AS (PARTITION BY b, 1 + 2)`},
-		{`SELECT a FROM t WINDOW w AS (ORDER BY c)`},
-		{`SELECT a FROM t WINDOW w AS (ORDER BY c, 1 + 2)`},
-		{`SELECT a FROM t WINDOW w AS (PARTITION BY b ORDER BY c)`},
-
-		{`SELECT avg(1) OVER w FROM t`},
-		{`SELECT avg(1) OVER () FROM t`},
-		{`SELECT avg(1) OVER (w) FROM t`},
-		{`SELECT avg(1) OVER (PARTITION BY b) FROM t`},
-		{`SELECT avg(1) OVER (ORDER BY c) FROM t`},
-		{`SELECT avg(1) OVER (PARTITION BY b ORDER BY c) FROM t`},
-		{`SELECT avg(1) OVER (w PARTITION BY b ORDER BY c) FROM t`},
-
-		{`SELECT avg(1) OVER (ROWS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS 1 PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN 1 PRECEDING AND 1 PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN 1 PRECEDING AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN CURRENT ROW AND CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN 1 FOLLOWING AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (w ROWS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (PARTITION BY b ROWS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (ORDER BY c ROWS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (PARTITION BY b ORDER BY c ROWS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (w PARTITION BY b ORDER BY c ROWS UNBOUNDED PRECEDING) FROM t`},
-
-		{`SELECT avg(1) OVER (RANGE UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE 1 PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN 1 PRECEDING AND 1 PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN 1 PRECEDING AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN 1 PRECEDING AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN CURRENT ROW AND CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN 1 FOLLOWING AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (RANGE BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (w RANGE UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (PARTITION BY b RANGE UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (ORDER BY c RANGE UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (PARTITION BY b ORDER BY c RANGE UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (w PARTITION BY b ORDER BY c RANGE UNBOUNDED PRECEDING) FROM t`},
-
-		{`SELECT avg(1) OVER (GROUPS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS 1 PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN 1 PRECEDING AND 1 PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN 1 PRECEDING AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN 1 PRECEDING AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN CURRENT ROW AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN 1 FOLLOWING AND 1 FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (GROUPS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING) FROM t`},
-		{`SELECT avg(1) OVER (w GROUPS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (PARTITION BY b GROUPS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (ORDER BY c GROUPS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (PARTITION BY b ORDER BY c GROUPS UNBOUNDED PRECEDING) FROM t`},
-		{`SELECT avg(1) OVER (w PARTITION BY b ORDER BY c GROUPS UNBOUNDED PRECEDING) FROM t`},
-
-		{`SELECT avg(1) OVER (ROWS UNBOUNDED PRECEDING EXCLUDE CURRENT ROW) FROM t`},
-		{`SELECT avg(1) OVER (ROWS UNBOUNDED PRECEDING EXCLUDE GROUP) FROM t`},
-		{`SELECT avg(1) OVER (ROWS UNBOUNDED PRECEDING EXCLUDE TIES) FROM t`},
-
 		{`SELECT avg(1) FILTER (WHERE a > b)`},
-		{`SELECT avg(1) FILTER (WHERE a > b) OVER (ORDER BY c)`},
 
 		{`SELECT a FROM t UNION SELECT 1 FROM t`},
 		{`SELECT a FROM t UNION SELECT 1 FROM t UNION SELECT 1 FROM t`},
@@ -1196,19 +1071,14 @@ func TestParse(t *testing.T) {
 		{`ALTER TABLE db.t CONFIGURE ZONE = 'foo'`},
 		{`EXPLAIN ALTER TABLE db.t CONFIGURE ZONE = 'foo'`},
 
-		{`ALTER PARTITION p OF TABLE db.t CONFIGURE ZONE = 'foo'`},
-		{`EXPLAIN ALTER PARTITION p OF TABLE db.t CONFIGURE ZONE = 'foo'`},
 
 		{`ALTER TABLE t CONFIGURE ZONE = 'foo'`},
-		{`ALTER PARTITION p OF TABLE t CONFIGURE ZONE = 'foo'`},
 
 		{`ALTER INDEX i CONFIGURE ZONE = 'foo'`},
 		{`EXPLAIN ALTER INDEX i CONFIGURE ZONE = 'foo'`},
 		{`ALTER INDEX db.t@i CONFIGURE ZONE = 'foo'`},
 		{`ALTER INDEX t@i CONFIGURE ZONE = 'foo'`},
 
-		{`ALTER PARTITION p OF INDEX db.t@idx CONFIGURE ZONE = 'foo'`},
-		{`EXPLAIN ALTER PARTITION p OF INDEX db.t@idx CONFIGURE ZONE = 'foo'`},
 
 		{`ALTER TABLE t CONFIGURE ZONE = b'foo'`},
 		{`ALTER TABLE t CONFIGURE ZONE = a || b`},
@@ -1217,9 +1087,7 @@ func TestParse(t *testing.T) {
 		{`ALTER RANGE meta CONFIGURE ZONE USING foo = bar, baz = yay`},
 		{`ALTER DATABASE db CONFIGURE ZONE USING foo = bar, baz = yay`},
 		{`ALTER TABLE db.t CONFIGURE ZONE USING foo = bar, baz = yay`},
-		{`ALTER PARTITION p OF TABLE db.t CONFIGURE ZONE USING foo = bar, baz = yay`},
 		{`ALTER TABLE t CONFIGURE ZONE USING foo = bar, baz = yay`},
-		{`ALTER PARTITION p OF TABLE t CONFIGURE ZONE USING foo = bar, baz = yay`},
 		{`ALTER INDEX db.t@i CONFIGURE ZONE USING foo = bar, baz = yay`},
 		{`ALTER INDEX t@i CONFIGURE ZONE USING foo = bar, baz = yay`},
 		{`ALTER INDEX i CONFIGURE ZONE USING foo = bar, baz = yay`},
@@ -1232,9 +1100,7 @@ func TestParse(t *testing.T) {
 		{`ALTER RANGE meta CONFIGURE ZONE DISCARD`},
 		{`ALTER DATABASE db CONFIGURE ZONE DISCARD`},
 		{`ALTER TABLE db.t CONFIGURE ZONE DISCARD`},
-		{`ALTER PARTITION p OF TABLE db.t CONFIGURE ZONE DISCARD`},
 		{`ALTER TABLE t CONFIGURE ZONE DISCARD`},
-		{`ALTER PARTITION p OF TABLE t CONFIGURE ZONE DISCARD`},
 		{`ALTER INDEX db.t@i CONFIGURE ZONE DISCARD`},
 		{`ALTER INDEX t@i CONFIGURE ZONE DISCARD`},
 		{`ALTER INDEX i CONFIGURE ZONE DISCARD`},
@@ -1243,16 +1109,11 @@ func TestParse(t *testing.T) {
 		{`ALTER RANGE meta CONFIGURE ZONE USING DEFAULT`},
 		{`ALTER DATABASE db CONFIGURE ZONE USING DEFAULT`},
 		{`ALTER TABLE db.t CONFIGURE ZONE USING DEFAULT`},
-		{`ALTER PARTITION p OF TABLE db.t CONFIGURE ZONE USING DEFAULT`},
 		{`ALTER TABLE t CONFIGURE ZONE USING DEFAULT`},
-		{`ALTER PARTITION p OF TABLE t CONFIGURE ZONE USING DEFAULT`},
 		{`ALTER INDEX db.t@i CONFIGURE ZONE USING DEFAULT`},
 		{`ALTER INDEX t@i CONFIGURE ZONE USING DEFAULT`},
 		{`ALTER INDEX i CONFIGURE ZONE USING DEFAULT`},
 
-		{`ALTER TABLE t EXPERIMENTAL_AUDIT SET READ WRITE`},
-		{`EXPLAIN ALTER TABLE t EXPERIMENTAL_AUDIT SET READ WRITE`},
-		{`ALTER TABLE t EXPERIMENTAL_AUDIT SET OFF`},
 
 		{`COMMENT ON COLUMN a.b IS 'a'`},
 		{`COMMENT ON COLUMN a.b IS NULL`},
@@ -1272,89 +1133,21 @@ func TestParse(t *testing.T) {
 		{`ALTER SEQUENCE IF EXISTS a INCREMENT BY 5 START WITH 1000`},
 		{`ALTER SEQUENCE IF EXISTS a NO CYCLE CACHE 1`},
 
-		{`EXPERIMENTAL SCRUB DATABASE x`},
-		{`EXPLAIN EXPERIMENTAL SCRUB DATABASE x`},
-		{`EXPERIMENTAL SCRUB DATABASE x AS OF SYSTEM TIME 1`},
-		{`EXPERIMENTAL SCRUB TABLE x`},
-		{`EXPLAIN EXPERIMENTAL SCRUB TABLE x`},
-		{`EXPERIMENTAL SCRUB TABLE x AS OF SYSTEM TIME 1`},
-		{`EXPERIMENTAL SCRUB TABLE x AS OF SYSTEM TIME 1 WITH OPTIONS INDEX ALL`},
-		{`EXPERIMENTAL SCRUB TABLE x WITH OPTIONS INDEX (index_name)`},
-		{`EXPERIMENTAL SCRUB TABLE x WITH OPTIONS PHYSICAL`},
-		{`EXPERIMENTAL SCRUB TABLE x WITH OPTIONS CONSTRAINT ALL`},
-		{`EXPERIMENTAL SCRUB TABLE x WITH OPTIONS CONSTRAINT (cst_name)`},
-		{`EXPERIMENTAL SCRUB TABLE x WITH OPTIONS PHYSICAL, INDEX (index_name), CONSTRAINT (cst_name)`},
-		{`EXPERIMENTAL SCRUB TABLE x WITH OPTIONS PHYSICAL, INDEX ALL, CONSTRAINT ALL`},
 
-		{`BACKUP TABLE foo TO 'bar'`},
-		{`EXPLAIN BACKUP TABLE foo TO 'bar'`},
-		{`BACKUP TABLE foo.foo, baz.baz TO 'bar'`},
 
-		{`SHOW BACKUP 'bar'`},
-		{`EXPLAIN SHOW BACKUP 'bar'`},
-		{`SHOW BACKUP RANGES 'bar'`},
-		{`SHOW BACKUP FILES 'bar'`},
 
-		{`BACKUP TABLE foo TO 'bar' AS OF SYSTEM TIME '1' INCREMENTAL FROM 'baz'`},
-		{`BACKUP TABLE foo TO $1 INCREMENTAL FROM 'bar', $2, 'baz'`},
 
-		{`BACKUP DATABASE foo TO 'bar'`},
-		{`EXPLAIN BACKUP DATABASE foo TO 'bar'`},
-		{`BACKUP DATABASE foo, baz TO 'bar'`},
-		{`BACKUP DATABASE foo TO 'bar' AS OF SYSTEM TIME '1' INCREMENTAL FROM 'baz'`},
 
-		{`BACKUP DATABASE foo TO ($1, $2)`},
-		{`BACKUP DATABASE foo TO ($1, $2) INCREMENTAL FROM 'baz'`},
 
-		{`RESTORE TABLE foo FROM 'bar'`},
-		{`EXPLAIN RESTORE TABLE foo FROM 'bar'`},
-		{`RESTORE TABLE foo FROM $1`},
-		{`RESTORE TABLE foo FROM $1, $2, 'bar'`},
-		{`RESTORE TABLE foo, baz FROM 'bar'`},
-		{`RESTORE TABLE foo, baz FROM 'bar' AS OF SYSTEM TIME '1'`},
 
-		{`RESTORE DATABASE foo FROM 'bar'`},
-		{`EXPLAIN RESTORE DATABASE foo FROM 'bar'`},
-		{`RESTORE DATABASE foo, baz FROM 'bar'`},
-		{`RESTORE DATABASE foo, baz FROM 'bar' AS OF SYSTEM TIME '1'`},
 
-		{`RESTORE DATABASE foo FROM ($1, $2)`},
-		{`RESTORE DATABASE foo FROM ($1, $2), $3`},
-		{`RESTORE DATABASE foo FROM $1, ($2, $3)`},
-		{`RESTORE DATABASE foo FROM ($1, $2), ($3, $4)`},
-		{`RESTORE DATABASE foo FROM ($1, $2), ($3, $4) AS OF SYSTEM TIME '1'`},
 
-		{`BACKUP TABLE foo TO 'bar' WITH key1, key2 = 'value'`},
-		{`RESTORE TABLE foo FROM 'bar' WITH key1, key2 = 'value'`},
 
-		{`IMPORT TABLE foo CREATE USING 'nodelocal:///some/file' CSV DATA ('path/to/some/file', $1) WITH temp = 'path/to/temp'`},
-		{`EXPLAIN IMPORT TABLE foo CREATE USING 'nodelocal:///some/file' CSV DATA ('path/to/some/file', $1) WITH temp = 'path/to/temp'`},
-		{`IMPORT TABLE foo CREATE USING 'nodelocal:///some/file' DELIMITED DATA ('path/to/some/file', $1)`},
-		{`IMPORT TABLE foo (id INT8 PRIMARY KEY, email STRING, age INT8) CSV DATA ('path/to/some/file', $1) WITH temp = 'path/to/temp'`},
-		{`IMPORT TABLE foo (id INT8, email STRING, age INT8) CSV DATA ('path/to/some/file', $1) WITH comma = ',', "nullif" = 'n/a', temp = $2`},
-		{`IMPORT TABLE foo FROM PGDUMPCREATE 'nodelocal:///foo/bar' WITH temp = 'path/to/temp'`},
-		{`IMPORT INTO foo(id, email) CSV DATA ('path/to/some/file', $1) WITH temp = 'path/to/temp'`},
-		{`IMPORT INTO foo CSV DATA ('path/to/some/file', $1) WITH temp = 'path/to/temp'`},
 
-		{`IMPORT PGDUMP 'nodelocal:///foo/bar' WITH temp = 'path/to/temp'`},
-		{`EXPLAIN IMPORT PGDUMP 'nodelocal:///foo/bar' WITH temp = 'path/to/temp'`},
 
-		{`EXPORT INTO CSV 'a' FROM TABLE a`}, // TODO(knz): Make this explainable.
-		{`EXPORT INTO CSV 'a' FROM SELECT * FROM a`},
-		{`EXPORT INTO CSV 's3://my/path/%part%.csv' WITH delimiter = '|' FROM TABLE a`},
-		{`EXPORT INTO CSV 's3://my/path/%part%.csv' WITH delimiter = '|' FROM SELECT a, sum(b) FROM c WHERE d = 1 ORDER BY sum(b) DESC LIMIT 10`},
 
 		{`SET ROW (1, true, NULL)`},
 
-		{`EXPERIMENTAL CHANGEFEED FOR TABLE foo`},
-		{`EXPLAIN CREATE CHANGEFEED FOR TABLE foo INTO 'sink'`},
-		{`CREATE CHANGEFEED FOR TABLE foo, db.bar, schema.db.foo INTO 'sink'`},
-		{`CREATE CHANGEFEED FOR TABLE foo INTO 'sink'`},
-		// TODO(dan): Implement.
-		// {`CREATE CHANGEFEED FOR TABLE foo VALUES FROM (1) TO (2) INTO 'sink'`},
-		// {`CREATE CHANGEFEED FOR TABLE foo PARTITION bar, baz INTO 'sink'`},
-		// {`CREATE CHANGEFEED FOR DATABASE foo INTO 'sink'`},
-		{`CREATE CHANGEFEED FOR TABLE foo INTO 'sink' WITH bar = 'baz'`},
 
 		// Regression for #15926
 		{`SELECT * FROM ((t1 NATURAL JOIN t2 WITH ORDINALITY AS o1)) WITH ORDINALITY AS o2`},
@@ -1391,8 +1184,6 @@ func TestParse2(t *testing.T) {
 			`CREATE TABLE a (b INT8, CONSTRAINT foo UNIQUE (b))`},
 		{`CREATE TABLE a (b INT, UNIQUE INDEX foo (b) INTERLEAVE IN PARENT c (d))`,
 			`CREATE TABLE a (b INT8, CONSTRAINT foo UNIQUE (b) INTERLEAVE IN PARENT c (d))`},
-		{`CREATE TABLE a (UNIQUE INDEX (b) PARTITION BY LIST (c) (PARTITION d VALUES IN (1)))`,
-			`CREATE TABLE a (UNIQUE (b) PARTITION BY LIST (c) (PARTITION d VALUES IN (1)))`},
 		{`CREATE INDEX ON a (b) COVERING (c)`, `CREATE INDEX ON a (b) STORING (c)`},
 		{`CREATE INDEX ON a (b) INCLUDE (c)`, `CREATE INDEX ON a (b) STORING (c)`},
 
@@ -1746,10 +1537,6 @@ func TestParse2(t *testing.T) {
 
 		{`SHOW ALL ZONE CONFIGURATIONS`, `SHOW ZONE CONFIGURATIONS`},
 
-		{`SHOW ZONE CONFIGURATION FOR TABLE t PARTITION foo`,
-			`SHOW ZONE CONFIGURATION FOR PARTITION foo OF TABLE t`},
-		{`SHOW ZONE CONFIGURATION FOR INDEX t@idx PARTITION foo`,
-			`SHOW ZONE CONFIGURATION FOR PARTITION foo OF INDEX t@idx`},
 
 		{`BEGIN`,
 			`BEGIN TRANSACTION`},
@@ -1800,20 +1587,8 @@ func TestParse2(t *testing.T) {
 		{`CANCEL SESSION a`, `CANCEL SESSIONS VALUES (a)`},
 		{`CANCEL SESSION IF EXISTS a`, `CANCEL SESSIONS IF EXISTS VALUES (a)`},
 
-		{`BACKUP DATABASE foo TO bar`,
-			`BACKUP DATABASE foo TO 'bar'`},
-		{`BACKUP DATABASE foo TO "bar.12" INCREMENTAL FROM "baz.34"`,
-			`BACKUP DATABASE foo TO 'bar.12' INCREMENTAL FROM 'baz.34'`},
-		{`RESTORE DATABASE foo FROM bar`,
-			`RESTORE DATABASE foo FROM 'bar'`},
-		{`BACKUP DATABASE foo TO ($1)`, `BACKUP DATABASE foo TO $1`},
 
-		{`RESTORE DATABASE foo FROM ($1)`, `RESTORE DATABASE foo FROM $1`},
-		{`RESTORE DATABASE foo FROM ($1), ($2)`, `RESTORE DATABASE foo FROM $1, $2`},
-		{`RESTORE DATABASE foo FROM ($1), ($2, $3)`, `RESTORE DATABASE foo FROM $1, ($2, $3)`},
 
-		{`CREATE CHANGEFEED FOR TABLE foo INTO sink`,
-			`CREATE CHANGEFEED FOR TABLE foo INTO 'sink'`},
 
 		{`SHOW CLUSTER SETTING ALL`, `SHOW ALL CLUSTER SETTINGS`},
 
@@ -1867,12 +1642,8 @@ func TestParse2(t *testing.T) {
 			`ALTER DATABASE db CONFIGURE ZONE USING "foo.bar" = yay`},
 		{`ALTER TABLE db.t CONFIGURE ZONE USING foo.bar = yay`,
 			`ALTER TABLE db.t CONFIGURE ZONE USING "foo.bar" = yay`},
-		{`ALTER PARTITION p OF TABLE db.t CONFIGURE ZONE USING foo.bar = yay`,
-			`ALTER PARTITION p OF TABLE db.t CONFIGURE ZONE USING "foo.bar" = yay`},
 		{`ALTER TABLE t CONFIGURE ZONE USING foo.bar = yay`,
 			`ALTER TABLE t CONFIGURE ZONE USING "foo.bar" = yay`},
-		{`ALTER PARTITION p OF TABLE t CONFIGURE ZONE USING foo.bar = yay`,
-			`ALTER PARTITION p OF TABLE t CONFIGURE ZONE USING "foo.bar" = yay`},
 		{`ALTER INDEX db.t@i CONFIGURE ZONE USING foo.bar = yay`,
 			`ALTER INDEX db.t@i CONFIGURE ZONE USING "foo.bar" = yay`},
 		{`ALTER INDEX t@i CONFIGURE ZONE USING foo.bar = yay`,
@@ -1888,34 +1659,8 @@ func TestParse2(t *testing.T) {
 			`SHOW GRANTS ON TABLE foo`},
 		{`SHOW GRANTS ON foo, db.foo`,
 			`SHOW GRANTS ON TABLE foo, db.foo`},
-		{`BACKUP foo TO 'bar'`,
-			`BACKUP TABLE foo TO 'bar'`},
-		{`BACKUP foo.foo, baz.baz TO 'bar'`,
-			`BACKUP TABLE foo.foo, baz.baz TO 'bar'`},
-		{`BACKUP foo TO 'bar' AS OF SYSTEM TIME '1' INCREMENTAL FROM 'baz'`,
-			`BACKUP TABLE foo TO 'bar' AS OF SYSTEM TIME '1' INCREMENTAL FROM 'baz'`},
-		{`BACKUP foo TO $1 INCREMENTAL FROM 'bar', $2, 'baz'`,
-			`BACKUP TABLE foo TO $1 INCREMENTAL FROM 'bar', $2, 'baz'`},
 		// Tables named "role" are handled specially to support SHOW GRANTS ON ROLE,
-		// but that special handling should not impact BACKUP.
-		{`BACKUP role TO 'bar'`,
-			`BACKUP TABLE role TO 'bar'`},
-		{`RESTORE foo FROM 'bar'`,
-			`RESTORE TABLE foo FROM 'bar'`},
-		{`RESTORE foo FROM $1`,
-			`RESTORE TABLE foo FROM $1`},
-		{`RESTORE foo FROM $1, $2, 'bar'`,
-			`RESTORE TABLE foo FROM $1, $2, 'bar'`},
-		{`RESTORE foo, baz FROM 'bar'`,
-			`RESTORE TABLE foo, baz FROM 'bar'`},
-		{`RESTORE foo, baz FROM 'bar' AS OF SYSTEM TIME '1'`,
-			`RESTORE TABLE foo, baz FROM 'bar' AS OF SYSTEM TIME '1'`},
-		{`BACKUP foo TO 'bar' WITH key1, key2 = 'value'`,
-			`BACKUP TABLE foo TO 'bar' WITH key1, key2 = 'value'`},
-		{`RESTORE foo FROM 'bar' WITH key1, key2 = 'value'`,
-			`RESTORE TABLE foo FROM 'bar' WITH key1, key2 = 'value'`},
 
-		{`CREATE CHANGEFEED FOR foo INTO 'sink'`, `CREATE CHANGEFEED FOR TABLE foo INTO 'sink'`},
 
 		{`GRANT SELECT ON foo TO root`,
 			`GRANT SELECT ON TABLE foo TO root`},
@@ -1932,22 +1677,7 @@ func TestParse2(t *testing.T) {
 
 		// RBAC-related statements.
 
-		{`CREATE ROLE foo`,
-			`CREATE ROLE 'foo'`},
-		{`CREATE ROLE IF NOT EXISTS foo`,
-			`CREATE ROLE IF NOT EXISTS 'foo'`},
-		{`DROP ROLE foo, bar`,
-			`DROP ROLE 'foo', 'bar'`},
-		{`DROP ROLE IF EXISTS foo, bar`,
-			`DROP ROLE IF EXISTS 'foo', 'bar'`},
 
-		// Backward-compat, deprecated IMPORT syntax
-		{`IMPORT PGDUMP ('nodelocal:///foo/bar') WITH temp = 'path/to/temp'`,
-			`IMPORT PGDUMP 'nodelocal:///foo/bar' WITH temp = 'path/to/temp'`,
-		},
-		{`IMPORT TABLE foo FROM PGDUMPCREATE ('nodelocal:///foo/bar') WITH temp = 'path/to/temp'`,
-			`IMPORT TABLE foo FROM PGDUMPCREATE 'nodelocal:///foo/bar' WITH temp = 'path/to/temp'`,
-		},
 
 		// Clarify the ambiguity between "ON ROLE" (RBAC) and "ON ROLE"
 		// (regular table named "role").
@@ -2133,8 +1863,6 @@ func TestParse2(t *testing.T) {
 		{`CREATE TABLE foo (MAXVALUE INT)`,
 			`CREATE TABLE foo (maxvalue INT8)`},
 
-		{`CREATE TABLE a (b INT) PARTITION BY RANGE (b) (PARTITION p1 VALUES FROM (MINVALUE) TO (1), PARTITION p2 VALUES FROM (2, MAXVALUE) TO (4, 4), PARTITION p3 VALUES FROM (4, 4) TO (MAXVALUE))`,
-			`CREATE TABLE a (b INT8) PARTITION BY RANGE (b) (PARTITION p1 VALUES FROM (minvalue) TO (1), PARTITION p2 VALUES FROM (2, maxvalue) TO (4, 4), PARTITION p3 VALUES FROM (4, 4) TO (maxvalue))`},
 
 		// Check that JSONB operators have higher precedence than '='.
 		{`SELECT '{}'::JSONB ? 'a' = false`, `SELECT ('{}'::JSONB ? 'a') = false`},
@@ -2588,71 +2316,6 @@ REVOKE SELECT ON ROLE foo, bar FROM blix
 HINT: try \h REVOKE`,
 		},
 		{
-			`BACKUP ROLE foo, bar TO 'baz'`,
-			`at or near "foo": syntax error
-DETAIL: source SQL:
-BACKUP ROLE foo, bar TO 'baz'
-            ^
-HINT: try \h BACKUP`,
-		},
-		{
-			`RESTORE ROLE foo, bar FROM 'baz'`,
-			`at or near "foo": syntax error
-DETAIL: source SQL:
-RESTORE ROLE foo, bar FROM 'baz'
-             ^
-HINT: try \h RESTORE`,
-		},
-		{
-			`SELECT avg(1) OVER (ROWS UNBOUNDED FOLLOWING) FROM t`,
-			`at or near "following": syntax error: frame start cannot be UNBOUNDED FOLLOWING
-DETAIL: source SQL:
-SELECT avg(1) OVER (ROWS UNBOUNDED FOLLOWING) FROM t
-                                   ^`,
-		},
-		{
-			`SELECT avg(1) OVER (ROWS 1 FOLLOWING) FROM t`,
-			`at or near "following": syntax error: frame starting from following row cannot end with current row
-DETAIL: source SQL:
-SELECT avg(1) OVER (ROWS 1 FOLLOWING) FROM t
-                           ^`,
-		},
-		{
-			`SELECT avg(1) OVER (ROWS BETWEEN UNBOUNDED FOLLOWING AND UNBOUNDED FOLLOWING) FROM t`,
-			`at or near "following": syntax error: frame start cannot be UNBOUNDED FOLLOWING
-DETAIL: source SQL:
-SELECT avg(1) OVER (ROWS BETWEEN UNBOUNDED FOLLOWING AND UNBOUNDED FOLLOWING) FROM t
-                                                                   ^`,
-		},
-		{
-			`SELECT avg(1) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED PRECEDING) FROM t`,
-			`at or near "preceding": syntax error: frame end cannot be UNBOUNDED PRECEDING
-DETAIL: source SQL:
-SELECT avg(1) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED PRECEDING) FROM t
-                                                                   ^`,
-		},
-		{
-			`SELECT avg(1) OVER (ROWS BETWEEN CURRENT ROW AND 1 PRECEDING) FROM t`,
-			`at or near "preceding": syntax error: frame starting from current row cannot have preceding rows
-DETAIL: source SQL:
-SELECT avg(1) OVER (ROWS BETWEEN CURRENT ROW AND 1 PRECEDING) FROM t
-                                                   ^`,
-		},
-		{
-			`SELECT avg(1) OVER (ROWS BETWEEN 1 FOLLOWING AND 1 PRECEDING) FROM t`,
-			`at or near "preceding": syntax error: frame starting from following row cannot have preceding rows
-DETAIL: source SQL:
-SELECT avg(1) OVER (ROWS BETWEEN 1 FOLLOWING AND 1 PRECEDING) FROM t
-                                                   ^`,
-		},
-		{
-			`SELECT avg(1) OVER (ROWS BETWEEN 1 FOLLOWING AND CURRENT ROW) FROM t`,
-			`at or near "row": syntax error: frame starting from following row cannot have preceding rows
-DETAIL: source SQL:
-SELECT avg(1) OVER (ROWS BETWEEN 1 FOLLOWING AND CURRENT ROW) FROM t
-                                                         ^`,
-		},
-		{
 			`CREATE TABLE foo(a CHAR(0))`,
 			`at or near ")": syntax error: length for type CHAR must be at least 1
 DETAIL: source SQL:
@@ -2719,22 +2382,6 @@ CREATE STATISTICS a ON col1 FROM t WITH OPTIONS THROTTLING 0.1 THROTTLING 0.5
 DETAIL: source SQL:
 CREATE STATISTICS a ON col1 FROM t WITH OPTIONS AS OF SYSTEM TIME '-1s' THROTTLING 0.1 AS OF SYSTEM TIME '-2s'
                                                                                                               ^`,
-		},
-		{
-			`ALTER PARTITION p OF TABLE tbl@idx CONFIGURE ZONE USING num_replicas = 1`,
-			`at or near "idx": syntax error: index name should not be specified in ALTER PARTITION ... OF TABLE
-DETAIL: source SQL:
-ALTER PARTITION p OF TABLE tbl@idx CONFIGURE ZONE USING num_replicas = 1
-                               ^
-HINT: try ALTER PARTITION ... OF INDEX`,
-		},
-		{
-			`ALTER PARTITION p OF TABLE tbl@* CONFIGURE ZONE USING num_replicas = 1`,
-			`at or near "configure": syntax error: index wildcard unsupported in ALTER PARTITION ... OF TABLE
-DETAIL: source SQL:
-ALTER PARTITION p OF TABLE tbl@* CONFIGURE ZONE USING num_replicas = 1
-                                 ^
-HINT: try ALTER PARTITION <partition> OF INDEX <tablename>@*`,
 		},
 	}
 	for _, d := range testData {

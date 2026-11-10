@@ -69,8 +69,6 @@ func TestContextualHelp(t *testing.T) {
 		{`ALTER RANGE foo CONFIGURE ??`, `ALTER RANGE`},
 		{`ALTER RANGE ??`, `ALTER RANGE`},
 
-		{`ALTER PARTITION ??`, `ALTER PARTITION`},
-		{`ALTER PARTITION p OF INDEX tbl@idx ??`, `ALTER PARTITION`},
 
 		{`CANCEL ??`, `CANCEL`},
 		{`CANCEL JOB ??`, `CANCEL JOBS`},
@@ -103,7 +101,6 @@ func TestContextualHelp(t *testing.T) {
 		{`CREATE USER blih ??`, `CREATE USER`},
 		{`CREATE USER blih WITH ??`, `CREATE USER`},
 
-		{`CREATE ROLE bleh ??`, `CREATE ROLE`},
 
 		{`CREATE VIEW blah (??`, `CREATE VIEW`},
 		{`CREATE VIEW blah AS (SELECT c FROM x) ??`, `CREATE VIEW`},
@@ -138,9 +135,6 @@ func TestContextualHelp(t *testing.T) {
 		{`DROP INDEX blah, ??`, `DROP INDEX`},
 		{`DROP INDEX blah@blih ??`, `DROP INDEX`},
 
-		{`DROP ROLE ??`, `DROP ROLE`},
-		{`DROP ROLE IF ??`, `DROP ROLE`},
-		{`DROP ROLE IF EXISTS bluh ??`, `DROP ROLE`},
 
 		{`DROP SEQUENCE blah ??`, `DROP SEQUENCE`},
 		{`DROP SEQUENCE IF ??`, `DROP SEQUENCE`},
@@ -248,7 +242,6 @@ func TestContextualHelp(t *testing.T) {
 		{`SHOW JOBS ??`, `SHOW JOBS`},
 		{`SHOW AUTOMATIC JOBS ??`, `SHOW JOBS`},
 
-		{`SHOW BACKUP 'foo' ??`, `SHOW BACKUP`},
 
 		{`SHOW CLUSTER SETTING all ??`, `SHOW CLUSTER SETTING`},
 		{`SHOW ALL CLUSTER ??`, `SHOW CLUSTER SETTING`},
@@ -279,7 +272,6 @@ func TestContextualHelp(t *testing.T) {
 		{`SHOW INDEXES FROM ??`, `SHOW INDEXES`},
 		{`SHOW INDEXES FROM blah ??`, `SHOW INDEXES`},
 
-		{`SHOW PARTITIONS FROM ??`, `SHOW PARTITIONS`},
 
 		{`SHOW ROLES ??`, `SHOW ROLES`},
 
@@ -363,23 +355,6 @@ func TestContextualHelp(t *testing.T) {
 		{`RELEASE blah ??`, `RELEASE`},
 		{`RELEASE SAVEPOINT blah ??`, `RELEASE`},
 
-		{`EXPERIMENTAL SCRUB ??`, `SCRUB`},
-		{`EXPERIMENTAL SCRUB TABLE ??`, `SCRUB TABLE`},
-		{`EXPERIMENTAL SCRUB DATABASE ??`, `SCRUB DATABASE`},
-
-		{`BACKUP foo TO 'bar' ??`, `BACKUP`},
-		{`BACKUP DATABASE ??`, `BACKUP`},
-		{`BACKUP foo TO 'bar' AS OF ??`, `BACKUP`},
-
-		{`RESTORE foo FROM 'bar' ??`, `RESTORE`},
-		{`RESTORE DATABASE ??`, `RESTORE`},
-
-		{`IMPORT TABLE foo CREATE USING 'foo.sql' CSV DATA ('foo') ??`, `IMPORT`},
-		{`IMPORT TABLE ??`, `IMPORT`},
-
-		{`EXPORT ??`, `EXPORT`},
-		{`EXPORT INTO CSV 'a' ??`, `EXPORT`},
-		{`EXPORT INTO CSV 'a' FROM SELECT a ??`, `SELECT`},
 	}
 
 	// The following checks that the test definition above exercises all
