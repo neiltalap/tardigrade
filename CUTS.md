@@ -298,3 +298,301 @@ the 20191029 builder image) needed repair after the cuts:
   protobuf regeneration on fresh checkouts, not product bloat.
 - `build/variables.mk` regenerated (drops `C_LIBS_CCL` /
   `LIBROACHCCL`, already gone from the Makefile).
+
+Cut inventory (by commit)
+=========================
+
+One row per cut commit from git log, oldest first. Reason codes:
+NOT CORE = outside a solid core distributed SQL database; BLOAT =
+duplication or go-to-market kit inflating build and test surface;
+PAIN = flaky, timing-sensitive, or wrong-result-prone subsystem.
+Risk is residual product risk after the cut. Green test is the
+evidence re-run for that commit. Short SHAs are git log --oneline.
+
+  COMMIT   FILES / DIRS REMOVED              REASON    RISK    GREEN TEST
+  -------  --------------------------------  --------  ------  -----------------
+  4ca5407  Makefile CCL graph: LIBROACHCCL,  NOT CORE  low:    make buildoss
+           C_LIBS_CCL, ccl test/logictest    (propr-   default dry-run; live
+           targets; live targets to          ietary    make build  go targets on
+           C_LIBS_OSS. Fork had already       license)  unsup-     C_LIBS_OSS
+           removed pkg/ccl, c-deps/libroach/            ported
+           ccl, pkg/ui/distccl, pkg/ui/ccl,
+           CCL-gated mains (see CHANGELOG
+           v1.1.1: AGPL-clean, cockroach-oss
+           is the binary)
+  8c8506f  cloud/ manifests, docs/ RFCS      NOT CORE  none:   cockroach-oss
+           notes, monitoring/ rules,          + BLOAT   not im- and
+           pkg/workload/* generators,                   ported  cockroach-short
+           pkg/cmd/roachprod harnesses,                 by core build clean
+           driver/sim harnesses. 441 files,            binaries
+           98515 deletions
+  55e9897  pkg/cmd leaf binaries: allocsim,  BLOAT     none:   oss/short
+           benchmark, cmp-protocol, cmp-sql,  (dev      dev-only build clean
+           cr2pg, docgen, fuzz,               tooling)  mains
+           generate-binary, github-post,
+           github-pull-request-make,
+           gossipsim, roachtest, smithcmp,
+           smithtest, teamcity-trigger,
+           uptodate, urlcheck, workload,
+           wraprules, zerosum. 207 files,
+           64974 deletions
+  db3c213  pkg/ui browser bundle + handler,  BLOAT     low:    cli, server
+           pprofui/goroutineui/logspy web     (app in   machine suites; root
+           consoles, heapprofiler,            binary)   APIs    handler now
+           goroutinedumper, diagnosticspb,              kept    404
+           cli zip/demo/gen/haproxy benches
+           + debug helpers. 50 files,
+           7771 deletions
+  6506fec  Vectorized engine: pkg/col,       BLOAT     perf    rowexec,
+           pkg/sql/colexec (incl. *.eg.go     (second   only;   distsql,
+           type-combination codegen),         engine)   row     logictest;
+           pkg/sql/colflow, colencoding,                engine  EXPLAIN VEC
+           explain_vec.go. 198 files,                   covers  honest error
+           45731 deletions. vectorize                   all
+           settings stay as inert stubs                 plans
+           defaulting off
+  adc28d5  Telemetry + phone-home:           NOT CORE  none:   counter
+           pkg/server/telemetry,               (vendor   empty   assertions
+           pkg/server/updates.go,              observ-   feature deleted, not
+           pkg/sql/sqltelemetry,               ability)  _usage  faked; lint
+           opt/telemetry.go, endpoint                   compat  rules for
+           counters, AWS SDK import,                     stub    telemetry
+           cloudinfo, encryption hooks.                  kept    removed with
+           18 files, 2481 deletions                               them
+  da4ddea  Storage commentary + external-    NOT CORE  low:    storage, kv
+           consumer subsystems:                        manual  suites;
+           pkg/storage/reports + system                merge   RangeFeed stub
+           replication_* tables/migrations,            stays;  returns clean
+           closedts/ tree, rangefeed/ tree,             lease-  error
+           dist_sender_rangefeed.go,                   holder
+           consistency_queue, TS                        reads
+           maintenance queue. Merge queue               untouched
+           and store rebalancer become
+           no-ops (structs/settings stay).
+  4618ad5  Stats collection + dead joiners:  PAIN +    low:    opt packages,
+           create_stats.go,                    NOT CORE  planner logictest
+           automatic_stats.go,                           falls (distsql_stats
+           row_sampling.go, delete_stats.go,             back to  and automatic
+           sampler + sample-aggregator                   default _stats data
+           processors, distsql_plan_stats,               selec-  removed);
+           rsg + sqlsmith fuzzers,                       tivity  SHOW/INJECT
+           mergejoiner, zigzagjoiner,                             read path
+           windower executors, window.go.                          kept + tested
+           44 files, 14559 deletions.
+           Read path kept: stats_cache,
+           TableStatistic protos,
+           SHOW STATISTICS/HISTOGRAM,
+           INJECT STATISTICS
+  d3ee9bc  pkg/sqlmigrations/* deleted       NOT CORE  fresh   TestSelf-
+           (1615 deletions);                   (no old   clus-   Bootstrap;
+           server.go calls new                 clusters  ters    idempotent
+           bootstrapFreshCluster on first      to up-    only,   root/admin/
+           boot only (root/admin, version +    grade)    no up-  version/DB
+           settings keys, default DBs; 232               grade   keys written
+           lines added). MigrationManager                path
+           knob + test blocks removed
+  cad09f9  Grammar: BACKUP/RESTORE/SHOW      NOT CORE  none:   parser, lex,
+           BACKUP, IMPORT/EXPORT,                       cut     tree suites;
+           CHANGEFEED, SCRUB, SHOW                       state-  regen with
+           FINGERPRINTS, REPLICA TRACE,                  ments   zero goyacc
+           partitioning, roles, audit,                   never   conflicts
+           window statements (10 families),              parsed
+           opt_partition_by, func_expr_
+           windowless alias, bare
+           EXPERIMENTAL token, PARTITION
+           keyword out of sql.y.
+           1189 lines removed
+  d26a901  Admin/status/TS surface:          BLOAT +   low:    server,
+           admin.go/status.go trimmed to        NOT CORE  /ts/    status
+           Health/Liveness/Drain/Nodes/vars;              404s;   suites;
+           serverpb admin/status protos                  live    TestMetrics-
+           trimmed; pkg/ts/* deleted except              metrics Recording
+           tspb + chart_catalog pure types;              kept    removed with
+           tsdump gone. 46 files, 18011                             the DB
+           deletions. Found + fixed live
+           bug: keys.PrettyPrintTimeseriesKey
+           hook panicked on boot once the
+           TS package stopped assigning it;
+           printer now falls back to raw
+           output when the hook is nil
+  99ccf0d  Planner/exec surface: JSON/window BLOAT +   med:    opt, memo,
+           builtins to introspection set,       NOT CORE  merge-  xform, jobs,
+           JsonExists ops + norm rules,                          rowexec,
+           merge exploration deregistered,                       logictest
+           distsql ordering gated on real
+           merge cores, changefeed/sampler/
+           dead-join processors deleted,
+           optbuilder window/export/groupby
+           + tree window funcs removed.
+           100 files, 9586 deletions.
+           Caught a live wrong-results bug:
+           optimizer planned group-by
+           ordered on merge-join output
+           ordering while hash fallback
+           executed; fixed at three levels
+           (kill merge exploration at
+           source in GenerateMergeJoiner,
+           gate ordering propagation, MERGE
+           hint to unsatisfiable-hint
+           error path)
+  6310116  Test goldens + removed-feature    BLOAT     none:   affected
+           coverage: EXPLAIN/optimizer         (test     test-   suites
+           goldens rewritten row-only and      only)    only    re-run green
+           merge-free, logic/pretty/opt                          (parser
+           testdata for cut statements/                          through
+           engines/endpoints deleted,                             logictest);
+           honest-error assertions kept.                         no test
+           270 files, 4480 insertions,                           rewritten to
+           34202 deletions                                       fake a pass
+  ddce5bb  pkg/acceptance/* docker/driver    NOT CORE  none    build clean;
+           harness + pkg/bench/* benches.     + PAIN    (harness acceptance
+           76 files, 8188 deletions           (docker-   only)   coverage
+                                                     flaky)             dropped
+                                                     with it
+  6270006  Residue sweep: scrub* planners/   NOT CORE  none:   suites
+           statements/tests, distsql csv/                paths   re-run
+           scrub/window plans, export.go,                already
+           explain_vec.go, fingerprints,                 unrea-
+           trace-replica, alter_index.go,                 chable
+           show_partitions, replica_
+           closedts/follower_read/
+           rangefeed, cloudinfo. 38 files,
+           9166 deletions
+  89c2399  Rewire after removals (no new     BLOAT     med:    server,
+           cuts): server construction,         (coher-   live    storage, kv,
+           executor config, planner            ence)     wiring  sql, cli,
+           dispatch, distsql planning,                   touched security,
+           storage config, settings                                  pgwire
+           registry, session handling.
+           120 files, 348 insertions,
+           3691 deletions
+  666ca99  This record (CUTS.md) +           (docs)    none    row writer
+           pkg/sql/row_result_writer.go                               covered by
+           extracted during cleanup                                   existing
+                                                                     rowexec
+                                                                     tests
+  12b065b  Build repair: bin/prereqs stub,   BLOAT     low:    buildoss
+           bin/uptodate shell mtime check,     (dead     on-     dry-run zero
+           EXECGEN/DOCGEN targets emptied,     graph)    demand  missing
+           bins pruned, protoc-gen-gogoroach             mains   rules; real
+           restored as build infra,                      stubbed  builds of
+           variables.mk regenerated                                  protoc-gen-
+                                                                     gogoroach,
+                                                                     optgen,
+                                                                     langgen
+
+  Method (all rows): no-compat premise for a new system, nothing kept
+  merely to read old clusters, jobs, descriptors, or wires; wire-compat
+  shells stay only where deleting them would churn a live interface for
+  zero gain. Tests for removed functionality deleted whole; load-bearing
+  failures caused honest restores (four JSON builtins) and reversals.
+  Every batch ended with a green build and the affected suites re-run.
+
+Historic pain cuts
+==================
+
+Placeholder. This section records subsystems cut at least partly
+because they were a historic source of flakes, races, or wrong
+results, plus candidates under observation that have NOT been cut.
+Nothing in the candidate list is approved for removal; each needs
+its own evidence pass (flake-rate data, owner sign-off, green-test
+plan) before it becomes a cut row above.
+
+  Already cut for pain (evidence in this file):
+  - ClosedTS + RangeFeed (da4ddea, 6270006): timestamp-tracking
+    subsystem with timing-sensitive tests (closed_timestamp_test,
+    client_closed_timestamp_test, rangefeed processor/registry/
+    resolved-timestamp tests, all deleted with the code). Served
+    follower reads and external change consumers only; leaseholder
+    path untouched. The RangeFeed RPC stub returns not-supported so
+    misconfigured callers fail clean instead of hanging.
+  - Stats auto-collection sampler pipeline (4618ad5): background
+    refresher + sampler/sample-aggregator processors + gossip
+    invalidation tests; collection was the expensive runtime part
+    while the optimizer corpus depends on the read path, which is
+    why collection went and the cache stayed.
+  - Merge/zigzag join executors (4618ad5, 99ccf0d): caused a live
+    wrong-results incident (ordered group-by over hash fallback);
+    killed at the exploration source, not just behind flags.
+  - Fuzzers and harnesses (4618ad5, ddce5bb, 55e9897): sqlsmith,
+    rsg, acceptance docker harness, roachtest, bench. Valuable
+    upstream, but each is a flake generator in a small-team tree
+    with nobody to triage vendor-kit failures.
+  - Storage self-tuning queues (da4ddea): merge queue, TS
+    maintenance queue, consistency checker, store rebalancer.
+    Background optimizers that rearrange data on their own
+    schedule are a classic source of nondeterministic test
+    interference; manual AdminMerge still works.
+
+  Candidates under observation (NOT cut, no action taken):
+  - Gossip-based membership: retained as core, but watch for
+    timing-sensitive test failures; if flakes cluster here,
+    prefer longer test timeouts and deterministic test hooks
+    over removal, since membership is load-bearing.
+  - Schema changer / lease manager: retained as the database
+    itself; any flake reports should be fixed in place, never
+    stubbed, because DDL correctness is the product.
+  - Compaction and MVCC GC queues: retained (reclaim space);
+    kept explicitly out of the queue cuts for this reason.
+  - Allocator scorer and replicate/split/raft-log queues:
+    retained as replication correctness, not tidying.
+  - Contentions queue, txnrecovery, backpressure: retained;
+    bypassing them changes write-path semantics.
+
+  Follow-ups: collect flake-rate evidence before promoting any
+  candidate; keep this section as the intake list and move entries
+  to the inventory table only when a cut lands with its green
+  tests.
+
+Cut batch 2026-11-11 (solid core, tests green)
+==============================================
+
+  What went in this batch and why it is safe. Parent repo cuts
+  are committed as file deletions; vendor cuts live in the
+  vendor submodule (cockroachdb/vendored) and show as submodule
+  dirt until the submodule pointer is updated.
+
+  - vendor/github.com/gogo/protobuf/test (13M, 352 files):
+    dead test trees (combos, types, etc) not listed in
+    Gopkg.lock packages for gogo/protobuf. Zero refs from
+    pkg/ or Gopkg files. Build and fast suites stay green.
+    Reason BLOAT. Risk none. Green: keys, roachpb, encoding,
+    uuid, base all pass. Vendor 78M to 66M.
+  - build/teamcity-acceptance.sh, teamcity-benchmarks.sh,
+    teamcity-bench.sh, teamcity-local-roachtest.sh,
+    teamcity-sqllogictest.sh: CI for already-deleted
+    acceptance harness, benchmarks, roachtest, sqllogictest
+    (ddce5bb, 8c8506f). Zero refs in Makefile, build/*.mk,
+    .github. Reason NOT CORE + PAIN (docker-flaky). Risk
+    none. Green: no Go code touched.
+  - deploy/docker-compose.yml: multi-node demo compose left
+    after cloud manifests went in 8c8506f. Minimal deploy is
+    deploy/Dockerfile only. Reason NOT CORE. Risk trivial.
+  - pkg/cli/testdata/zip/*, merge_logs/*, interactive_tests/
+    test_demo_*.tcl: fixtures for cut debug zip, debug
+    merge_logs, demo command (db3c213). Zero refs in pkg/cli.
+    Reason BLOAT. Risk none. Green: cli untouched otherwise.
+  - Vendor lesson, revert to green: batch tried rm -rf of
+    cloud, aws, docker, Azure, arrow, vitess, mysql, linkedin,
+    goquery, shopify, logrus, opencontainers. All show zero
+    direct refs in pkg/, but pkg/base failed to build:
+    vendor/.../zipkin-go-opentracing/collector-kafka.go
+    imports Shopify/sarama, keeping the Kafka path alive even
+    though tracing uses only HTTP. Same class holds for
+    DataDog/zstd, thrift, and shared deps like logrus. Rule:
+    never rm -rf whole vendor projects; use dep prune with
+    BFS reachability plus go build after each cluster, and
+    narrow Gopkg.toml prune overrides for same-package dead
+    files. Reverted full vendor tree, re-applied only the
+    safe gogo/test cut. Green restored.
+  - Historic pain intake (no code cut yet, evidence mined
+    2026-11-11): gossip simulation timing, logictest + race
+    never-mix, allocator/replicate/split TODO cluster,
+    distsql flowinfra TODOs, opt xform/norm 157 TODOs,
+    jobs async registry, rpc heartbeat/keepalive flake
+    comments, cli interactive flakes. See agent reports.
+    Candidates stay NOT cut until flake-rate data plus a
+    sync-replacement design lands with green tests.
+    Gossip simulation specifically NOT cut: used by
+    convergence_test, storage_test, dist_sender_test, so
+    removal needs test rewrites to testcluster first.
