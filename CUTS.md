@@ -723,3 +723,12 @@ Cut batch 2026-11-13, wave 4 (cutter-F vendor)
     bumped (upstream remote). Reason BLOAT.
 
   Green: keys, base PASS.
+
+  NOTE 2026-11-13: cutter-G's jobs-test cuts (5 files,
+  2,319 lines: jobs_test, registry_test,
+  registry_external_test, helpers_test, main_test) rode
+  into commit 9f2147b with the wave-4 vendor doc; each
+  gated keys+base + jobs build ok. pkg/jobs now reports
+  no test files. Production jobs/ + jobspb/ untouched.
+  jobutils, schemachanger/backfill tests, live-coverage
+  test doubles explicitly SKIPPED by G with refs.
