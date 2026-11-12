@@ -704,3 +704,22 @@ Cut batch 2026-11-13 (loop cutters D2 storage, E3 vendor)
     pkg/jobs test-only files; logictest remainder.
 
   Green: keys, base PASS; pkg/storage builds clean.
+
+Cut batch 2026-11-13, wave 4 (cutter-F vendor)
+===============================================
+
+  - Vendor working-tree only, 55M to 53M, 5 deletions,
+    all keys+base gated, 0 reverts: docker/go-units,
+    docker/distribution, docker/go-connections,
+    docker/docker (zero pkg + zero vendor importers;
+    build/ hits are docker-CLI calls and URL comments),
+    Azure/go-ansiterm (sole importer was docker windows
+    term files, cut after docker). docker/ + Azure/
+    remain as empty husks. sarama, DataDog, thrift,
+    logrus and all NEVER chains kept; backoff, spew,
+    gax-go, openzipkin, opentracing, btree re-verified
+    as staying (pkg/vendor importers). Total vendor
+    deletions 1651 files; 78M to 53M. Pointer not
+    bumped (upstream remote). Reason BLOAT.
+
+  Green: keys, base PASS.
