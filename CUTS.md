@@ -757,3 +757,16 @@ Cut batch 2026-11-13, wave 5 (scout-H ts gateway)
     protoc-gen-gogoroach both verified working).
 
   Green: keys, base PASS; tspb, serverpb build clean.
+
+  DECISION 2026-11-13: admin.proto regen PERMANENTLY
+  SKIPPED, not just blocked. Scout-H proved any regen
+  with the available toolchain (protoc 3.6.0 +
+  vendored plugin) produces bytes differing from the
+  checked-in files even for unmodified inputs
+  (descriptor hash drift on status.proto). Regenerating
+  admin.pb.go would therefore churn wire descriptors
+  repo-wide for zero runtime gain, violating the
+  no-compat-churn rule. chart_catalog types stay as
+  inert wire-compat shells, same class as the RangeFeed
+  stub. Revisit only with the exact upstream protoc +
+  plugin versions that generated the checked-in files.
