@@ -700,13 +700,6 @@ func (s *statusServer) CancelQuery(
 	return output, nil
 }
 
-// SpanStats requests the total statistics stored on a node for a given key
-// span, which may include multiple ranges.
-
-// Diagnostics returns an anonymized diagnostics report.
-
-// Stores returns details for each store.
-
 // jsonWrapper provides a wrapper on any slice data type being
 // marshaled to JSON. This prevents a security vulnerability
 // where a phishing attack can trick a user's browser into

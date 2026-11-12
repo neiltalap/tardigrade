@@ -673,3 +673,34 @@ Cut batch 2026-11-12 (loop cutters A/B/C, D-partial, E)
   Green: keys, base, encoding, uuid, parser, lex PASS;
   cliflags/memo/execbuilder/sql build clean. roachpb
   known-flaky winRatio re-PASSes on retry.
+
+Cut batch 2026-11-13 (loop cutters D2 storage, E3 vendor)
+==========================================================
+
+  - Storage no-ops (cutter-D2, 3 files): store_rebalancer
+    zero-ref timer/jitter/imports; metrics orphaned
+    TS-maintenance metas/fields/ctors only (merge-queue
+    counters + RangeMerges verified live, kept);
+    server/status.go dangling SpanStats/Diagnostics/Stores
+    doc comments (proto RPCs already trimmed, zero
+    callers, comment-only). Rebalance fns, graphite
+    helpers, gossip/simulation explicitly SKIPPED with
+    refs (convergence/storage/dist_sender tests need the
+    simulator). pkg/storage builds clean; keys+base PASS.
+    Reason BLOAT.
+  - Vendor working-tree only (cutter-E3, 62M to 55M, 550
+    files, 9 gated rounds, 0 reverts): goquery+cascadia,
+    panicparse, aws-sdk-go+jmespath+slack, websocket,
+    Azure pipeline/blob (kept go-ansiterm), linkedin
+    goavro, arrow (kept thrift), vitess, flatbuffers+
+    go-cmp (kept pkg-imported btree). Prefix-aware
+    importer checks both directions; tool binaries
+    (dupl, staticcheck, errcheck, misspell, crlfmt,
+    returncheck, stress) and all NEVER-list chains kept.
+    Total vendor deletions 1386 files; 78M to 55M.
+    Reason BLOAT. Pointer not bumped (upstream remote).
+  - Still uncut, next waves: vendor docker/* org +
+    go-ansiterm (zero importers anywhere, unreached);
+    pkg/jobs test-only files; logictest remainder.
+
+  Green: keys, base PASS; pkg/storage builds clean.

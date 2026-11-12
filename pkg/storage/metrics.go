@@ -783,30 +783,6 @@ var (
 		Measurement: "Replicas",
 		Unit:        metric.Unit_COUNT,
 	}
-	metaTimeSeriesMaintenanceQueueSuccesses = metric.Metadata{
-		Name:        "queue.tsmaintenance.process.success",
-		Help:        "Number of replicas successfully processed by the time series maintenance queue",
-		Measurement: "Replicas",
-		Unit:        metric.Unit_COUNT,
-	}
-	metaTimeSeriesMaintenanceQueueFailures = metric.Metadata{
-		Name:        "queue.tsmaintenance.process.failure",
-		Help:        "Number of replicas which failed processing in the time series maintenance queue",
-		Measurement: "Replicas",
-		Unit:        metric.Unit_COUNT,
-	}
-	metaTimeSeriesMaintenanceQueuePending = metric.Metadata{
-		Name:        "queue.tsmaintenance.pending",
-		Help:        "Number of pending replicas in the time series maintenance queue",
-		Measurement: "Replicas",
-		Unit:        metric.Unit_COUNT,
-	}
-	metaTimeSeriesMaintenanceQueueProcessingNanos = metric.Metadata{
-		Name:        "queue.tsmaintenance.processingnanos",
-		Help:        "Nanoseconds spent processing replicas in the time series maintenance queue",
-		Measurement: "Processing Time",
-		Unit:        metric.Unit_NANOSECONDS,
-	}
 	// GCInfo cumulative totals.
 	metaGCNumKeysAffected = metric.Metadata{
 		Name:        "queue.gc.info.numkeysaffected",
@@ -952,7 +928,6 @@ var (
 		Measurement: "Nanoseconds",
 		Unit:        metric.Unit_NANOSECONDS,
 	}
-
 )
 
 // StoreMetrics is the set of metrics for a given store.
@@ -1080,45 +1055,41 @@ type StoreMetrics struct {
 	RaftCoalescedHeartbeatsPending *metric.Gauge
 
 	// Replica queue metrics.
-	GCQueueSuccesses                          *metric.Counter
-	GCQueueFailures                           *metric.Counter
-	GCQueuePending                            *metric.Gauge
-	GCQueueProcessingNanos                    *metric.Counter
-	MergeQueueSuccesses                       *metric.Counter
-	MergeQueueFailures                        *metric.Counter
-	MergeQueuePending                         *metric.Gauge
-	MergeQueueProcessingNanos                 *metric.Counter
-	MergeQueuePurgatory                       *metric.Gauge
-	RaftLogQueueSuccesses                     *metric.Counter
-	RaftLogQueueFailures                      *metric.Counter
-	RaftLogQueuePending                       *metric.Gauge
-	RaftLogQueueProcessingNanos               *metric.Counter
-	RaftSnapshotQueueSuccesses                *metric.Counter
-	RaftSnapshotQueueFailures                 *metric.Counter
-	RaftSnapshotQueuePending                  *metric.Gauge
-	RaftSnapshotQueueProcessingNanos          *metric.Counter
-	ConsistencyQueueSuccesses                 *metric.Counter
-	ConsistencyQueueFailures                  *metric.Counter
-	ConsistencyQueuePending                   *metric.Gauge
-	ConsistencyQueueProcessingNanos           *metric.Counter
-	ReplicaGCQueueSuccesses                   *metric.Counter
-	ReplicaGCQueueFailures                    *metric.Counter
-	ReplicaGCQueuePending                     *metric.Gauge
-	ReplicaGCQueueProcessingNanos             *metric.Counter
-	ReplicateQueueSuccesses                   *metric.Counter
-	ReplicateQueueFailures                    *metric.Counter
-	ReplicateQueuePending                     *metric.Gauge
-	ReplicateQueueProcessingNanos             *metric.Counter
-	ReplicateQueuePurgatory                   *metric.Gauge
-	SplitQueueSuccesses                       *metric.Counter
-	SplitQueueFailures                        *metric.Counter
-	SplitQueuePending                         *metric.Gauge
-	SplitQueueProcessingNanos                 *metric.Counter
-	SplitQueuePurgatory                       *metric.Gauge
-	TimeSeriesMaintenanceQueueSuccesses       *metric.Counter
-	TimeSeriesMaintenanceQueueFailures        *metric.Counter
-	TimeSeriesMaintenanceQueuePending         *metric.Gauge
-	TimeSeriesMaintenanceQueueProcessingNanos *metric.Counter
+	GCQueueSuccesses                 *metric.Counter
+	GCQueueFailures                  *metric.Counter
+	GCQueuePending                   *metric.Gauge
+	GCQueueProcessingNanos           *metric.Counter
+	MergeQueueSuccesses              *metric.Counter
+	MergeQueueFailures               *metric.Counter
+	MergeQueuePending                *metric.Gauge
+	MergeQueueProcessingNanos        *metric.Counter
+	MergeQueuePurgatory              *metric.Gauge
+	RaftLogQueueSuccesses            *metric.Counter
+	RaftLogQueueFailures             *metric.Counter
+	RaftLogQueuePending              *metric.Gauge
+	RaftLogQueueProcessingNanos      *metric.Counter
+	RaftSnapshotQueueSuccesses       *metric.Counter
+	RaftSnapshotQueueFailures        *metric.Counter
+	RaftSnapshotQueuePending         *metric.Gauge
+	RaftSnapshotQueueProcessingNanos *metric.Counter
+	ConsistencyQueueSuccesses        *metric.Counter
+	ConsistencyQueueFailures         *metric.Counter
+	ConsistencyQueuePending          *metric.Gauge
+	ConsistencyQueueProcessingNanos  *metric.Counter
+	ReplicaGCQueueSuccesses          *metric.Counter
+	ReplicaGCQueueFailures           *metric.Counter
+	ReplicaGCQueuePending            *metric.Gauge
+	ReplicaGCQueueProcessingNanos    *metric.Counter
+	ReplicateQueueSuccesses          *metric.Counter
+	ReplicateQueueFailures           *metric.Counter
+	ReplicateQueuePending            *metric.Gauge
+	ReplicateQueueProcessingNanos    *metric.Counter
+	ReplicateQueuePurgatory          *metric.Gauge
+	SplitQueueSuccesses              *metric.Counter
+	SplitQueueFailures               *metric.Counter
+	SplitQueuePending                *metric.Gauge
+	SplitQueueProcessingNanos        *metric.Counter
+	SplitQueuePurgatory              *metric.Gauge
 
 	// GCInfo cumulative totals.
 	GCNumKeysAffected            *metric.Counter
@@ -1272,45 +1243,41 @@ func newStoreMetrics(histogramWindow time.Duration) *StoreMetrics {
 		RaftLogTruncated:           metric.NewCounter(metaRaftLogTruncated),
 
 		// Replica queue metrics.
-		GCQueueSuccesses:                          metric.NewCounter(metaGCQueueSuccesses),
-		GCQueueFailures:                           metric.NewCounter(metaGCQueueFailures),
-		GCQueuePending:                            metric.NewGauge(metaGCQueuePending),
-		GCQueueProcessingNanos:                    metric.NewCounter(metaGCQueueProcessingNanos),
-		MergeQueueSuccesses:                       metric.NewCounter(metaMergeQueueSuccesses),
-		MergeQueueFailures:                        metric.NewCounter(metaMergeQueueFailures),
-		MergeQueuePending:                         metric.NewGauge(metaMergeQueuePending),
-		MergeQueueProcessingNanos:                 metric.NewCounter(metaMergeQueueProcessingNanos),
-		MergeQueuePurgatory:                       metric.NewGauge(metaMergeQueuePurgatory),
-		RaftLogQueueSuccesses:                     metric.NewCounter(metaRaftLogQueueSuccesses),
-		RaftLogQueueFailures:                      metric.NewCounter(metaRaftLogQueueFailures),
-		RaftLogQueuePending:                       metric.NewGauge(metaRaftLogQueuePending),
-		RaftLogQueueProcessingNanos:               metric.NewCounter(metaRaftLogQueueProcessingNanos),
-		RaftSnapshotQueueSuccesses:                metric.NewCounter(metaRaftSnapshotQueueSuccesses),
-		RaftSnapshotQueueFailures:                 metric.NewCounter(metaRaftSnapshotQueueFailures),
-		RaftSnapshotQueuePending:                  metric.NewGauge(metaRaftSnapshotQueuePending),
-		RaftSnapshotQueueProcessingNanos:          metric.NewCounter(metaRaftSnapshotQueueProcessingNanos),
-		ConsistencyQueueSuccesses:                 metric.NewCounter(metaConsistencyQueueSuccesses),
-		ConsistencyQueueFailures:                  metric.NewCounter(metaConsistencyQueueFailures),
-		ConsistencyQueuePending:                   metric.NewGauge(metaConsistencyQueuePending),
-		ConsistencyQueueProcessingNanos:           metric.NewCounter(metaConsistencyQueueProcessingNanos),
-		ReplicaGCQueueSuccesses:                   metric.NewCounter(metaReplicaGCQueueSuccesses),
-		ReplicaGCQueueFailures:                    metric.NewCounter(metaReplicaGCQueueFailures),
-		ReplicaGCQueuePending:                     metric.NewGauge(metaReplicaGCQueuePending),
-		ReplicaGCQueueProcessingNanos:             metric.NewCounter(metaReplicaGCQueueProcessingNanos),
-		ReplicateQueueSuccesses:                   metric.NewCounter(metaReplicateQueueSuccesses),
-		ReplicateQueueFailures:                    metric.NewCounter(metaReplicateQueueFailures),
-		ReplicateQueuePending:                     metric.NewGauge(metaReplicateQueuePending),
-		ReplicateQueueProcessingNanos:             metric.NewCounter(metaReplicateQueueProcessingNanos),
-		ReplicateQueuePurgatory:                   metric.NewGauge(metaReplicateQueuePurgatory),
-		SplitQueueSuccesses:                       metric.NewCounter(metaSplitQueueSuccesses),
-		SplitQueueFailures:                        metric.NewCounter(metaSplitQueueFailures),
-		SplitQueuePending:                         metric.NewGauge(metaSplitQueuePending),
-		SplitQueueProcessingNanos:                 metric.NewCounter(metaSplitQueueProcessingNanos),
-		SplitQueuePurgatory:                       metric.NewGauge(metaSplitQueuePurgatory),
-		TimeSeriesMaintenanceQueueSuccesses:       metric.NewCounter(metaTimeSeriesMaintenanceQueueSuccesses),
-		TimeSeriesMaintenanceQueueFailures:        metric.NewCounter(metaTimeSeriesMaintenanceQueueFailures),
-		TimeSeriesMaintenanceQueuePending:         metric.NewGauge(metaTimeSeriesMaintenanceQueuePending),
-		TimeSeriesMaintenanceQueueProcessingNanos: metric.NewCounter(metaTimeSeriesMaintenanceQueueProcessingNanos),
+		GCQueueSuccesses:                 metric.NewCounter(metaGCQueueSuccesses),
+		GCQueueFailures:                  metric.NewCounter(metaGCQueueFailures),
+		GCQueuePending:                   metric.NewGauge(metaGCQueuePending),
+		GCQueueProcessingNanos:           metric.NewCounter(metaGCQueueProcessingNanos),
+		MergeQueueSuccesses:              metric.NewCounter(metaMergeQueueSuccesses),
+		MergeQueueFailures:               metric.NewCounter(metaMergeQueueFailures),
+		MergeQueuePending:                metric.NewGauge(metaMergeQueuePending),
+		MergeQueueProcessingNanos:        metric.NewCounter(metaMergeQueueProcessingNanos),
+		MergeQueuePurgatory:              metric.NewGauge(metaMergeQueuePurgatory),
+		RaftLogQueueSuccesses:            metric.NewCounter(metaRaftLogQueueSuccesses),
+		RaftLogQueueFailures:             metric.NewCounter(metaRaftLogQueueFailures),
+		RaftLogQueuePending:              metric.NewGauge(metaRaftLogQueuePending),
+		RaftLogQueueProcessingNanos:      metric.NewCounter(metaRaftLogQueueProcessingNanos),
+		RaftSnapshotQueueSuccesses:       metric.NewCounter(metaRaftSnapshotQueueSuccesses),
+		RaftSnapshotQueueFailures:        metric.NewCounter(metaRaftSnapshotQueueFailures),
+		RaftSnapshotQueuePending:         metric.NewGauge(metaRaftSnapshotQueuePending),
+		RaftSnapshotQueueProcessingNanos: metric.NewCounter(metaRaftSnapshotQueueProcessingNanos),
+		ConsistencyQueueSuccesses:        metric.NewCounter(metaConsistencyQueueSuccesses),
+		ConsistencyQueueFailures:         metric.NewCounter(metaConsistencyQueueFailures),
+		ConsistencyQueuePending:          metric.NewGauge(metaConsistencyQueuePending),
+		ConsistencyQueueProcessingNanos:  metric.NewCounter(metaConsistencyQueueProcessingNanos),
+		ReplicaGCQueueSuccesses:          metric.NewCounter(metaReplicaGCQueueSuccesses),
+		ReplicaGCQueueFailures:           metric.NewCounter(metaReplicaGCQueueFailures),
+		ReplicaGCQueuePending:            metric.NewGauge(metaReplicaGCQueuePending),
+		ReplicaGCQueueProcessingNanos:    metric.NewCounter(metaReplicaGCQueueProcessingNanos),
+		ReplicateQueueSuccesses:          metric.NewCounter(metaReplicateQueueSuccesses),
+		ReplicateQueueFailures:           metric.NewCounter(metaReplicateQueueFailures),
+		ReplicateQueuePending:            metric.NewGauge(metaReplicateQueuePending),
+		ReplicateQueueProcessingNanos:    metric.NewCounter(metaReplicateQueueProcessingNanos),
+		ReplicateQueuePurgatory:          metric.NewGauge(metaReplicateQueuePurgatory),
+		SplitQueueSuccesses:              metric.NewCounter(metaSplitQueueSuccesses),
+		SplitQueueFailures:               metric.NewCounter(metaSplitQueueFailures),
+		SplitQueuePending:                metric.NewGauge(metaSplitQueuePending),
+		SplitQueueProcessingNanos:        metric.NewCounter(metaSplitQueueProcessingNanos),
+		SplitQueuePurgatory:              metric.NewGauge(metaSplitQueuePurgatory),
 
 		// GCInfo cumulative totals.
 		GCNumKeysAffected:            metric.NewCounter(metaGCNumKeysAffected),

@@ -13,9 +13,7 @@ package storage
 import (
 	"context"
 	"math"
-	"math/rand"
 	"sort"
-	"time"
 
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/settings"
@@ -29,10 +27,6 @@ import (
 )
 
 const (
-	// storeRebalancerTimerDuration is how frequently to check the store-level
-	// balance of the cluster.
-	storeRebalancerTimerDuration = time.Minute
-
 	// minQPSThresholdDifference is the minimum QPS difference from the cluster
 	// mean that this system should care about. In other words, we won't worry
 	// about rebalancing for QPS reasons if a store's QPS differs from the mean
@@ -635,10 +629,4 @@ func storeListToMap(sl StoreList) map[roachpb.StoreID]*roachpb.StoreDescriptor {
 		storeMap[sl.stores[i].StoreID] = &sl.stores[i]
 	}
 	return storeMap
-}
-
-// jitteredInterval returns a randomly jittered (+/-25%) duration
-// from checkInterval.
-func jitteredInterval(interval time.Duration) time.Duration {
-	return time.Duration(float64(interval) * (0.75 + 0.5*rand.Float64()))
 }
