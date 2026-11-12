@@ -807,7 +807,6 @@ var (
 		Measurement: "Processing Time",
 		Unit:        metric.Unit_NANOSECONDS,
 	}
-
 	// GCInfo cumulative totals.
 	metaGCNumKeysAffected = metric.Metadata{
 		Name:        "queue.gc.info.numkeysaffected",

@@ -596,3 +596,80 @@ Cut batch 2026-11-11 (solid core, tests green)
     Gossip simulation specifically NOT cut: used by
     convergence_test, storage_test, dist_sender_test, so
     removal needs test rewrites to testcluster first.
+
+Cut batch 2026-11-12 (loop cutters A/B/C, D-partial, E)
+========================================================
+
+  Run by parallel cutters under CUT GATE PROTOCOL (claim,
+  zero-ref pre-check, cut, keys+base gate, revert on FAIL).
+  Two server restarts wiped /tmp state mid-loop; claims were
+  reconstructed from git status so no path was cut twice.
+  Cutter-D was killed mid-edit (left an XXX marker in
+  metrics.go, repaired by merger); its merge_queue.go
+  deletions were adopted after ref verification.
+
+  - Build/CI dead surface (43 paths, cutter-A): remaining
+    build/teamcity-*.sh (20 files), build/packer/ whole dir,
+    build/release/ whole dir, teamcity-post-failures.py,
+    scripts/ authors, azworker, bench, deplicense,
+    diff-example, gceworker, git-blame-stats, goescape,
+    log2html, pprof, purge-terraform, release-notes.py +
+    release-notes/ dir, tag-custom-build, torch,
+    verify-release-binaries, winworker. Zero refs in
+    Makefile, build/, .github/ each (packer/ cut only after
+    its last referrer went; ls-files.sh, deploy/cockroach.sh
+    still live and kept). Reason BLOAT + NOT CORE.
+  - CLI dead surface (10 items, cutter-B): interactive_tests
+    test_workload/test_example_data/test_encryption tcl,
+    testdata zone_attrs*.yaml + zone_range_max_bytes.yaml
+    (zero path refs), flags_util demoLocalityList,
+    flags.go demo comment, cliflags DemoNodes,
+    RunDemoWorkload, DemoNodeLocality,
+    DemoGeoPartitionedReplicas, UseEmptyDatabase, Global
+    (zero refs outside def; demo command gone). cliflags
+    package builds clean. Reason BLOAT.
+  - SQL dead code, non-proto only (5 items, cutter-C):
+    opt/bench + opt/opbench whole dirs, logictest vec-only
+    testdata (dist_vectorize, vectorize_types),
+    execbuilder disableTelemetry field + call (write-only).
+    Proto-wired items explicitly SKIPPED (zigzag/merge
+    specs, bulk/table-stats, metadata test doubles need
+    proto regen). Reason BLOAT + PAIN (bench/flake).
+  - Storage no-op, partial (cutter-D, adopted): merge_queue
+    mergesDisabledForRange, rangeMergePurgatoryError,
+    requestRangeStats + dead imports removed (zero
+    remaining refs repo-wide; shouldQueue already false).
+    metrics.go XXX marker repaired. Rebalancer/recorder
+    shells left for D-continuation. Reason BLOAT.
+  - Vendor working-tree only (submodule, pointer not
+    bumped): first wave gocovmerge, circbuf, mmap-go,
+    pkg/browser, goveralls, reflectwalk,
+    hyperloglog+go-metro, go-bindata-assetfs,
+    MichaelTJones/walk, abourget/teamcity; second wave
+    toxiproxy, golang/dep cluster (dep, Masterminds/*,
+    go-radix, go-toml, constext, nuts, lockfile),
+    go-github, commonmark/*, boltdb, go-bindata, plus
+    gogo/test from batch 1 (836 files total). All zero
+    pkg refs + zero vendor-to-vendor importers
+    (prefix-aware grep). sarama, logrus, DataDog, thrift
+    and all NEVER-list chains kept. Known trade-off:
+    golang/dep deleted though bin/.bootstrap names it;
+    dep ensure is legacy, builds/tests unaffected.
+    Reason BLOAT. Vendor 78M to 65M.
+  - Generated-artifact repair (merger, ignored files, no
+    commit): sql.y cut in cad09f9 never regenerated, so
+    pkg/sql/parser/sql.go, tokens.go, keywords,
+    reserved_keywords, help files failed the build with
+    undefined tree.* errors. Regenerated with vendored
+    goyacc (zero conflicts), optgen (5 *.og.go), and a
+    vendored-stringer equivalent for rule_name_string.go
+    (plus one types import goimports used to add).
+    helpmap_test.go regen fixed parser coverage test.
+    parser + lex suites green; memo, execbuilder, pkg/sql
+    build clean. cli full build still needs cgo jemalloc
+    headers absent in this env (pre-existing env limit,
+    not cut-related).
+
+  Green: keys, base, encoding, uuid, parser, lex PASS;
+  cliflags/memo/execbuilder/sql build clean. roachpb
+  known-flaky winRatio re-PASSes on retry.

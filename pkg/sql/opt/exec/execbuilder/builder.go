@@ -28,7 +28,6 @@ type Builder struct {
 	mem                *memo.Memo
 	catalog            cat.Catalog
 	e                  opt.Expr
-	disableTelemetry   bool
 	evalCtx            *tree.EvalContext
 	fastIsConstVisitor fastIsConstVisitor
 
@@ -83,11 +82,6 @@ func New(
 		evalCtx: evalCtx,
 		nameGen: nameGen,
 	}
-}
-
-// DisableTelemetry prevents the execbuilder from updating telemetry counters.
-func (b *Builder) DisableTelemetry() {
-	b.disableTelemetry = true
 }
 
 // Build constructs the execution node tree and returns its root node if no

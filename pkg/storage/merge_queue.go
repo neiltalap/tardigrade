@@ -12,16 +12,12 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/podomy/tardigrade/pkg/config"
 	"github.com/podomy/tardigrade/pkg/gossip"
 	"github.com/podomy/tardigrade/pkg/internal/client"
-	"github.com/podomy/tardigrade/pkg/keys"
-	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/settings"
-	"github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
 	"github.com/podomy/tardigrade/pkg/storage/storagebase"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
 )
@@ -129,25 +125,6 @@ func (mq *mergeQueue) enabled() bool {
 	return storagebase.MergeQueueEnabled.Get(&st.SV)
 }
 
-func (mq *mergeQueue) mergesDisabledForRange(desc *roachpb.RangeDescriptor) bool {
-	_, tableID, err := keys.DecodeTablePrefix(desc.StartKey.AsRawKey())
-	if err == nil {
-		_, err = mq.gossip.GetInfo(gossip.MakeTableDisableMergesKey(uint32(tableID)))
-		if err == nil {
-			return true
-		}
-	}
-	_, tableID2, err := keys.DecodeTablePrefix(desc.EndKey.AsRawKey())
-	if err != nil {
-		return false
-	}
-	if tableID == tableID2 {
-		return false
-	}
-	_, err = mq.gossip.GetInfo(gossip.MakeTableDisableMergesKey(uint32(tableID2)))
-	return err == nil
-}
-
 func (mq *mergeQueue) shouldQueue(
 	ctx context.Context, now hlc.Timestamp, repl *Replica, sysCfg *config.SystemConfig,
 ) (shouldQ bool, priority float64) {
@@ -155,35 +132,6 @@ func (mq *mergeQueue) shouldQueue(
 	// automatically queued for merging; manual AdminMerge requests continue
 	// to work through the normal admin path.
 	return false, 0
-}
-
-// rangeMergePurgatoryError wraps an error that occurs during merging to
-// indicate that the error should send the range to purgatory.
-type rangeMergePurgatoryError struct{ error }
-
-func (rangeMergePurgatoryError) purgatoryErrorMarker() {}
-
-var _ purgatoryError = rangeMergePurgatoryError{}
-
-func (mq *mergeQueue) requestRangeStats(
-	ctx context.Context, key roachpb.Key,
-) (*roachpb.RangeDescriptor, enginepb.MVCCStats, float64, error) {
-	res, pErr := client.SendWrappedWith(ctx, mq.db.NonTransactionalSender(), roachpb.Header{
-		ReturnRangeInfo: true,
-	}, &roachpb.RangeStatsRequest{
-		RequestHeader: roachpb.RequestHeader{Key: key},
-	})
-	if pErr != nil {
-		return nil, enginepb.MVCCStats{}, 0, pErr.GoError()
-	}
-	rangeInfos := res.Header().RangeInfos
-	if len(rangeInfos) != 1 {
-		return nil, enginepb.MVCCStats{}, 0, fmt.Errorf(
-			"mergeQueue.requestRangeStats: response had %d range infos but exactly one was expected",
-			len(rangeInfos))
-	}
-	return &rangeInfos[0].Desc, res.(*roachpb.RangeStatsResponse).MVCCStats,
-		res.(*roachpb.RangeStatsResponse).QueriesPerSecond, nil
 }
 
 func (mq *mergeQueue) process(

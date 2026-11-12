@@ -282,7 +282,7 @@ func init() {
 			logflags.LogFilesCombinedMaxSizeName,
 			logflags.LogFileVerbosityThresholdName:
 			// The --log-dir* and --log-file* flags are specified only for the
-			// `start` and `demo` commands.
+			// `start` command.
 			return
 		}
 		pf.AddFlag(flag)

@@ -263,7 +263,6 @@ func (a *applyJoinNode) Next(params runParams) (bool, error) {
 
 		execFactory := makeExecFactory(params.p)
 		eb := execbuilder.New(&execFactory, factory.Memo(), nil /* catalog */, newRightSide, params.EvalContext())
-		eb.DisableTelemetry()
 		p, err := eb.Build()
 		if err != nil {
 			if errors.IsAssertionFailure(err) {

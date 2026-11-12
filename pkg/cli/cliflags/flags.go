@@ -920,58 +920,6 @@ The line length where sqlfmt will try to wrap.`,
 		Description: `Align the output.`,
 	}
 
-	DemoNodes = FlagInfo{
-		Name:        "nodes",
-		Description: `How many in-memory nodes to create for the demo.`,
-	}
-
-	RunDemoWorkload = FlagInfo{
-		Name:        "with-load",
-		Description: `Run a demo workload against the pre-loaded database.`,
-	}
-
-	DemoNodeLocality = FlagInfo{
-		Name: "demo-locality",
-		Description: `
-Locality information for each demo node. The input is a colon separated
-list of localities for each node. The i'th locality in the colon separated
-list sets the locality for the i'th demo cockroach node. For example:
-<PRE>
-
---demo-locality=region=us-east1,az=1:region=us-east1,az=2:region=us-east1,az=3
-
-Assigns node1's region to us-east1 and availability zone to 1, node 2's
-region to us-east1 and availability zone to 2, and node 3's region
-to us-east1 and availability zone to 3.
-`,
-	}
-
-	DemoGeoPartitionedReplicas = FlagInfo{
-		Name: "geo-partitioned-replicas",
-		Description: `
-When used with the Movr dataset, create a 9 node cluster and automatically apply
-the geo-partitioned replicas topology across 3 virtual regions named us-east1, us-west1, and
-europe-west1. This command will fail with an error if an enterprise license could not
-be acquired, or if the Movr dataset is not used. More information about the geo-partitioned 
-replicas topology can be found at this URL: 
-https://www.cockroachlabs.com/docs/v19.1/topology-geo-partitioned-replicas.html
-		`,
-	}
-
-	UseEmptyDatabase = FlagInfo{
-		Name: "empty",
-		Description: `
-Start with an empty database: avoid pre-loading a default dataset in
-the demo shell.`,
-	}
-
-	Global = FlagInfo{
-		Name: "global",
-		Description: `
-Simulate a global cluster. This adds artificial latencies to nodes in different
-regions. This flag only works with the default node localities. This setting is experimental.`,
-	}
-
 	LogDir = FlagInfo{
 		Name: "log-dir",
 		Description: `
