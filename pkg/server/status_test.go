@@ -188,17 +188,6 @@ func TestMetricsMetadata(t *testing.T) {
 	}
 }
 
-// TestChartCatalog ensures that the server successfully generates the chart catalog.
-
-// findUndefinedMetrics finds metrics listed in pkg/ts/catalog/chart_catalog.go
-// that are not defined. This is most likely caused by a metric being removed.
-
-// deleteSeenMetrics removes all metrics in a section from the metricMetadata map.
-
-// TestChartCatalogMetric ensures that all metrics are included in at least one
-// chart, and that every metric included in a chart is still part of the metrics
-// registry.
-
 // TestStatusVars verifies that prometheus metrics are available via the
 // /_status/vars endpoint.
 func TestStatusVars(t *testing.T) {

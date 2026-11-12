@@ -732,3 +732,28 @@ Cut batch 2026-11-13, wave 4 (cutter-F vendor)
   no test files. Production jobs/ + jobspb/ untouched.
   jobutils, schemachanger/backfill tests, live-coverage
   test doubles explicitly SKIPPED by G with refs.
+
+Cut batch 2026-11-13, wave 5 (scout-H ts gateway)
+===================================================
+
+  - CUT (132 lines): pkg/ts/tspb/timeseries.pb.gw.go
+    (REST gateway for the deleted ts query API; zero
+    refs, no back-refs from timeseries.pb.go) + 11 lines
+    orphan comments in pkg/server/status_test.go for
+    already-deleted TestChartCatalog/findUndefinedMetrics
+    helpers. tspb + serverpb build clean; keys+base
+    PASS. Reason BLOAT (dead REST surface).
+  - SKIP with evidence: chart_catalog.proto/.pb.go +
+    admin.pb.go regen. Unmodified admin.proto fails
+    protoc (dangling } closers ~L805-808/~L825-826 left
+    by d26a901 rpc-block deletions); checked-in
+    status.pb.go also drifts from status.proto
+    (DiagnosticsRequest). Regen would inject unintended
+    diffs and needs .proto hand-edits, out of cutter
+    scope. Unblock: authorize a .proto-repair pass
+    (drop chart_catalog import + ChartCatalog messages,
+    reconcile DiagnosticsRequest drift) then regen with
+    the vendored plugin (protoc 3.6.0 +
+    protoc-gen-gogoroach both verified working).
+
+  Green: keys, base PASS; tspb, serverpb build clean.
