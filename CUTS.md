@@ -851,3 +851,199 @@ Cut batch 2026-11-13, wave 7 (loop-coord vendor)
 
   Green: keys, base, encoding, uuid, roachpb, parser,
   lex, lint passes PASS.
+
+Cut batch 2026-11-13, waves 8-9 (committed parent cuts)
+========================================================
+
+  All parent-tracked, committed to tardigrade-main with pushes.
+  Re-gated by coord-v2 2026-11-13: keys+base PASS, full
+  `go build ./pkg/...` PASS (exit 0, GOPATH bind path), lint
+  passes PASS, plus per-wave cmake configures below.
+
+  - Licenses (465c88f, 148e053): OFL-inconsolata + OFL-lato
+    (orphan UI fonts, admin UI gone), BSD-grpc + PostgreSQL
+    (unreferenced attributions; vendored grpc carries own
+    headers; LevelDB kept, live). 4 files. Reason BLOAT.
+  - Build repair (6a94fff, 9e09cab, fbd266e + revert
+    734435e): FIND_RELEVANT restored after wrongful cut in
+    4b1b84b; bin/.bootstrap dangling tool installs (dep,
+    go-bindata, goveralls, gocovmerge) dropped with 3 dead
+    build scripts (disable-hyperv-timesync, upload-coverage,
+    verify-archive); full-binary-target cut attempted then
+    reverted, net zero. Reason BLOAT (repair, not product).
+  - krb5 removal (7ae7694, 26M): zero Go/C/cmake refs, not in
+    either C_LIBS link set, no -l flag, libkrb5 target had no
+    dependents, gss build tag gated zero files. Removed
+    gitlink + .gitmodules + rebuild marker + Makefile stanza
+    + VALID_VARS + zcgo_flags fragments. Swept test fallout
+    in the same commit (certs /_status expectation, explain
+    CREATE STATISTICS lines, create_stats logictest file,
+    execbuilder join goldens, pgwire/plan_opt/testcluster
+    expectations). Gates: keys/base ok, engine/cli/
+    server-status cgo builds ok. Reason NOT CORE. Follow-up
+    7813e8f recorded the fallout properly and untracked
+    CLAIMS.txt (merged to cut-loop/CLAIMS.txt) + INFESTATION.md.
+  - Gopkg strip (b7aabd0): 69 dead lock blocks (735 lines) +
+    7 dead constraints + 2 dead required lines (34 lines);
+    100/100 alive lock blocks byte-identical, git apply
+    --check clean. dep itself is de-vendored so ensure can
+    never resurrect the pins. Reason BLOAT.
+  - cryptopp removal (5250f06, 12M): zero Go/C/cmake refs,
+    not in either C_LIBS set, no -l flag, phony-only
+    libcryptopp target, dead -DCRYPTOPP_LIB, only in-tree
+    cipher is the no-op PlaintextStream. Removed gitlink +
+    .gitmodules + rebuild marker + Makefile stanza +
+    VALID_VARS. Gates: keys/base ok, engine/cli/
+    server-status cgo builds ok. Reason NOT CORE.
+  - Platform trim (dc17d87, fe98215): 9 windows/darwin-only
+    Go sources (start_windows, config_windows, rlimit_darwin,
+    disk/rlimit status, stderr_redirect, sdnotify, sysutil,
+    now) + Makefile windows branches (mingw vars, MSYS flag,
+    cygpath block folded to linux expansions; SUFFIX/GOEXE
+    and the !windows cgo guard kept). Full pkg build exit 0.
+    Reason NOT CORE (linux-only product).
+  - Test fallout retirement (80e5b4f, fallout-4 pattern):
+    TestInternalErrorReporting scoped to sentry no-op,
+    TestLimitedBufferingDeadlock func deleted (MergeJoiner
+    gone), TestMergeQueueSeesLearnerOrJointConfig deleted
+    (queue neutered), TestInvertedIndex @> subtests SKIPped
+    (JSON ops removed); helpers and live coverage kept.
+    Full affected suites PASS. No prod/proto/vendor changes.
+
+  Green: keys, base PASS; full pkg build exit 0; lint PASS.
+
+Cut batch 2026-11-13, wave 10 (c-deps working-tree sweep)
+==========================================================
+
+  Working-tree-only by design (submodule pointers not
+  bumped). Independently re-gated by coord-v2 with scratch
+  cmake configures using the Makefile's exact flags
+  (EXTRA_XCMAKE_FLAGS=-DCMAKE_POLICY_VERSION_MINIMUM=3.5):
+  protobuf configure exit 0, rocksdb configure exit 0
+  ("JNI library is disabled"), libroach configure exit 0,
+  jemalloc deleted-path refcheck clean (only je_cv_msvc
+  compiler-detection vars, no file refs).
+
+  - c-deps/protobuf language runtimes (claimed T-kokoro only;
+    remainder adopted, see anomaly note): java/ 257,
+    csharp/ 188, objectivec/ 185, php/ 164, python/ 138,
+    js/ 95, ruby/ 60, benchmarks/ 38, conformance/ 30,
+    examples/ 6, editors/ 3 (proto.vim), kokoro/ 102 (T),
+    plus BUILD/WORKSPACE/bzl/appveyor/travis/composer/
+    changelog files (Z/T). Zero refs in cmake source lists
+    (explicit src/ file lists), Makefile, pkg, build
+    (cdeps-map.log evidence). Lone src/-tree deletion
+    (ruby_generated_code_pb.rb) referenced only by
+    ruby_generator_unittest.cc, which lives in tests.cmake,
+    excluded by -Dprotobuf_BUILD_TESTS=OFF. ~1278 files.
+    Reason BLOAT. Risk none (protoc rebuilt OK post-cut
+    per allgreen-cdeps2; js_embed inputs intact/restored).
+  - c-deps/rocksdb (Y/Y2 claimed scripts+advisor; remainder
+    adopted): java/ JNI tree 345 (WITH_JNI OFF default,
+    Makefile passes no JNI flag), docs/ 188 (no cmake refs),
+    tools/ advisor 30 + bench/CI scripts 15 (TOOLS/
+    BENCHMARKS list members kept: db_bench, ldb, sst_dump
+    etc. per Y/Y2 verdicts), top-level md docs,
+    defs.bzl + examples/BUILD/WORKSPACE (Z, bazel orphans),
+    run_ci_db_test.ps1 (T). ~599 files. Reason BLOAT.
+  - c-deps/googletest (T/W/Z/DOC claimed): msvc/ + xcode/
+    IDE trees, appveyor/travis/ci scripts, BUILD.bazel +
+    WORKSPACE + docs (AdvancedGuide, issue_template).
+    CMakeLists.txt intact (libroach configure exit 0).
+    ~64 files. Reason BLOAT.
+  - c-deps/jemalloc (T claimed 9): msvc/ projects, .appveyor/
+    .travis.yml, gen_travis.py, doc/stylesheet.xsl.
+    configure.ac/Makefile.in refcheck clean (detection
+    vars only). Reason BLOAT.
+  - c-deps/snappy (2): .appveyor.yml + .travis.yml (CI
+    only). CMakeLists explicit sources, untouched. Reason
+    BLOAT.
+  - Anomaly recorded, no revert: the protobuf language dirs
+    and rocksdb java/docs landed with NO claims and no CUT
+    log lines from any wave. Evidence standard still met
+    (survey + configures above), so adopted; coord-v2
+    backfilled claim lines to lock the paths. Future loops:
+    claim first, cut second, no exceptions.
+
+  Green: protobuf/rocksdb/libroach configures exit 0;
+  keys, base PASS; full pkg build exit 0.
+
+Cut batch 2026-11-13, wave 11 (vendor working-tree cont.)
+=========================================================
+
+  Working-tree-only by design (pointer f000e78d, upstream
+  remote). Vendor 78M to 40M; 2475 deletions standing,
+  2 modified files (see lint shim).
+
+  - cutter-V (43 paths, landed): grpc-gateway examples/+
+    docs/, prometheus client_model ruby/python/src/,
+    opencontainers, Nvveen, Microsoft dirs; keys+base
+    gated per path. Reason BLOAT.
+  - cutter-X (1 file, landed): BurntSushi/toml session.vim
+    (editor file; toml pkg itself live via honnef.co).
+    Reason BLOAT.
+  - cutter-X2 (in flight at record time): lufia/iostat (8
+    files) deleted, zero-ref re-verified both directions
+    by coord-v2, claim backfilled (was log-only). Adoption
+    pending wave-end re-gate.
+  - cutter-Y2 + cutter-OS2 (in flight at record time):
+    60 vendor OS-specific files claimed (gopsutil
+    darwin/windows, w32, cobra command_win, x/sys unix
+    darwin, crypto ssh terminal windows). Adoption pending
+    wave-end re-gate.
+  - Vendored toolchain shim (allgreen-lint, standing):
+    golang.org/x/tools/go/packages/{packages,golist}.go
+    adapted to go1.26 types.Sizes (checked-in tree predates
+    the toolchain). Required for lint passes PASS; 2-file
+    working-tree mod, never to be staged. Reason: toolchain
+    compat, not product.
+
+  Green (so far): keys, base PASS; lint passes PASS; full
+  pkg build exit 0. Full-tree verify-full.log in flight
+  (shard S1 all ok at record time).
+
+Cut batch 2026-11-13, wave 12 (coord adoptions + in-flight)
+============================================================
+
+  - Gopkg last pins (e860116, committed by Y2 wave):
+    final 3 dead required[] entries (go-bindata, goveralls,
+    gocovmerge; sources de-vendored, install lines already
+    gone). Gopkg files now describe only on-disk vendor/.
+    Reason BLOAT.
+  - Build-script residue (23dc81e, committed by FP2 wave):
+    build/.dockercfg.in + 5 bootstrap/*.sh (zero refs;
+    manual provisioning flows unverifiable from tree) +
+    pkg/Makefile unreferenced shim. Reason BLOAT. Follow-up
+    862a6fa (coord-committed, FP2's leftover): stale UI
+    NOTE in event_log.go, comment-only.
+  - c-deps/protobuf/third_party (coord-v2 micro-cut,
+    working-tree-only): bundled googletest 5.1M + benchmark
+    remnants 556K (6.7M total; protobuf 18M to 12M). Only
+    referrer is tests.cmake, excluded by
+    -Dprotobuf_BUILD_TESTS=OFF. Claimed before cutting;
+    keys+base PASS + scratch configure exit 0 post-cut.
+    Reason BLOAT.
+  - cutter-PY (working-tree-only, 40 paths): googletest/
+    googlemock .py test runners/helpers (gtest_*_test.py,
+    generator scripts, fuse/common/upload). Zero .py refs
+    in libroach cmake; per-path keys+base gates in PY log.
+    Claims were log-only; coord backfilled all 40 to
+    shared CLAIMS (no dups). Reason BLOAT.
+  - cutter-DEAD (IN FLIGHT at record time): survey-unused
+    60 U1000 dead symbols in prod files (admin 22, status
+    14, rowexec 10, singles). Claimed in shared CLAIMS.
+    Working-tree admin.go surgery (-415) builds clean
+    (pkg/server/... exit 0). Re-gate (pkg/server + status
+    suites) and CUTS/commit pending wave end. NOT green yet.
+  - verify-full flakes (no action taken): S3
+    TestDiskBackedIndexedRowContainer FAIL reproduced 4/5
+    runs coord-side; file untouched since fork, time-seeded
+    rng, unstable-sort-vs-idx comparison -> pre-existing
+    flake, not a cut regression (baseline never ran it
+    green here). S6 testcluster/reducesql/sqlutils build
+    failures raced DEAD's mid-verify admin.go edit;
+    verify wave re-verifies on settled HEAD. Test files
+    untouched per HARD LIMITS.
+
+  Green: keys, base PASS; pkg/server build exit 0 WITH
+  DEAD surgery; protobuf configure exit 0 post-third_party.

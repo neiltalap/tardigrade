@@ -387,3 +387,35 @@ The F/E3 skip reasons for the other ten were valid.
 Decision required: none. Gated keys+base per batch.
 
 Owner question: none.
+
+
+15. staticcheck U1000 dead symbols in prod files (function-level surgery)
+-------------------------------------------------------------------------
+Status: NEEDS-DECISION (prod-file edits exceed the cutter
+keys+base-only gate protocol; each cluster needs its
+affected-package suite green, not just keys+base).
+
+Evidence: survey-unused.log (modern staticcheck 2026.2.2,
+vendored 2019 binary cannot run under go1.26) reports 64
+U1000 findings across pkg/, triaged to 60 real dead
+symbols: pkg/server admin.go 22 + status 14, pkg/sql 17
+(rowexec stream merger/accumulator, rebalance leftovers,
+dead wrappers/fields), pkg/storage 5, rpc/nodedialer 2.
+Every finding verified zero-ref repo-wide (incl. tests),
+no build tags, no generated code, no interface
+assertions. 3 test-only helpers ignored; conn_executor
+notifyStatsRefresherOfNewTables retained as intentional
+no-op stub (do not cut). cutter-DEAD is executing the
+admin.go 22-symbol cluster in flight (claimed, builds
+clean); status/rowexec/singles remain.
+
+Decision required: approve surgical prod-file deletion
+cluster by cluster with per-package suite gates (server,
+status, rowexec, storage, nodedialer suites), accepting
+that any cluster whose suite reddens is reverted whole;
+confirm the conn_executor stub stays.
+
+Owner question: is function-level dead-code deletion in
+live packages approved at all, and which clusters are
+explicitly off-limits (e.g. anything touching
+txn/commit paths vs pure admin/status commentary)?
