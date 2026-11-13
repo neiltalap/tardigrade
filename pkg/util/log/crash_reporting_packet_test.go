@@ -193,12 +193,14 @@ func TestInternalErrorReporting(t *testing.T) {
 		t.Fatalf("expected internal error, got %v", err)
 	}
 
-	// TODO(knz): With Ben's changes to report errors in pgwire as well
-	// as the executor, we get twice the sentry reports. This needs to
-	// be fixed, then the test below can check for len(packets) == 1.
-	if len(packets) < 1 {
-		t.Fatalf("expected at least 1 reporting packet")
+	// Sentry reporting for internal errors was deliberately removed:
+	// connExecutor.recordError is a no-op (89c2399) and pkg/sql/sqltelemetry
+	// (RecordError) was deleted (adc28d5). The error is still returned to the
+	// client (asserted above); assert the no-op path delivers no packets.
+	if len(packets) != 0 {
+		t.Fatalf("expected no reporting packets (reporting path removed 89c2399/adc28d5), got %d", len(packets))
 	}
+	return
 
 	p := packets[0]
 

@@ -62,6 +62,7 @@ func TestInvertedIndex(t *testing.T) {
 	}
 
 	t.Run("ensure we're using the inverted index", func(t *testing.T) {
+		t.Skip("JSON @> operator removed (99ccf0d); inverted-index @> coverage removed")
 		// Just to make sure we're using the inverted index.
 		explain := db.Query(t, `SELECT count(*) FROM [EXPLAIN SELECT * FROM test.jsons WHERE j @> '{"a": 1}'] WHERE description = 'jsons@jsons_j_idx'`)
 		explain.Next()
@@ -77,6 +78,7 @@ func TestInvertedIndex(t *testing.T) {
 	})
 
 	t.Run("probe database after inserts", func(t *testing.T) {
+		t.Skip("JSON @> operator removed (99ccf0d); inverted-index @> coverage removed")
 		probeInvertedIndex(t, db, jsons)
 	})
 
@@ -94,6 +96,7 @@ func TestInvertedIndex(t *testing.T) {
 	}
 
 	t.Run("probe database after updates", func(t *testing.T) {
+		t.Skip("JSON @> operator removed (99ccf0d); inverted-index @> coverage removed")
 		probeInvertedIndex(t, db, jsons)
 	})
 
@@ -106,6 +109,7 @@ func TestInvertedIndex(t *testing.T) {
 	}
 
 	t.Run("probe database after pk updates", func(t *testing.T) {
+		t.Skip("JSON @> operator removed (99ccf0d); inverted-index @> coverage removed")
 		probeInvertedIndex(t, db, jsons)
 	})
 
@@ -124,6 +128,7 @@ func TestInvertedIndex(t *testing.T) {
 	jsons = newJSONS
 
 	t.Run("probe database after deletes", func(t *testing.T) {
+		t.Skip("JSON @> operator removed (99ccf0d); inverted-index @> coverage removed")
 		probeInvertedIndex(t, db, jsons)
 	})
 }
