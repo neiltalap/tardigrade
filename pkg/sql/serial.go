@@ -144,39 +144,6 @@ func (p *planner) processSerialInColumnDef(
 	return &newSpec, dbDesc, seqName, seqOpts, nil
 }
 
-// SimplifySerialInColumnDefWithRowID analyzes a column definition and
-// simplifies any use of SERIAL as if SerialNormalizationMode was set
-// to SerialUsesRowID. No sequence needs to be created.
-//
-// This is currently used by bulk I/O import statements which do not
-// (yet?) support customization of the SERIAL behavior.
-func SimplifySerialInColumnDefWithRowID(
-	ctx context.Context, d *tree.ColumnTableDef, tableName *ObjectName,
-) error {
-	if !d.IsSerial {
-		// Column is not SERIAL: nothing to do.
-		return nil
-	}
-
-	if err := assertValidSerialColumnDef(d, tableName); err != nil {
-		return err
-	}
-
-	// Make the column non-nullable in all cases. PostgreSQL requires
-	// this.
-	d.Nullable.Nullability = tree.NotNull
-
-	// We're not constructing a sequence for this SERIAL column.
-	// Use the "old school" CockroachDB default.
-	d.Type = types.Int
-	d.DefaultExpr.Expr = uniqueRowIDExpr
-
-	// Clear the IsSerial bit now that it's been remapped.
-	d.IsSerial = false
-
-	return nil
-}
-
 func assertValidSerialColumnDef(d *tree.ColumnTableDef, tableName *ObjectName) error {
 	if d.HasDefaultExpr() {
 		// SERIAL implies a new default expression, we can't have one to
