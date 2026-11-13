@@ -59,19 +59,6 @@ func CreateTable(
 	CreateTableInterleaved(tb, sqlDB, tableName, schema, "" /*interleaveSchema*/, numRows, fn)
 }
 
-// CreateTableDebug is identical to debug, but allows for the added option of
-// printing the table and its contents upon creation.
-func CreateTableDebug(
-	tb testing.TB,
-	sqlDB *gosql.DB,
-	tableName, schema string,
-	numRows int,
-	fn GenRowFn,
-	shouldPrint bool,
-) {
-	CreateTableInterleavedDebug(tb, sqlDB, tableName, schema, "" /*interleaveSchema*/, numRows, fn, shouldPrint)
-}
-
 // CreateTableInterleaved is identical to CreateTable with the added option
 // of specifying an interleave schema for interleaving the table.
 func CreateTableInterleaved(

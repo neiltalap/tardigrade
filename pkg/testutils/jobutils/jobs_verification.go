@@ -11,108 +11,20 @@
 package jobutils
 
 import (
-	"context"
 	gosql "database/sql"
-	"fmt"
 	"reflect"
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/podomy/tardigrade/pkg/jobs"
 	"github.com/podomy/tardigrade/pkg/jobs/jobspb"
-	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/storage/storagebase"
 	"github.com/podomy/tardigrade/pkg/testutils/sqlutils"
-	"github.com/podomy/tardigrade/pkg/util/protoutil"
-	"github.com/podomy/tardigrade/pkg/util/retry"
 	"github.com/kr/pretty"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 )
-
-// WaitForJob waits for the specified job ID to terminate.
-func WaitForJob(t testing.TB, db *sqlutils.SQLRunner, jobID int64) {
-	t.Helper()
-	if err := retry.ForDuration(time.Minute*2, func() error {
-		var status string
-		var payloadBytes []byte
-		db.QueryRow(
-			t, `SELECT status, payload FROM system.jobs WHERE id = $1`, jobID,
-		).Scan(&status, &payloadBytes)
-		if jobs.Status(status) == jobs.StatusFailed {
-			payload := &jobspb.Payload{}
-			if err := protoutil.Unmarshal(payloadBytes, payload); err == nil {
-				t.Fatalf("job failed: %s", payload.Error)
-			}
-			t.Fatalf("job failed")
-		}
-		if e, a := jobs.StatusSucceeded, jobs.Status(status); e != a {
-			return errors.Errorf("expected job status %s, but got %s", e, a)
-		}
-		return nil
-	}); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// RunJob runs the provided job control statement, intializing, notifying and
-// closing the chan at the passed pointer (see below for why) and returning the
-// jobID and error result. PAUSE JOB and CANCEL JOB are racy in that it's hard
-// to guarantee that the job is still running when executing a PAUSE or
-// CANCEL--or that the job has even started running. To synchronize, we can
-// install a store response filter which does a blocking receive for one of the
-// responses used by our job (for example, Export for a BACKUP). Later, when we
-// want to guarantee the job is in progress, we do exactly one blocking send.
-// When this send completes, we know the job has started, as we've seen one
-// expected response. We also know the job has not finished, because we're
-// blocking all future responses until we close the channel, and our operation
-// is large enough that it will generate more than one of the expected response.
-func RunJob(
-	t *testing.T,
-	db *sqlutils.SQLRunner,
-	allowProgressIota *chan struct{},
-	ops []string,
-	query string,
-	args ...interface{},
-) (int64, error) {
-	*allowProgressIota = make(chan struct{})
-	errCh := make(chan error)
-	go func() {
-		_, err := db.DB.ExecContext(context.TODO(), query, args...)
-		errCh <- err
-	}()
-	select {
-	case *allowProgressIota <- struct{}{}:
-	case err := <-errCh:
-		return 0, errors.Wrapf(err, "query returned before expected: %s", query)
-	}
-	var jobID int64
-	db.QueryRow(t, `SELECT id FROM system.jobs ORDER BY created DESC LIMIT 1`).Scan(&jobID)
-	for _, op := range ops {
-		db.Exec(t, fmt.Sprintf("%s JOB %d", op, jobID))
-		*allowProgressIota <- struct{}{}
-	}
-	close(*allowProgressIota)
-	return jobID, <-errCh
-}
-
-// BulkOpResponseFilter creates a blocking response filter for the responses
-// related to bulk IO: AddSSTable. See
-// discussion on RunJob for where this might be useful.
-func BulkOpResponseFilter(allowProgressIota *chan struct{}) storagebase.ReplicaResponseFilter {
-	return func(ba roachpb.BatchRequest, br *roachpb.BatchResponse) *roachpb.Error {
-		for _, ru := range br.Responses {
-			switch ru.GetInner().(type) {
-			case *roachpb.AddSSTableResponse:
-				<-*allowProgressIota
-			}
-		}
-		return nil
-	}
-}
 
 func verifySystemJob(
 	t testing.TB,
@@ -198,24 +110,4 @@ func GetJobID(t testing.TB, db *sqlutils.SQLRunner, offset int) int64 {
 	SELECT job_id FROM crdb_internal.jobs ORDER BY created LIMIT 1 OFFSET $1`, offset,
 	).Scan(&jobID)
 	return jobID
-}
-
-// GetLastJobID gets the most recent job's ID.
-func GetLastJobID(t testing.TB, db *sqlutils.SQLRunner) int64 {
-	var jobID int64
-	db.QueryRow(
-		t, `SELECT id FROM system.jobs ORDER BY created DESC LIMIT 1`,
-	).Scan(&jobID)
-	return jobID
-}
-
-// GetJobProgress loads the Progress message associated with the job.
-func GetJobProgress(t *testing.T, db *sqlutils.SQLRunner, jobID int64) *jobspb.Progress {
-	ret := &jobspb.Progress{}
-	var buf []byte
-	db.QueryRow(t, `SELECT progress FROM system.jobs WHERE id = $1`, jobID).Scan(&buf)
-	if err := protoutil.Unmarshal(buf, ret); err != nil {
-		t.Fatal(err)
-	}
-	return ret
 }

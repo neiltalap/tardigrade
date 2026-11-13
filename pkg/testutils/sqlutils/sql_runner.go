@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	"github.com/podomy/tardigrade/pkg/testutils"
-	"github.com/pkg/errors"
 )
 
 // SQLRunner wraps a testing.TB and *gosql.DB connection and provides
@@ -29,7 +28,7 @@ type SQLRunner struct {
 }
 
 // DBHandle is an interface that applies to *gosql.DB, *gosql.Conn, and
-// *gosql.Tx, as well as *RoundRobinDBHandle.
+// *gosql.Tx.
 type DBHandle interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (gosql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*gosql.Rows, error)
@@ -44,12 +43,6 @@ var _ DBHandle = &gosql.Tx{}
 // The argument can be a *gosql.DB, *gosql.Conn, or *gosql.Tx object.
 func MakeSQLRunner(db DBHandle) *SQLRunner {
 	return &SQLRunner{DB: db}
-}
-
-// MakeRoundRobinSQLRunner returns a SQLRunner that uses a set of database
-// connections, in a round-robin fashion.
-func MakeRoundRobinSQLRunner(dbs ...DBHandle) *SQLRunner {
-	return MakeSQLRunner(MakeRoundRobinDBHandle(dbs...))
 }
 
 // Exec is a wrapper around gosql.Exec that kills the test on error.
@@ -189,61 +182,4 @@ func (sr *SQLRunner) CheckQueryResults(t testing.TB, query string, expected [][]
 			query, MatrixToStr(expected), MatrixToStr(res),
 		)
 	}
-}
-
-// CheckQueryResultsRetry checks that the rows returned by a query match the
-// expected response. If the results don't match right away, it will retry
-// using testutils.SucceedsSoon.
-func (sr *SQLRunner) CheckQueryResultsRetry(t testing.TB, query string, expected [][]string) {
-	t.Helper()
-	testutils.SucceedsSoon(t, func() error {
-		res := sr.QueryStr(t, query)
-		if !reflect.DeepEqual(res, expected) {
-			return errors.Errorf("query '%s': expected:\n%v\ngot:\n%v\n",
-				query, MatrixToStr(expected), MatrixToStr(res),
-			)
-		}
-		return nil
-	})
-}
-
-// RoundRobinDBHandle aggregates multiple DBHandles into a single one; each time
-// a query is issued, a handle is selected in round-robin fashion.
-type RoundRobinDBHandle struct {
-	handles []DBHandle
-	current int
-}
-
-var _ DBHandle = &RoundRobinDBHandle{}
-
-// MakeRoundRobinDBHandle creates a RoundRobinDBHandle.
-func MakeRoundRobinDBHandle(handles ...DBHandle) *RoundRobinDBHandle {
-	return &RoundRobinDBHandle{handles: handles}
-}
-
-func (rr *RoundRobinDBHandle) next() DBHandle {
-	h := rr.handles[rr.current]
-	rr.current = (rr.current + 1) % len(rr.handles)
-	return h
-}
-
-// ExecContext is part of the DBHandle interface.
-func (rr *RoundRobinDBHandle) ExecContext(
-	ctx context.Context, query string, args ...interface{},
-) (gosql.Result, error) {
-	return rr.next().ExecContext(ctx, query, args...)
-}
-
-// QueryContext is part of the DBHandle interface.
-func (rr *RoundRobinDBHandle) QueryContext(
-	ctx context.Context, query string, args ...interface{},
-) (*gosql.Rows, error) {
-	return rr.next().QueryContext(ctx, query, args...)
-}
-
-// QueryRowContext is part of the DBHandle interface.
-func (rr *RoundRobinDBHandle) QueryRowContext(
-	ctx context.Context, query string, args ...interface{},
-) *gosql.Row {
-	return rr.next().QueryRowContext(ctx, query, args...)
 }
