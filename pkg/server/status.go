@@ -11,22 +11,13 @@
 package server
 
 import (
-	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/rsa"
-	"crypto/x509/pkix"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"os/exec"
-	"reflect"
 	"regexp"
 	"strconv"
-	"strings"
-	"sync"
 
 	gwruntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/pkg/errors"
@@ -64,10 +55,6 @@ const (
 	// maxConcurrentRequests is the maximum number of RPC fan-out requests
 	// that will be made at any point of time.
 	maxConcurrentRequests = 100
-
-	// omittedKeyStr is the string returned in place of a key when keys aren't
-	// permitted in responses.
-	omittedKeyStr = "omitted (due to the 'server.remote_debugging.mode' setting)"
 )
 
 var (
@@ -108,7 +95,6 @@ type statusServer struct {
 	stores          *storage.Stores
 	stopper         *stop.Stopper
 	sessionRegistry *sql.SessionRegistry
-	si              systemInfoOnce
 }
 
 // newStatusServer allocates and returns a statusServer.
@@ -225,83 +211,13 @@ func (s *statusServer) Gossip(
 
 // Certificates returns the x509 certificates.
 
-func formatCertNames(p pkix.Name) string {
-	return fmt.Sprintf("CommonName=%s, Organization=%s", p.CommonName, strings.Join(p.Organization, ","))
-}
-
-func extractCertFields(contents []byte, details *serverpb.CertificateDetails) error {
-	certs, err := security.PEMContentsToX509(contents)
-	if err != nil {
-		return err
-	}
-
-	for _, c := range certs {
-		addresses := c.DNSNames
-		for _, ip := range c.IPAddresses {
-			addresses = append(addresses, ip.String())
-		}
-
-		extKeyUsage := make([]string, len(c.ExtKeyUsage))
-		for i, eku := range c.ExtKeyUsage {
-			extKeyUsage[i] = security.ExtKeyUsageToString(eku)
-		}
-
-		var pubKeyInfo string
-		if rsaPub, ok := c.PublicKey.(*rsa.PublicKey); ok {
-			pubKeyInfo = fmt.Sprintf("%d bit RSA", rsaPub.N.BitLen())
-		} else if ecdsaPub, ok := c.PublicKey.(*ecdsa.PublicKey); ok {
-			pubKeyInfo = fmt.Sprintf("%d bit ECDSA", ecdsaPub.Params().BitSize)
-		} else {
-			// go's x509 library does not support other types (so far).
-			pubKeyInfo = fmt.Sprintf("unknown key type %T", c.PublicKey)
-		}
-
-		details.Fields = append(details.Fields, serverpb.CertificateDetails_Fields{
-			Issuer:             formatCertNames(c.Issuer),
-			Subject:            formatCertNames(c.Subject),
-			ValidFrom:          c.NotBefore.UnixNano(),
-			ValidUntil:         c.NotAfter.UnixNano(),
-			Addresses:          addresses,
-			SignatureAlgorithm: c.SignatureAlgorithm.String(),
-			PublicKey:          pubKeyInfo,
-			KeyUsage:           security.KeyUsageToString(c.KeyUsage),
-			ExtendedKeyUsage:   extKeyUsage,
-		})
-	}
-	return nil
-}
-
 // Details returns node details.
 
 // GetFiles returns a list of files of type defined in the request.
 
-// checkFilePattern checks if a pattern is acceptable for the GetFiles call.
-// Only patterns to match filenames are acceptable, not more general paths.
-func checkFilePattern(pattern string) error {
-	if strings.Contains(pattern, string(os.PathSeparator)) {
-		return errors.New("invalid pattern: cannot have path seperators")
-	}
-	return nil
-}
-
 // LogFilesList returns a list of available log files.
 
 // LogFile returns a single log file.
-
-// parseInt64WithDefault attempts to parse the passed in string. If an empty
-// string is supplied or parsing results in an error the default value is
-// returned.  If an error does occur during parsing, the error is returned as
-// well.
-func parseInt64WithDefault(s string, defaultValue int64) (int64, error) {
-	if len(s) == 0 {
-		return defaultValue, nil
-	}
-	result, err := strconv.ParseInt(s, 10, 0)
-	if err != nil {
-		return defaultValue, err
-	}
-	return result, nil
-}
 
 // Logs returns the log entries parsed from the log files stored on
 // the server. Log entries are returned in reverse chronological order. The
@@ -691,41 +607,6 @@ func (s *statusServer) CancelQuery(
 	return output, nil
 }
 
-// jsonWrapper provides a wrapper on any slice data type being
-// marshaled to JSON. This prevents a security vulnerability
-// where a phishing attack can trick a user's browser into
-// requesting a document from Cockroach as an executable script,
-// allowing the contents of the fetched document to be treated
-// as executable javascript. More details here:
-// http://haacked.com/archive/2009/06/25/json-hijacking.aspx/
-type jsonWrapper struct {
-	Data interface{} `json:"d"`
-}
-
-// marshalToJSON marshals the given value into nicely indented JSON. If the
-// value is an array or slice it is wrapped in jsonWrapper and then marshaled.
-func marshalToJSON(value interface{}) ([]byte, error) {
-	switch reflect.ValueOf(value).Kind() {
-	case reflect.Array, reflect.Slice:
-		value = jsonWrapper{Data: value}
-	}
-	body, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return nil, errors.Errorf("unable to marshal %+v to json: %s", value, err)
-	}
-	return body, nil
-}
-
-// marshalJSONResponse converts an arbitrary value into a JSONResponse protobuf
-// that can be sent via grpc.
-func marshalJSONResponse(value interface{}) (*serverpb.JSONResponse, error) {
-	data, err := marshalToJSON(value)
-	if err != nil {
-		return nil, err
-	}
-	return &serverpb.JSONResponse{Data: data}, nil
-}
-
 func userFromContext(ctx context.Context) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -745,41 +626,4 @@ func userFromContext(ctx context.Context) (string, error) {
 			"context's incoming metadata contains unexpected number of usernames: %+v ", md)
 	}
 	return usernames[0], nil
-}
-
-type systemInfoOnce struct {
-	once sync.Once
-	info serverpb.SystemInfo
-}
-
-func (si *systemInfoOnce) systemInfo(ctx context.Context) serverpb.SystemInfo {
-	// We only want to attempt to populate the si.info once. If an error occurs
-	// it is logged but the corresponding field in the returned struct is just
-	// left empty as there isn't anything to do with an error from this function.
-	si.once.Do(func() {
-		// Don't use CommandContext because uname ought to not run for too long and
-		// if the status request were canceled, we don't want future requests to
-		// get blank information because we bailed out of this Once.
-		cmd := exec.Command("uname", "-a")
-		var errBuf bytes.Buffer
-		cmd.Stderr = &errBuf
-		output, err := cmd.Output()
-		if err != nil {
-			log.Warningf(ctx, "failed to get system information: %v\nstderr: %v",
-				err, errBuf.String())
-			return
-		}
-		si.info.SystemInfo = string(bytes.TrimSpace(output))
-		cmd = exec.Command("uname", "-r")
-		errBuf.Reset()
-		cmd.Stderr = &errBuf
-		output, err = cmd.Output()
-		if err != nil {
-			log.Warningf(ctx, "failed to get kernel information: %v\nstderr: %v",
-				err, errBuf.String())
-			return
-		}
-		si.info.KernelInfo = string(bytes.TrimSpace(output))
-	})
-	return si.info
 }

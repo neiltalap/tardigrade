@@ -18,7 +18,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/gossip"
 	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/settings"
-	"github.com/podomy/tardigrade/pkg/storage/storagebase"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
 )
 
@@ -118,11 +117,6 @@ func newMergeQueue(store *Store, db *client.DB, gossip *gossip.Gossip) *mergeQue
 		},
 	)
 	return mq
-}
-
-func (mq *mergeQueue) enabled() bool {
-	st := mq.store.ClusterSettings()
-	return storagebase.MergeQueueEnabled.Get(&st.SV)
 }
 
 func (mq *mergeQueue) shouldQueue(

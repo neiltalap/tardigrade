@@ -18,21 +18,11 @@ import (
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
-	"github.com/podomy/tardigrade/pkg/util/contextutil"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/metric"
 	"github.com/podomy/tardigrade/pkg/util/stop"
 	"go.etcd.io/etcd/raft"
-)
-
-const (
-	// minQPSThresholdDifference is the minimum QPS difference from the cluster
-	// mean that this system should care about. In other words, we won't worry
-	// about rebalancing for QPS reasons if a store's QPS differs from the mean
-	// by less than this amount even if the amount is greater than the percentage
-	// threshold. This avoids too many lease transfers in lightly loaded clusters.
-	minQPSThresholdDifference = 100
 )
 
 var (
@@ -156,152 +146,6 @@ func NewStoreRebalancer(
 // lease transfers driven by zone constraints (replicateQueue and
 // Allocator.AllocateTarget) are unchanged.
 func (sr *StoreRebalancer) Start(ctx context.Context, stopper *stop.Stopper) {
-}
-
-func (sr *StoreRebalancer) rebalanceStore(
-	ctx context.Context, mode LBRebalancingMode, storeList StoreList,
-) {
-	qpsThresholdFraction := qpsRebalanceThreshold.Get(&sr.st.SV)
-
-	// First check if we should transfer leases away to better balance QPS.
-	qpsMinThreshold := math.Min(storeList.candidateQueriesPerSecond.mean*(1-qpsThresholdFraction),
-		storeList.candidateQueriesPerSecond.mean-minQPSThresholdDifference)
-	qpsMaxThreshold := math.Max(storeList.candidateQueriesPerSecond.mean*(1+qpsThresholdFraction),
-		storeList.candidateQueriesPerSecond.mean+minQPSThresholdDifference)
-
-	var localDesc *roachpb.StoreDescriptor
-	for i := range storeList.stores {
-		if storeList.stores[i].StoreID == sr.rq.store.StoreID() {
-			localDesc = &storeList.stores[i]
-		}
-	}
-	if localDesc == nil {
-		log.Warningf(ctx, "StorePool missing descriptor for local store")
-		return
-	}
-
-	if !(localDesc.Capacity.QueriesPerSecond > qpsMaxThreshold) {
-		log.VEventf(ctx, 1, "local QPS %.2f is below max threshold %.2f (mean=%.2f); no rebalancing needed",
-			localDesc.Capacity.QueriesPerSecond, qpsMaxThreshold, storeList.candidateQueriesPerSecond.mean)
-		return
-	}
-
-	var replicasToMaybeRebalance []replicaWithStats
-	storeMap := storeListToMap(storeList)
-
-	log.Infof(ctx,
-		"considering load-based lease transfers for s%d with %.2f qps (mean=%.2f, upperThreshold=%.2f)",
-		localDesc.StoreID, localDesc.Capacity.QueriesPerSecond, storeList.candidateQueriesPerSecond.mean, qpsMaxThreshold)
-
-	hottestRanges := sr.replRankings.topQPS()
-	for localDesc.Capacity.QueriesPerSecond > qpsMaxThreshold {
-		replWithStats, target, considerForRebalance := sr.chooseLeaseToTransfer(
-			ctx, &hottestRanges, localDesc, storeList, storeMap, qpsMinThreshold, qpsMaxThreshold)
-		replicasToMaybeRebalance = append(replicasToMaybeRebalance, considerForRebalance...)
-		if replWithStats.repl == nil {
-			break
-		}
-
-		log.VEventf(ctx, 1, "transferring r%d (%.2f qps) to s%d to better balance load",
-			replWithStats.repl.RangeID, replWithStats.qps, target.StoreID)
-		timeout := sr.rq.processTimeoutFunc(sr.st, replWithStats.repl)
-		if err := contextutil.RunWithTimeout(ctx, "transfer lease", timeout, func(ctx context.Context) error {
-			return sr.rq.transferLease(ctx, replWithStats.repl, target, replWithStats.qps)
-		}); err != nil {
-			log.Errorf(ctx, "unable to transfer lease to s%d: %+v", target.StoreID, err)
-			continue
-		}
-		sr.metrics.LeaseTransferCount.Inc(1)
-
-		// Finally, update our local copies of the descriptors so that if
-		// additional transfers are needed we'll be making the decisions with more
-		// up-to-date info. The StorePool copies are updated by transferLease.
-		localDesc.Capacity.LeaseCount--
-		localDesc.Capacity.QueriesPerSecond -= replWithStats.qps
-		if otherDesc := storeMap[target.StoreID]; otherDesc != nil {
-			otherDesc.Capacity.LeaseCount++
-			otherDesc.Capacity.QueriesPerSecond += replWithStats.qps
-		}
-	}
-
-	if !(localDesc.Capacity.QueriesPerSecond > qpsMaxThreshold) {
-		log.Infof(ctx,
-			"load-based lease transfers successfully brought s%d down to %.2f qps (mean=%.2f, upperThreshold=%.2f)",
-			localDesc.StoreID, localDesc.Capacity.QueriesPerSecond, storeList.candidateQueriesPerSecond.mean, qpsMaxThreshold)
-		return
-	}
-
-	if mode != LBRebalancingLeasesAndReplicas {
-		log.Infof(ctx,
-			"ran out of leases worth transferring and qps (%.2f) is still above desired threshold (%.2f)",
-			localDesc.Capacity.QueriesPerSecond, qpsMaxThreshold)
-		return
-	}
-	log.Infof(ctx,
-		"ran out of leases worth transferring and qps (%.2f) is still above desired threshold (%.2f); considering load-based replica rebalances",
-		localDesc.Capacity.QueriesPerSecond, qpsMaxThreshold)
-
-	// Re-combine replicasToMaybeRebalance with what remains of hottestRanges so
-	// that we'll reconsider them for replica rebalancing.
-	replicasToMaybeRebalance = append(replicasToMaybeRebalance, hottestRanges...)
-
-	for localDesc.Capacity.QueriesPerSecond > qpsMaxThreshold {
-		replWithStats, targets := sr.chooseReplicaToRebalance(
-			ctx,
-			&replicasToMaybeRebalance,
-			localDesc,
-			storeList,
-			storeMap,
-			qpsMinThreshold,
-			qpsMaxThreshold)
-		if replWithStats.repl == nil {
-			log.Infof(ctx,
-				"ran out of replicas worth transferring and qps (%.2f) is still above desired threshold (%.2f); will check again soon",
-				localDesc.Capacity.QueriesPerSecond, qpsMaxThreshold)
-			return
-		}
-
-		descBeforeRebalance := replWithStats.repl.Desc()
-		log.VEventf(ctx, 1, "rebalancing r%d (%.2f qps) from %v to %v to better balance load",
-			replWithStats.repl.RangeID, replWithStats.qps, descBeforeRebalance.Replicas(), targets)
-		timeout := sr.rq.processTimeoutFunc(sr.st, replWithStats.repl)
-		if err := contextutil.RunWithTimeout(ctx, "relocate range", timeout, func(ctx context.Context) error {
-			return sr.rq.store.AdminRelocateRange(ctx, *descBeforeRebalance, targets)
-		}); err != nil {
-			log.Errorf(ctx, "unable to relocate range to %v: %+v", targets, err)
-			continue
-		}
-		sr.metrics.RangeRebalanceCount.Inc(1)
-
-		// Finally, update our local copies of the descriptors so that if
-		// additional transfers are needed we'll be making the decisions with more
-		// up-to-date info.
-		//
-		// TODO(a-robinson): This just updates the copies used locally by the
-		// storeRebalancer. We may also want to update the copies in the StorePool
-		// itself.
-		replicasBeforeRebalance := descBeforeRebalance.Replicas().All()
-		for i := range replicasBeforeRebalance {
-			if storeDesc := storeMap[replicasBeforeRebalance[i].StoreID]; storeDesc != nil {
-				storeDesc.Capacity.RangeCount--
-			}
-		}
-		localDesc.Capacity.LeaseCount--
-		localDesc.Capacity.QueriesPerSecond -= replWithStats.qps
-		for i := range targets {
-			if storeDesc := storeMap[targets[i].StoreID]; storeDesc != nil {
-				storeDesc.Capacity.RangeCount++
-				if i == 0 {
-					storeDesc.Capacity.LeaseCount++
-					storeDesc.Capacity.QueriesPerSecond += replWithStats.qps
-				}
-			}
-		}
-	}
-
-	log.Infof(ctx,
-		"load-based replica transfers successfully brought s%d down to %.2f qps (mean=%.2f, upperThreshold=%.2f)",
-		localDesc.StoreID, localDesc.Capacity.QueriesPerSecond, storeList.candidateQueriesPerSecond.mean, qpsMaxThreshold)
 }
 
 // TODO(a-robinson): Should we take the number of leases on each store into

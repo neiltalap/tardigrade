@@ -314,39 +314,3 @@ func resolveSubzone(
 
 	return index, partitionName, nil
 }
-
-func deleteRemovedPartitionZoneConfigs(
-	ctx context.Context,
-	txn *client.Txn,
-	tableDesc *sqlbase.TableDescriptor,
-	idxDesc *sqlbase.IndexDescriptor,
-	oldPartDesc *sqlbase.PartitioningDescriptor,
-	newPartDesc *sqlbase.PartitioningDescriptor,
-	execCfg *ExecutorConfig,
-) error {
-	newNames := map[string]struct{}{}
-	for _, n := range newPartDesc.PartitionNames() {
-		newNames[n] = struct{}{}
-	}
-	removedNames := []string{}
-	for _, n := range oldPartDesc.PartitionNames() {
-		if _, exists := newNames[n]; !exists {
-			removedNames = append(removedNames, n)
-		}
-	}
-	if len(removedNames) == 0 {
-		return nil
-	}
-	zone, err := getZoneConfigRaw(ctx, txn, tableDesc.ID)
-	if err != nil {
-		return err
-	} else if zone == nil {
-		zone = config.NewZoneConfig()
-	}
-	for _, n := range removedNames {
-		zone.DeleteSubzone(uint32(idxDesc.ID), n)
-	}
-	hasNewSubzones := false
-	_, err = writeZoneConfig(ctx, txn, tableDesc.ID, tableDesc, zone, execCfg, hasNewSubzones)
-	return err
-}

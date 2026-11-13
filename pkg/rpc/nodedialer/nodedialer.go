@@ -237,9 +237,3 @@ func (n *Dialer) getBreaker(nodeID roachpb.NodeID, class rpc.ConnectionClass) *w
 	}
 	return (*wrappedBreaker)(value)
 }
-
-type dialerAdapter Dialer
-
-func (da *dialerAdapter) Ready(nodeID roachpb.NodeID) bool {
-	return (*Dialer)(da).GetCircuitBreaker(nodeID, rpc.DefaultClass).Ready()
-}

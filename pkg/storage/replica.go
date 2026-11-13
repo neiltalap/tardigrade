@@ -887,15 +887,6 @@ func (r *Replica) getQueueLastProcessed(ctx context.Context, queue string) (hlc.
 	return timestamp, nil
 }
 
-// setQueueLastProcessed writes the last processed timestamp for the
-// specified queue.
-func (r *Replica) setQueueLastProcessed(
-	ctx context.Context, queue string, timestamp hlc.Timestamp,
-) error {
-	key := keys.QueueLastProcessedKey(r.Desc().StartKey, queue)
-	return r.store.DB().PutInline(ctx, key, &timestamp)
-}
-
 // RaftStatus returns the current raft status of the replica. It returns nil
 // if the Raft group has not been initialized yet.
 func (r *Replica) RaftStatus() *raft.Status {
