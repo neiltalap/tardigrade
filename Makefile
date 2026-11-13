@@ -186,8 +186,9 @@ else
 $(info Module mode (go.mod present): no GOPATH layout required)
 endif
 
-# We install our vendored tools to a directory within this repository to avoid
-# overwriting any user-installed binaries of the same name in the default GOBIN.
+# We install our pinned tool binaries to a directory within this repository
+# to avoid overwriting any user-installed binaries of the same name in the
+# default GOBIN.
 GO_INSTALL := GOBIN='$(abspath bin)' GOFLAGS= $(GO) install
 
 # Prefer tools we've installed with go install to those elsewhere on
@@ -284,27 +285,11 @@ endif
 
 
 # Update the git hooks and install commands from dependencies whenever they
-# change. In module mode (go.mod present) tools install pinned from the
-# module graph instead of ./vendor; `dep` (legacy) and `go-bindata`
-# (dead UI pipeline) are intentionally not installed.
+# change. Tools install pinned from the module graph (no vendor/
+# directory: builds resolve -mod=mod against the module cache);
+# `dep` (legacy) and `go-bindata` (dead UI pipeline) are
+# intentionally not installed.
 bin/.bootstrap: $(GITHOOKS) Gopkg.lock go.mod | bin/.submodules-initialized
-ifeq "$(wildcard $(CURDIR)/go.mod)" ""
-	@$(GO_INSTALL) -v \
-		./vendor/github.com/client9/misspell/cmd/misspell \
-		./vendor/github.com/cockroachdb/crlfmt \
-		./vendor/github.com/cockroachdb/gostdlib/cmd/gofmt \
-		./vendor/github.com/cockroachdb/gostdlib/x/tools/cmd/goimports \
-		./vendor/github.com/cockroachdb/stress \
-		./vendor/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway \
-		./vendor/github.com/kisielk/errcheck \
-		./vendor/github.com/mibk/dupl \
-		./vendor/golang.org/x/lint/golint \
-		./vendor/golang.org/x/perf/cmd/benchstat \
-		./vendor/golang.org/x/tools/cmd/goyacc \
-		./vendor/golang.org/x/tools/cmd/stringer \
-		./vendor/golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow \
-		./vendor/honnef.co/go/tools/cmd/staticcheck
-else
 	@GOBIN='$(abspath bin)' GOFLAGS= $(GO) install \
 		github.com/client9/misspell/cmd/misspell@v0.3.4 \
 		github.com/cockroachdb/crlfmt@v0.0.0-20181113173958-3c56c65c97a1 \
@@ -322,7 +307,6 @@ else
 		golang.org/x/tools/cmd/stringer@v0.0.0-20190524140312-2c0ae7006135 \
 		golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@v0.0.0-20190524140312-2c0ae7006135 \
 		honnef.co/go/tools/cmd/staticcheck@v0.0.0-20190530104931-1f0868a609b7
-endif
 	touch $@
 
 .SECONDARY: bin/.submodules-initialized
@@ -474,16 +458,19 @@ native-tag := $(subst -,_,$(TARGET_TRIPLE))$(if $(use-stdmalloc),_stdmalloc)$(if
 # encounters a given native tag or when the build signature changes (see
 # build/defs.mk.sig). These tags are unset when building with the Go toolchain
 # directly, so these files are only compiled when building with Make.
+# NOTE: github.com/knz/go-libedit/unix is deliberately absent here.
+# It lives in the read-only module cache, so Make cannot generate
+# zcgo_flags files into it; it compiles from the cache with its own
+# cgo directives (bundled sources against system libedit headers,
+# -lncurses) instead of the old system-libedit override.
 CGO_PKGS := \
 	pkg/cli \
 	pkg/server/status \
-	pkg/storage/engine \
-	vendor/github.com/knz/go-libedit/unix
-vendor/github.com/knz/go-libedit/unix-package := libedit_unix
+	pkg/storage/engine
 CGO_UNSUFFIXED_FLAGS_FILES := $(addprefix ./,$(addsuffix /zcgo_flags.go,$(CGO_PKGS)))
 CGO_SUFFIXED_FLAGS_FILES   := $(addprefix ./,$(addsuffix /zcgo_flags_$(native-tag).go,$(CGO_PKGS)))
 BASE_CGO_FLAGS_FILES := $(CGO_UNSUFFIXED_FLAGS_FILES) $(CGO_SUFFIXED_FLAGS_FILES)
-CGO_FLAGS_FILES := $(BASE_CGO_FLAGS_FILES) vendor/github.com/knz/go-libedit/unix/zcgo_flags_extra.go
+CGO_FLAGS_FILES := $(BASE_CGO_FLAGS_FILES)
 
 $(BASE_CGO_FLAGS_FILES): Makefile build/defs.mk.sig | bin/.submodules-initialized
 	@echo "regenerating $@"
@@ -497,15 +484,6 @@ $(BASE_CGO_FLAGS_FILES): Makefile build/defs.mk.sig | bin/.submodules-initialize
 	@echo '// #cgo LDFLAGS: $(addprefix -L,$(PROTOBUF_DIR) $(JEMALLOC_DIR)/lib $(SNAPPY_DIR) $(LIBEDIT_DIR)/src/.libs $(ROCKSDB_DIR) $(LIBROACH_DIR))' >> $@
 	@echo 'import "C"' >> $@
 
-vendor/github.com/knz/go-libedit/unix/zcgo_flags_extra.go: Makefile | bin/.submodules-initialized
-	@echo "regenerating $@"
-	@echo '// GENERATED FILE DO NOT EDIT' > $@
-	@echo >> $@
-	@echo 'package $($(@D)-package)' >> $@
-	@echo >> $@
-	@echo '// #cgo CPPFLAGS: -DGO_LIBEDIT_NO_BUILD' >> $@
-	@echo '// #cgo !windows LDFLAGS: -ledit -lncurses' >> $@
-	@echo 'import "C"' >> $@
 
 # BUILD ARTIFACT CACHING
 #
@@ -1045,18 +1023,21 @@ endif
 
 CPP_PROTO_ROOT := $(LIBROACH_SRC_DIR)/protos
 
-GOGO_PROTOBUF_PATH := ./vendor/github.com/gogo/protobuf
+# Proto include roots resolve into the read-only module cache
+# (no vendor/ directory). Versions match the go.mod pins.
+GOMODCACHE := $(shell $(GO) env GOMODCACHE)
+GOGO_PROTOBUF_PATH := $(GOMODCACHE)/github.com/cockroachdb/gogoproto@v1.2.1-0.20210111181126-fecfd0f31404
 PROTOBUF_PATH  := $(GOGO_PROTOBUF_PATH)/protobuf
 
 GOGOPROTO_PROTO := $(GOGO_PROTOBUF_PATH)/gogoproto/gogo.proto
 
-ERRORS_PATH := ./vendor/github.com/cockroachdb/errors
+ERRORS_PATH := $(GOMODCACHE)/github.com/cockroachdb/errors@v1.2.5-0.20200501211520-ad1964b7f014
 ERRORS_PROTO := $(ERRORS_PATH)/errorspb/errors.proto
 
-COREOS_PATH := ./vendor/go.etcd.io
+COREOS_PATH := $(GOMODCACHE)/go.etcd.io
 
 GRPC_GATEWAY_GOOGLEAPIS_PACKAGE := github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis
-GRPC_GATEWAY_GOOGLEAPIS_PATH := ./vendor/$(GRPC_GATEWAY_GOOGLEAPIS_PACKAGE)
+GRPC_GATEWAY_GOOGLEAPIS_PATH := $(GOMODCACHE)/github.com/grpc-ecosystem/grpc-gateway@v1.9.5/$(GRPC_GATEWAY_GOOGLEAPIS_PACKAGE)
 
 # Map protobuf includes to the Go package containing the generated Go code.
 PROTO_MAPPINGS :=
@@ -1084,7 +1065,7 @@ $(ERRORS_PROTO): bin/.submodules-initialized
 bin/.go_protobuf_sources: $(PROTOC) $(GO_PROTOS) $(GOGOPROTO_PROTO) $(ERRORS_PROTO) bin/.bootstrap bin/protoc-gen-gogoroach
 	$(FIND_RELEVANT) -type f -name '*.pb.go' -exec rm {} +
 	set -e; for dir in $(sort $(dir $(GO_PROTOS))); do \
-	  build/werror.sh $(PROTOC) -Ipkg:./vendor/github.com:$(GOGO_PROTOBUF_PATH):$(PROTOBUF_PATH):$(COREOS_PATH):$(GRPC_GATEWAY_GOOGLEAPIS_PATH):$(ERRORS_PATH) --gogoroach_out=$(PROTO_MAPPINGS),plugins=grpc,import_prefix=github.com/podomy/tardigrade/pkg/:./pkg $$dir/*.proto; \
+	  build/werror.sh $(PROTOC) -Ipkg:$(GOMODCACHE)/github.com:$(GOGO_PROTOBUF_PATH):$(PROTOBUF_PATH):$(COREOS_PATH):$(GRPC_GATEWAY_GOOGLEAPIS_PATH):$(ERRORS_PATH) --gogoroach_out=$(PROTO_MAPPINGS),plugins=grpc,import_prefix=github.com/podomy/tardigrade/pkg/:./pkg $$dir/*.proto; \
 	done
 	$(SED_INPLACE) -E \
 		-e '/import _ /d' \
@@ -1100,8 +1081,8 @@ bin/.go_protobuf_sources: $(PROTOC) $(GO_PROTOS) $(GOGOPROTO_PROTO) $(ERRORS_PRO
 
 bin/.gw_protobuf_sources: $(PROTOC) $(GW_SERVER_PROTOS) $(GW_TS_PROTOS) $(GO_PROTOS) $(GOGOPROTO_PROTO) $(ERRORS_PROTO) bin/.bootstrap
 	$(FIND_RELEVANT) -type f -name '*.pb.gw.go' -exec rm {} +
-	build/werror.sh $(PROTOC) -Ipkg:./vendor/github.com:$(GOGO_PROTOBUF_PATH):$(PROTOBUF_PATH):$(ERRORS_PATH):$(COREOS_PATH):$(GRPC_GATEWAY_GOOGLEAPIS_PATH) --grpc-gateway_out=logtostderr=true,request_context=true:./pkg $(GW_SERVER_PROTOS)
-	build/werror.sh $(PROTOC) -Ipkg:./vendor/github.com:$(GOGO_PROTOBUF_PATH):$(PROTOBUF_PATH):$(ERRORS_PATH):$(COREOS_PATH):$(GRPC_GATEWAY_GOOGLEAPIS_PATH) --grpc-gateway_out=logtostderr=true,request_context=true:./pkg $(GW_TS_PROTOS)
+	build/werror.sh $(PROTOC) -Ipkg:$(GOMODCACHE)/github.com:$(GOGO_PROTOBUF_PATH):$(PROTOBUF_PATH):$(ERRORS_PATH):$(COREOS_PATH):$(GRPC_GATEWAY_GOOGLEAPIS_PATH) --grpc-gateway_out=logtostderr=true,request_context=true:./pkg $(GW_SERVER_PROTOS)
+	build/werror.sh $(PROTOC) -Ipkg:$(GOMODCACHE)/github.com:$(GOGO_PROTOBUF_PATH):$(PROTOBUF_PATH):$(ERRORS_PATH):$(COREOS_PATH):$(GRPC_GATEWAY_GOOGLEAPIS_PATH) --grpc-gateway_out=logtostderr=true,request_context=true:./pkg $(GW_TS_PROTOS)
 	@# TODO(benesch): Remove after https://github.com/grpc/grpc-go/issues/711.
 	$(SED_INPLACE) -E 's!golang.org/x/net/context!context!g' $(GW_SOURCES)
 	gofmt -s -w $(GW_SOURCES)

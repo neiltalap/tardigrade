@@ -1,6 +1,6 @@
 module github.com/podomy/tardigrade
 
-go 1.17
+go 1.26
 
 require cloud.google.com/go v0.34.0
 

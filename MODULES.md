@@ -28,13 +28,19 @@ minor era-internal MVS bumps remain). Do not run tidy on
 this go.mod. If a new import is added, pin it with
 go list -m repo@sha and append the require by hand.
 
-Fences: c-deps/ carries a nested go.mod stub so the module
-walk skips the protobuf submodule (relative imports, and
-nothing imports it). vendor/ is a real in-repo tree again:
-the old dep submodule pointer is removed and go mod vendor
-materialized 36M from the pinned graph (no modules.txt
-before meant module mode ignored it). Default go commands
-now resolve -mod=vendor automatically; no flags needed.
+Fences: vendor/ is deleted from git entirely (no in-repo
+tree, no modules.txt). Nothing resolves through ./vendor
+anymore: plain go commands default to -mod=readonly against
+the module cache, and the buildmod/testmod make targets pass
+-mod=mod explicitly; both work with no other flags. The
+Makefile no longer references vendor/ except in these notes:
+bootstrap installs pinned tools via go install pkg@version,
+the go-libedit cgo override is dropped (it compiles from the
+module cache with its own directives), upload-coverage uses
+the bootstrapped binaries, and proto include roots point at
+the pinned module-cache paths. c-deps/ carries no nested
+go.mod: no c-deps submodule holds imported Go packages, so
+the module walk never enters it.
 
 Source fixes for non-GOPATH layout (both auto-detect, both
 keep the old path when no go.mod is present):
