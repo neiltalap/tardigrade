@@ -55,20 +55,11 @@ import (
 )
 
 const (
-	// Default Maximum number of log entries returned.
-	defaultMaxLogEntries = 1000
-
-	// stackTraceApproxSize is the approximate size of a goroutine stack trace.
-	stackTraceApproxSize = 1024
-
 	// statusPrefix is the root of the cluster statistics and metrics API.
 	statusPrefix = "/_status/"
 
 	// statusVars exposes prometheus metrics for monitoring consumption.
 	statusVars = statusPrefix + "vars"
-
-	// raftStateDormant is used when there is no known raft state.
-	raftStateDormant = "StateDormant"
 
 	// maxConcurrentRequests is the maximum number of RPC fan-out requests
 	// that will be made at any point of time.

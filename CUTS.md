@@ -1047,3 +1047,14 @@ Cut batch 2026-11-13, wave 12 (coord adoptions + in-flight)
 
   Green: keys, base PASS; pkg/server build exit 0 WITH
   DEAD surgery; protobuf configure exit 0 post-third_party.
+
+## Wave: protobuf nested third-party submodules removed (working tree)
+
+`c-deps/protobuf/third_party/{benchmark,googletest}` nested-submodule
+trees removed from the working tree (unlogged rm; no shared claim at
+the time). Safe: BOTH protoc+libprotobuf cmake invocations pass
+`-Dprotobuf_BUILD_TESTS=OFF` (Makefile:522,531), so `tests.cmake`
+(which FATAL_ERRORs without third_party) never executes; scratch
+cmake configure exit 0 post-removal. Fresh clones restore via
+`git submodule update --init --recursive`. Pointer (protobuf
+20f5237) unchanged — working-tree-only, like all submodule cuts.
