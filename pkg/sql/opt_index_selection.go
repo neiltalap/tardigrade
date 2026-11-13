@@ -19,12 +19,6 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-func unconstrainedSpans(
-	tableDesc *sqlbase.ImmutableTableDescriptor, index *sqlbase.IndexDescriptor, forDelete bool,
-) (roachpb.Spans, error) {
-	return spansFromConstraint(tableDesc, index, nil, exec.ColumnOrdinalSet{}, forDelete)
-}
-
 // spansFromConstraint converts the spans in a Constraint to roachpb.Spans.
 //
 // interstices are pieces of the key that need to be inserted after each column

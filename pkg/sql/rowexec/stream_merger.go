@@ -11,89 +11,12 @@
 package rowexec
 
 import (
-	"context"
-
-	"github.com/podomy/tardigrade/pkg/sql/execinfra"
-	"github.com/podomy/tardigrade/pkg/sql/execinfrapb"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
 	"github.com/podomy/tardigrade/pkg/sql/types"
 	"github.com/podomy/tardigrade/pkg/util/encoding"
-	"github.com/podomy/tardigrade/pkg/util/mon"
 	"github.com/pkg/errors"
 )
-
-// We define a group to be a set of rows from a given source with the same
-// group key, in this case the set of ordered columns. streamMerger emits
-// batches of rows that are the cross-product of matching groups from each
-// stream.
-type streamMerger struct {
-	left       streamGroupAccumulator
-	right      streamGroupAccumulator
-	leftGroup  []sqlbase.EncDatumRow
-	rightGroup []sqlbase.EncDatumRow
-	// nulLEquality indicates when NULL = NULL is truth-y. This is helpful
-	// when we want NULL to be meaningful during equality, for example
-	// during SCRUB secondary index checks.
-	nullEquality bool
-	datumAlloc   sqlbase.DatumAlloc
-}
-
-func (sm *streamMerger) start(ctx context.Context) {
-	sm.left.start(ctx)
-	sm.right.start(ctx)
-}
-
-// NextBatch returns a set of rows from the left stream and a set of rows from
-// the right stream, all matching on the equality columns. One of the sets can
-// be empty.
-func (sm *streamMerger) NextBatch(
-	ctx context.Context, evalCtx *tree.EvalContext,
-) ([]sqlbase.EncDatumRow, []sqlbase.EncDatumRow, *execinfrapb.ProducerMetadata) {
-	if sm.leftGroup == nil {
-		var meta *execinfrapb.ProducerMetadata
-		sm.leftGroup, meta = sm.left.nextGroup(ctx, evalCtx)
-		if meta != nil {
-			return nil, nil, meta
-		}
-	}
-	if sm.rightGroup == nil {
-		var meta *execinfrapb.ProducerMetadata
-		sm.rightGroup, meta = sm.right.nextGroup(ctx, evalCtx)
-		if meta != nil {
-			return nil, nil, meta
-		}
-	}
-	if sm.leftGroup == nil && sm.rightGroup == nil {
-		return nil, nil, nil
-	}
-
-	var lrow, rrow sqlbase.EncDatumRow
-	if len(sm.leftGroup) > 0 {
-		lrow = sm.leftGroup[0]
-	}
-	if len(sm.rightGroup) > 0 {
-		rrow = sm.rightGroup[0]
-	}
-
-	cmp, err := CompareEncDatumRowForMerge(
-		sm.left.types, lrow, rrow, sm.left.ordering, sm.right.ordering,
-		sm.nullEquality, &sm.datumAlloc, evalCtx,
-	)
-	if err != nil {
-		return nil, nil, &execinfrapb.ProducerMetadata{Err: err}
-	}
-	var leftGroup, rightGroup []sqlbase.EncDatumRow
-	if cmp <= 0 {
-		leftGroup = sm.leftGroup
-		sm.leftGroup = nil
-	}
-	if cmp >= 0 {
-		rightGroup = sm.rightGroup
-		sm.rightGroup = nil
-	}
-	return leftGroup, rightGroup, nil
-}
 
 // CompareEncDatumRowForMerge EncDatumRow compares two EncDatumRows for merging.
 // When merging two streams and preserving the order (as in a MergeSort or
@@ -154,38 +77,4 @@ func CompareEncDatumRowForMerge(
 		}
 	}
 	return 0, nil
-}
-
-func (sm *streamMerger) close(ctx context.Context) {
-	sm.left.close(ctx)
-	sm.right.close(ctx)
-}
-
-// makeStreamMerger creates a streamMerger, joining rows from leftSource with
-// rows from rightSource.
-//
-// All metadata from the sources is forwarded to metadataSink.
-func makeStreamMerger(
-	leftSource execinfra.RowSource,
-	leftOrdering sqlbase.ColumnOrdering,
-	rightSource execinfra.RowSource,
-	rightOrdering sqlbase.ColumnOrdering,
-	nullEquality bool,
-	memMonitor *mon.BytesMonitor,
-) (streamMerger, error) {
-	if len(leftOrdering) != len(rightOrdering) {
-		return streamMerger{}, errors.Errorf(
-			"ordering lengths don't match: %d and %d", len(leftOrdering), len(rightOrdering))
-	}
-	for i, ord := range leftOrdering {
-		if ord.Direction != rightOrdering[i].Direction {
-			return streamMerger{}, errors.New("Ordering mismatch")
-		}
-	}
-
-	return streamMerger{
-		left:         makeStreamGroupAccumulator(leftSource, leftOrdering, memMonitor),
-		right:        makeStreamGroupAccumulator(rightSource, rightOrdering, memMonitor),
-		nullEquality: nullEquality,
-	}, nil
 }

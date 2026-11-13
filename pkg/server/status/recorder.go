@@ -91,7 +91,6 @@ type MetricsRecorder struct {
 	clock        *hlc.Clock
 
 	// Counts to help optimize slice allocation. Should only be accessed atomically.
-	lastDataCount        int64
 	lastSummaryCount     int64
 	lastNodeMetricCount  int64
 	lastStoreMetricCount int64

@@ -1504,14 +1504,6 @@ func (b *Builder) buildProjectSet(projectSet *memo.ProjectSetExpr) (execPlan, er
 	return ep, nil
 }
 
-func (b *Builder) resultColumn(id opt.ColumnID) sqlbase.ResultColumn {
-	colMeta := b.mem.Metadata().ColumnMeta(id)
-	return sqlbase.ResultColumn{
-		Name: colMeta.Alias,
-		Typ:  colMeta.Type,
-	}
-}
-
 func (b *Builder) buildSequenceSelect(seqSel *memo.SequenceSelectExpr) (execPlan, error) {
 	seq := b.mem.Metadata().Sequence(seqSel.Sequence)
 	node, err := b.factory.ConstructSequenceSelect(seq)
