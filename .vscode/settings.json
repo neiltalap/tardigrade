@@ -1,14 +1,10 @@
 {
-  // tardigrade-main is a pre-modules GOPATH tree (no go.mod).
-  // Open THIS folder in VS Code (not /home/neil/tardigrade):
-  //   /home/neil/gopath/src/github.com/podomy/tardigrade
-  // (bind mount of the repo; same files, GOPATH-valid path).
-  // Then reload the window. If the mount is gone after a
-  // reboot, restore it with:
-  //   sudo mount --bind /home/neil/tardigrade /home/neil/gopath/src/github.com/podomy/tardigrade
-  "go.toolsEnvVars": {
-    "GO111MODULE": "off",
-    "GOPATH": "/home/neil/gopath:/home/neil/go"
-  },
+  // modules-spike branch: tardigrade builds as a Go module
+  // (go.mod at repo root). Open /home/neil/tardigrade directly;
+  // no GOPATH layout needed. Plain `go build ./...` and
+  // `go test` work with GOFLAGS=-mod=mod (or plain defaults
+  // once go.mod/go.sum are complete).
+  // Full test/cluster runs still need the 2019 builder image
+  // (c-deps: jemalloc, libroach headers).
   "go.testTimeout": "10m"
 }

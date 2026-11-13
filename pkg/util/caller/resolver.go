@@ -11,7 +11,9 @@
 package caller
 
 import (
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -53,6 +55,21 @@ var defaultRE = func() *regexp.Regexp {
 	// strip back to this package's directory.
 	for strings.Contains(root, sep) && !strings.HasSuffix(root, "caller") {
 		root = path.Dir(root)
+	}
+	// In module mode the checkout need not live under $GOPATH/src (it
+	// can be anywhere, e.g. $HOME/tardigrade). Anchor on the main
+	// module root instead: walk up to the directory with go.mod and
+	// strip that prefix, yielding the same module/submodule/file.go
+	// shape as the GOPATH path below.
+	for dir := root; ; {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return regexp.MustCompile(regexp.QuoteMeta(dir) + "(?:/pkg)?/(.*)")
+		}
+		parent := path.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
 	}
 	// Strip to $GOPATH/src.
 	for i := 0; i < 6; i++ {
