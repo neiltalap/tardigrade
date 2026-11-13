@@ -327,20 +327,6 @@ func (cc *CheckConsistencyResponse) combine(c combinable) error {
 var _ combinable = &CheckConsistencyResponse{}
 
 // Combine implements the combinable interface.
-func (er *ExportResponse) combine(c combinable) error {
-	if er != nil {
-		otherER := c.(*ExportResponse)
-		if err := er.ResponseHeader.combine(otherER.Header()); err != nil {
-			return err
-		}
-		er.Files = append(er.Files, otherER.Files...)
-	}
-	return nil
-}
-
-var _ combinable = &ExportResponse{}
-
-// Combine implements the combinable interface.
 func (r *AdminScatterResponse) combine(c combinable) error {
 	if r != nil {
 		otherR := c.(*AdminScatterResponse)
@@ -572,12 +558,6 @@ func (*ComputeChecksumRequest) Method() Method { return ComputeChecksum }
 func (*WriteBatchRequest) Method() Method { return WriteBatch }
 
 // Method implements the Request interface.
-func (*ExportRequest) Method() Method { return Export }
-
-// Method implements the Request interface.
-func (*ImportRequest) Method() Method { return Import }
-
-// Method implements the Request interface.
 func (*AdminScatterRequest) Method() Method { return AdminScatter }
 
 // Method implements the Request interface.
@@ -804,18 +784,6 @@ func (ccr *ComputeChecksumRequest) ShallowCopy() Request {
 
 // ShallowCopy implements the Request interface.
 func (r *WriteBatchRequest) ShallowCopy() Request {
-	shallowCopy := *r
-	return &shallowCopy
-}
-
-// ShallowCopy implements the Request interface.
-func (ekr *ExportRequest) ShallowCopy() Request {
-	shallowCopy := *ekr
-	return &shallowCopy
-}
-
-// ShallowCopy implements the Request interface.
-func (r *ImportRequest) ShallowCopy() Request {
 	shallowCopy := *r
 	return &shallowCopy
 }
@@ -1115,8 +1083,6 @@ func (*RecomputeStatsRequest) flags() int   { return isWrite | isAlone }
 func (*ComputeChecksumRequest) flags() int  { return isWrite }
 func (*CheckConsistencyRequest) flags() int { return isAdmin | isRange }
 func (*WriteBatchRequest) flags() int       { return isWrite | isRange }
-func (*ExportRequest) flags() int           { return isRead | isRange | updatesReadTSCache }
-func (*ImportRequest) flags() int           { return isAdmin | isAlone }
 func (*AdminScatterRequest) flags() int     { return isAdmin | isRange | isAlone }
 func (*AddSSTableRequest) flags() int {
 	return isWrite | isRange | isAlone | isUnsplittable | canBackpressure

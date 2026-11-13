@@ -100,13 +100,13 @@ func RunJob(
 }
 
 // BulkOpResponseFilter creates a blocking response filter for the responses
-// related to bulk IO/backup/restore/import: Export, Import and AddSSTable. See
+// related to bulk IO: AddSSTable. See
 // discussion on RunJob for where this might be useful.
 func BulkOpResponseFilter(allowProgressIota *chan struct{}) storagebase.ReplicaResponseFilter {
 	return func(ba roachpb.BatchRequest, br *roachpb.BatchResponse) *roachpb.Error {
 		for _, ru := range br.Responses {
 			switch ru.GetInner().(type) {
-			case *roachpb.ExportResponse, *roachpb.ImportResponse, *roachpb.AddSSTableResponse:
+			case *roachpb.AddSSTableResponse:
 				<-*allowProgressIota
 			}
 		}

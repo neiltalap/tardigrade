@@ -624,13 +624,6 @@ func (r *Replica) cleanupFailedProposalLocked(p *ProposalData) {
 	p.releaseQuota()
 }
 
-// GetMinBytes gets the replica's minimum byte threshold.
-func (r *Replica) GetMinBytes() int64 {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	return *r.mu.zone.RangeMinBytes
-}
-
 // GetMaxBytes gets the replica's maximum byte threshold.
 func (r *Replica) GetMaxBytes() int64 {
 	r.mu.RLock()
@@ -1366,16 +1359,6 @@ func (r *Replica) executeAdminBatch(
 		reply, pErr = r.CheckConsistency(ctx, *tArgs)
 		resp = &reply
 
-	case *roachpb.ImportRequest:
-		cArgs := batcheval.CommandArgs{
-			EvalCtx: NewReplicaEvalContext(r, &spanset.SpanSet{}),
-			Header:  ba.Header,
-			Args:    args,
-		}
-		var err error
-		resp, err = importCmdFn(ctx, cArgs)
-		pErr = roachpb.NewError(err)
-
 	case *roachpb.AdminScatterRequest:
 		reply, err := r.adminScatter(ctx, *tArgs)
 		pErr = roachpb.NewError(err)
@@ -1714,15 +1697,6 @@ func (r *Replica) startKey() roachpb.RKey {
 // Less implements the btree.Item interface.
 func (r *Replica) Less(i btree.Item) bool {
 	return r.startKey().Less(i.(rangeKeyItem).startKey())
-}
-
-// GetLeaseHistory returns the lease history stored on this replica.
-func (r *Replica) GetLeaseHistory() []roachpb.Lease {
-	if r.leaseHistory == nil {
-		return nil
-	}
-
-	return r.leaseHistory.get()
 }
 
 // EnableLeaseHistory turns on the lease history for testing purposes. Returns

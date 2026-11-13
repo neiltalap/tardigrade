@@ -43,20 +43,18 @@ func _() {
 	_ = x[CheckConsistency-32]
 	_ = x[InitPut-33]
 	_ = x[WriteBatch-34]
-	_ = x[Export-35]
-	_ = x[Import-36]
-	_ = x[AdminScatter-37]
-	_ = x[AddSSTable-38]
-	_ = x[RecomputeStats-39]
-	_ = x[Refresh-40]
-	_ = x[RefreshRange-41]
-	_ = x[Subsume-42]
-	_ = x[RangeStats-43]
+	_ = x[AdminScatter-35]
+	_ = x[AddSSTable-36]
+	_ = x[RecomputeStats-37]
+	_ = x[Refresh-38]
+	_ = x[RefreshRange-39]
+	_ = x[Subsume-40]
+	_ = x[RangeStats-41]
 }
 
-const _Method_name = "GetPutConditionalPutIncrementDeleteDeleteRangeClearRangeRevertRangeScanReverseScanBeginTransactionEndTransactionAdminSplitAdminUnsplitAdminMergeAdminTransferLeaseAdminChangeReplicasAdminRelocateRangeHeartbeatTxnGCPushTxnRecoverTxnQueryTxnQueryIntentResolveIntentResolveIntentRangeMergeTruncateLogRequestLeaseTransferLeaseLeaseInfoComputeChecksumCheckConsistencyInitPutWriteBatchExportImportAdminScatterAddSSTableRecomputeStatsRefreshRefreshRangeSubsumeRangeStats"
+const _Method_name = "GetPutConditionalPutIncrementDeleteDeleteRangeClearRangeRevertRangeScanReverseScanBeginTransactionEndTransactionAdminSplitAdminUnsplitAdminMergeAdminTransferLeaseAdminChangeReplicasAdminRelocateRangeHeartbeatTxnGCPushTxnRecoverTxnQueryTxnQueryIntentResolveIntentResolveIntentRangeMergeTruncateLogRequestLeaseTransferLeaseLeaseInfoComputeChecksumCheckConsistencyInitPutWriteBatchAdminScatterAddSSTableRecomputeStatsRefreshRefreshRangeSubsumeRangeStats"
 
-var _Method_index = [...]uint16{0, 3, 6, 20, 29, 35, 46, 56, 67, 71, 82, 98, 112, 122, 134, 144, 162, 181, 199, 211, 213, 220, 230, 238, 249, 262, 280, 285, 296, 308, 321, 330, 345, 361, 368, 378, 384, 390, 402, 412, 426, 433, 445, 452, 462}
+var _Method_index = [...]uint16{0, 3, 6, 20, 29, 35, 46, 56, 67, 71, 82, 98, 112, 122, 134, 144, 162, 181, 199, 211, 213, 220, 230, 238, 249, 262, 280, 285, 296, 308, 321, 330, 345, 361, 368, 378, 390, 400, 414, 421, 433, 440, 450}
 
 func (i Method) String() string {
 	if i < 0 || i >= Method(len(_Method_index)-1) {
