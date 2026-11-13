@@ -97,9 +97,10 @@ mkdir -p "${host_home}"/.yarn-cache
 # the container's $GOPATH/src. By default, we also mount the host's $GOPATH/src
 # directory to the container's $GOPATH/src. That behavior can be turned off by
 # setting BUILDER_HIDE_GOPATH_SRC to 1, which results in only the cockroach
-# source code (and its vendored dependencies) being available within the
-# container. This setting is useful to prevent missing vendored dependencies
-# from being accidentally resolved to the hosts's copy of those dependencies.
+# source code being available within the container. (The vendored-dependency
+# wording predates the module migration: there is no vendor/ directory
+# anymore. The script remains for C++ c-deps builds; the Go build runs on
+# the host toolchain. See MODULES.md.)
 
 # Ensure that all directories to which the container must be able to write are
 # created as the invoking user. Docker would otherwise create them when

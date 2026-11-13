@@ -67,20 +67,43 @@ Editor: open /home/neil/tardigrade directly. No GOPATH,
 no shim, no bind mount. Full cluster/cgo work still needs
 the builder image (jemalloc, libroach headers).
 
-Status: fast loop green in default vendor mode (keys,
-base, encoding, uuid, caller, roachpb incl.
-TestNoLinkForbidden, parser, lex, jobs) plus all seven
-opt suites (idxconstraint, memo, norm, optbuilder,
-testcat, xform, exprgen) and reduce; memo, execbuilder,
-sql, cliflags, serverpb, tspb build clean; full-repo
-go build ./... 195 packages ok, 1 cgo-jemalloc package
-needs the builder image (same as GOPATH mode).
+Status (vendor-free, go 1.26): vendor/ deleted from git;
+plain commands default to -mod=readonly, buildmod/testmod
+pass -mod=mod; everything resolves from the module cache
+after one `go mod download`. go directive bumped
+1.17 -> 1.26: full `go build ./pkg/...` green (zero
+language-semantics fallout), fast gate green (keys,
+base, encoding, uuid, caller, roachpb, parser, lex,
+jobs) plus opt suites (idxconstraint, memo, norm,
+optbuilder, xform, exprgen) and reduce/reducesql.
+The twelve parser/lex/optgen outputs are committed, so
+no make codegen step precedes the build; each file was
+verified byte-reproducible from the pinned toolchain
+(goyacc/stringer May-24, graph goimports run in-tree).
+cgo: the four static c-deps (jemalloc, snappy, protobuf,
+rocksdb built via repo make in cockroachdb/builder:
+20191029-105705 with CC=cc; libroach via direct cmake,
+its Makefile rule's protoc regen skipped since the
+protos are tracked) are installed to /usr/local/lib on
+this machine. `go build -mod=mod ./pkg/cmd/cockroach-oss`
+links; the binary runs `version` and passes a
+single-node SQL smoke test. Fresh-clone proof: clean
+clone + `go mod download` + `go build -mod=mod
+./pkg/cmd/cockroach-oss` succeeds with no vendor/,
+and package tests run. build.yml CI now runs this
+two-stage flow (builder image for C++, setup-go 1.26
+for the Go build + smoke).
 Remaining red, all verified pre-existing on
 tardigrade-main and unrelated to modules: roachpb
 TestMakePriority (probabilistic win-ratio flake, passes
 on retry), three lint-pass harnesses (analysistest GOPATH
 overlay unresolvable under this toolchain; hash pass
-panics inside 2019 x/tools), cgo test binaries.
+panics inside 2019 x/tools). googletest sources had to
+be force-checked-out (empty worktree, shared git dir).
+Next steps: in-builder go1.12 can no longer build Go
+code (no -mod=mod, module re-resolution fails), so the
+builder image is C++-only now; any flow that invoked
+`make buildoss` inside it must use the host toolchain.
 Fixes made along the way, all committed on this branch:
 datadriven pinned to the locked May revision (etcd pulls
 an August one whose golden format differs), MERGE-hint

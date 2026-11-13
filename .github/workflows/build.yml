@@ -1,8 +1,9 @@
 name: build
 
-# Builds the OSS binary the same way the Makefile documents: inside the
-# period builder image (Go 1.12, node/yarn, cmake, gcc of the era), with
-# the tree mounted at the GOPATH path the Makefile enforces.
+# Builds the OSS binary in two stages: the period builder image
+# (clang 3.8 / cmake 3.5 of the era) compiles the pinned C++ c-deps,
+# then the host toolchain (Go 1.26, module mode, no vendor/ directory)
+# compiles and links the Go binary against the installed static libs.
 on:
   push:
     branches: [tardigrade-main, release-19.2]
@@ -22,37 +23,72 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Build C++ dependencies
+        run: |
+          # Era toolchain build of the pinned c-deps (see MODULES.md).
+          # The builder image runs as our UID and needs a writable home.
+          mkdir -p build/builder_home/.cache artifacts/native-cdeps
+          docker run --rm \
+            -v "${{ github.workspace }}:/work" \
+            -v "${{ github.workspace }}/build/builder_home:/home/roach" \
+            -v "${{ github.workspace }}/artifacts/native-cdeps:/out" \
+            -w /work \
+            -e GOPATH=/go -e CC=cc -e CXX=c++ -e IGNORE_GOVERS=1 \
+            -u "$(id -u):$(id -g)" \
+            cockroachdb/builder:20191029-105705 \
+            make -j"$(nproc)" BUILD_DIR=/out libjemalloc libsnappy libprotobuf librocksdb
+          # libroach configures directly: its Makefile rule wants a
+          # protoc regen, but the generated protos are already tracked.
+          docker run --rm \
+            -v "${{ github.workspace }}:/work" \
+            -v "${{ github.workspace }}/build/builder_home:/home/roach" \
+            -v "${{ github.workspace }}/artifacts/native-cdeps:/out" \
+            -e CC=cc -e CXX=c++ \
+            -u "$(id -u):$(id -g)" \
+            cockroachdb/builder:20191029-105705 bash -c '
+              mkdir -p /out/libroach && cd /out/libroach &&
+              cmake -DCMAKE_TARGET_MESSAGES=OFF /work/c-deps/libroach \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DPROTOBUF_LIB=/out/protobuf/libprotobuf.a \
+                -DROCKSDB_LIB=/out/rocksdb/librocksdb.a \
+                -DJEMALLOC_LIB=/out/jemalloc/lib/libjemalloc.a \
+                -DSNAPPY_LIB=/out/snappy/libsnappy.a \
+                -DCRYPTOPP_LIB= &&
+              make -j"$(nproc)" roach'
+
+      - name: Install C++ libraries
+        run: |
+          # Plain `go build` (no make) links only system paths, so the
+          # static c-deps go where the linker finds them. libedit headers
+          # are needed to compile go-libedit's bundled C sources.
+          sudo apt-get update -y && sudo apt-get install -y libedit-dev
+          sudo cp artifacts/native-cdeps/rocksdb/librocksdb.a \
+            artifacts/native-cdeps/protobuf/libprotobuf.a \
+            artifacts/native-cdeps/snappy/libsnappy.a \
+            artifacts/native-cdeps/libroach/libroach.a \
+            artifacts/native-cdeps/jemalloc/lib/libjemalloc.a \
+            /usr/local/lib/
+          sudo ldconfig
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
       - name: Build OSS binary
         run: |
-          # The builder image runs as our UID and needs a writable home
-          # (Go build cache, yarn cache), mirroring build/builder.sh.
-          mkdir -p build/builder_home/.cache build/builder_home/.yarn-cache
-          docker run --rm \
-            -v "${{ github.workspace }}:/go/src/github.com/podomy/tardigrade" \
-            -v "${{ github.workspace }}/build/builder_home:/home/roach" \
-            -w /go/src/github.com/podomy/tardigrade \
-            -e GOPATH=/go \
-            -u "$(id -u):$(id -g)" \
-            cockroachdb/builder:20191029-105705 make buildoss
+          go mod download
+          go build -mod=mod -o cockroachoss ./pkg/cmd/cockroach-oss
 
       - name: Inspect linkage
         run: ldd ./cockroachoss || true
 
       - name: Smoke test
-        # Runs inside the builder image: it has the period libraries
-        # (e.g. libncurses5) the binary links against.
         run: |
-          docker run --rm \
-            -v "${{ github.workspace }}:/go/src/github.com/podomy/tardigrade" \
-            -v "${{ github.workspace }}/build/builder_home:/home/roach" \
-            -w /go/src/github.com/podomy/tardigrade \
-            -e GOPATH=/go -e HOME=/home/roach \
-            -u "$(id -u):$(id -g)" \
-            cockroachdb/builder:20191029-105705 sh -c '
-              ./cockroachoss version &&
-              ./cockroachoss start-single-node --insecure --background --store=path=/tmp/cockroach-data &&
-              ./cockroachoss sql --insecure --execute="CREATE DATABASE smoketest; CREATE TABLE smoketest.kv (k INT PRIMARY KEY, v STRING); INSERT INTO smoketest.kv VALUES (1, '"'"'tardigrade'"'"'); SELECT * FROM smoketest.kv;" &&
-              ./cockroachoss quit --insecure'
+          ./cockroachoss version &&
+          ./cockroachoss start-single-node --insecure --background --store=path=/tmp/cockroach-data &&
+          ./cockroachoss sql --insecure --execute="CREATE DATABASE smoketest; CREATE TABLE smoketest.kv (k INT PRIMARY KEY, v STRING); INSERT INTO smoketest.kv VALUES (1, '"'"'tardigrade'"'"'); SELECT * FROM smoketest.kv;" &&
+          ./cockroachoss quit --insecure
 
       - uses: actions/upload-artifact@v4
         if: always()
