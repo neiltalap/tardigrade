@@ -512,16 +512,25 @@ func TestDiskBackedIndexedRowContainer(t *testing.T) {
 						t.Fatalf("unexpected error: %v", err)
 					}
 					expectedRow := sortedRows.rows[i]
-					if readRow.GetIdx() != expectedRow.GetIdx() {
-						t.Fatalf("read row has different idx that what we expect")
+					readOrderingDatum, err := readRow.GetDatum(ordering[0].ColIdx)
+					if err != nil {
+						t.Fatalf("unexpected error: %v", err)
 					}
-					for col, expectedDatum := range expectedRow.Row {
-						readDatum, err := readRow.GetDatum(col)
-						if err != nil {
-							t.Fatalf("unexpected error: %v", err)
+					if readOrderingDatum.Compare(&evalCtx, expectedRow.Row[ordering[0].ColIdx].Datum) != 0 {
+						// We're skipping comparison if both rows are equal on the ordering
+						// column since in this case the order of indexed rows after
+						// sorting is nondeterministic.
+						if readRow.GetIdx() != expectedRow.GetIdx() {
+							t.Fatalf("read row has different idx that what we expect")
 						}
-						if cmp := readDatum.Compare(&evalCtx, expectedDatum.Datum); cmp != 0 {
-							t.Fatalf("read row is not equal to expected one")
+						for col, expectedDatum := range expectedRow.Row {
+							readDatum, err := readRow.GetDatum(col)
+							if err != nil {
+								t.Fatalf("unexpected error: %v", err)
+							}
+							if cmp := readDatum.Compare(&evalCtx, expectedDatum.Datum); cmp != 0 {
+								t.Fatalf("read row is not equal to expected one")
+							}
 						}
 					}
 				}
@@ -539,16 +548,25 @@ func TestDiskBackedIndexedRowContainer(t *testing.T) {
 						t.Fatalf("unexpected error: %v", err)
 					}
 					expectedRow := sortedRows.rows[i]
-					if readRow.GetIdx() != expectedRow.GetIdx() {
-						t.Fatalf("read row has different idx that what we expect")
+					readOrderingDatum, err := readRow.GetDatum(ordering[0].ColIdx)
+					if err != nil {
+						t.Fatalf("unexpected error: %v", err)
 					}
-					for col, expectedDatum := range expectedRow.Row {
-						readDatum, err := readRow.GetDatum(col)
-						if err != nil {
-							t.Fatalf("unexpected error: %v", err)
+					if readOrderingDatum.Compare(&evalCtx, expectedRow.Row[ordering[0].ColIdx].Datum) != 0 {
+						// We're skipping comparison if both rows are equal on the ordering
+						// column since in this case the order of indexed rows after
+						// sorting is nondeterministic.
+						if readRow.GetIdx() != expectedRow.GetIdx() {
+							t.Fatalf("read row has different idx that what we expect")
 						}
-						if cmp := readDatum.Compare(&evalCtx, expectedDatum.Datum); cmp != 0 {
-							t.Fatalf("read row is not equal to expected one")
+						for col, expectedDatum := range expectedRow.Row {
+							readDatum, err := readRow.GetDatum(col)
+							if err != nil {
+								t.Fatalf("unexpected error: %v", err)
+							}
+							if cmp := readDatum.Compare(&evalCtx, expectedDatum.Datum); cmp != 0 {
+								t.Fatalf("read row is not equal to expected one")
+							}
 						}
 					}
 				}
