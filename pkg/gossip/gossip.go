@@ -1221,16 +1221,6 @@ func (g *Gossip) Outgoing() []roachpb.NodeID {
 	return g.outgoing.asSlice()
 }
 
-// MaxHops returns the maximum number of hops to reach any other
-// node in the system, according to the infos which have reached
-// this node via gossip network.
-func (g *Gossip) MaxHops() uint32 {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	_, maxHops := g.mu.is.mostDistant(func(_ roachpb.NodeID) bool { return false })
-	return maxHops
-}
-
 // Start launches the gossip instance, which commences joining the
 // gossip network using the supplied rpc server and previously known
 // peer addresses in addition to any bootstrap addresses specified via

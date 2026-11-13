@@ -149,17 +149,6 @@ func (n *Network) StartNode(node *Node) error {
 	return nil
 }
 
-// GetNodeFromID returns the simulation node associated with
-// provided node ID, or nil if there is no such node.
-func (n *Network) GetNodeFromID(nodeID roachpb.NodeID) (*Node, bool) {
-	for _, node := range n.Nodes {
-		if node.Gossip.NodeID.Get() == nodeID {
-			return node, true
-		}
-	}
-	return nil, false
-}
-
 // SimulateNetwork runs until the simCallback returns false.
 //
 // At each cycle, every node gossips a key equal to its address (unique)

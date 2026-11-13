@@ -763,8 +763,6 @@ $(go-targets): override LINKFLAGS += \
 $(COCKROACH) $(COCKROACHOSS) $(COCKROACHSHORT) go-install: override LINKFLAGS += \
 	-X "github.com/podomy/tardigrade/pkg/build.utcTime=$(shell date -u '+%Y/%m/%d %H:%M:%S')"
 
-SETTINGS_DOC_PAGE := docs/generated/settings/settings.html
-
 # Note: We pass `-v` to `go build` and `go test -i` so that warnings
 # from the linker aren't suppressed. The usage of `-v` also shows when
 # dependencies are rebuilt which is useful when switching between
@@ -1162,49 +1160,6 @@ pkg/sql/parser/help_messages.go: pkg/sql/parser/sql.y pkg/sql/parser/help.awk | 
 	awk -f pkg/sql/parser/help.awk < $< > $@.tmp || rm $@.tmp
 	mv -f $@.tmp $@
 	gofmt -s -w $@
-
-bin/.docgen_bnfs: bin/docgen
-	docgen grammar bnf docs/generated/sql/bnf --quiet
-	touch $@
-
-bin/.docgen_functions: bin/docgen
-	docgen functions docs/generated/sql --quiet
-	touch $@
-
-settings-doc-gen := $(if $(filter buildshort,$(MAKECMDGOALS)),$(COCKROACHSHORT),$(COCKROACH))
-
-$(SETTINGS_DOC_PAGE): $(settings-doc-gen)
-	@$(settings-doc-gen) gen settings-list --format=html > $@
-
-pkg/col/coldata/vec.eg.go: pkg/col/coldata/vec_tmpl.go
-pkg/sql/colexec/and_or_projection.eg.go: pkg/sql/colexec/and_or_projection_tmpl.go
-pkg/sql/colexec/any_not_null_agg.eg.go: pkg/sql/colexec/any_not_null_agg_tmpl.go
-pkg/sql/colexec/avg_agg.eg.go: pkg/sql/colexec/avg_agg_tmpl.go
-pkg/sql/colexec/cast.eg.go: pkg/sql/colexec/cast_tmpl.go
-pkg/sql/colexec/const.eg.go: pkg/sql/colexec/const_tmpl.go
-pkg/sql/colexec/distinct.eg.go: pkg/sql/colexec/distinct_tmpl.go
-pkg/sql/colexec/hashjoiner.eg.go: pkg/sql/colexec/hashjoiner_tmpl.go
-pkg/sql/colexec/joiner_util.eg.go: pkg/sql/colexec/joiner_util_tmpl.go
-pkg/sql/colexec/mergejoinbase.eg.go: pkg/sql/colexec/mergejoinbase_tmpl.go
-pkg/sql/colexec/mergejoiner_fullouter.eg.go: pkg/sql/colexec/mergejoiner_tmpl.go
-pkg/sql/colexec/mergejoiner_inner.eg.go: pkg/sql/colexec/mergejoiner_tmpl.go
-pkg/sql/colexec/mergejoiner_leftanti.eg.go: pkg/sql/colexec/mergejoiner_tmpl.go
-pkg/sql/colexec/mergejoiner_leftouter.eg.go: pkg/sql/colexec/mergejoiner_tmpl.go
-pkg/sql/colexec/mergejoiner_leftsemi.eg.go: pkg/sql/colexec/mergejoiner_tmpl.go
-pkg/sql/colexec/mergejoiner_rightouter.eg.go: pkg/sql/colexec/mergejoiner_tmpl.go
-pkg/sql/colexec/min_max_agg.eg.go: pkg/sql/colexec/min_max_agg_tmpl.go
-pkg/sql/colexec/proj_const_left_ops.eg.go: pkg/sql/colexec/proj_const_ops_tmpl.go
-pkg/sql/colexec/proj_const_right_ops.eg.go: pkg/sql/colexec/proj_const_ops_tmpl.go
-pkg/sql/colexec/proj_non_const_ops.eg.go: pkg/sql/colexec/proj_non_const_ops_tmpl.go
-pkg/sql/colexec/quicksort.eg.go: pkg/sql/colexec/quicksort_tmpl.go
-pkg/sql/colexec/rowstovec.eg.go: pkg/sql/colexec/rowstovec_tmpl.go
-pkg/sql/colexec/select_in.eg.go: pkg/sql/colexec/select_in_tmpl.go
-pkg/sql/colexec/sort.eg.go: pkg/sql/colexec/sort_tmpl.go
-pkg/sql/colexec/substring.eg.go: pkg/sql/colexec/substring_tmpl.go
-pkg/sql/colexec/sum_agg.eg.go: pkg/sql/colexec/sum_agg_tmpl.go
-pkg/sql/colexec/tuples_differ.eg.go: pkg/sql/colexec/tuples_differ_tmpl.go
-pkg/sql/colexec/vec_comparators.eg.go: pkg/sql/colexec/vec_comparators_tmpl.go
-pkg/sql/colexec/zerocolumns.eg.go: pkg/sql/colexec/zerocolumns_tmpl.go
 
 $(EXECGEN_TARGETS): bin/execgen
 	execgen $@

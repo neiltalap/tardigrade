@@ -127,12 +127,6 @@ func (ba *BatchRequest) IsTransactional() bool {
 	return ba.hasFlag(isTxn)
 }
 
-// IsAllTransactional returns true iff the BatchRequest contains only requests
-// that can be part of a transaction.
-func (ba *BatchRequest) IsAllTransactional() bool {
-	return ba.hasFlagForAll(isTxn)
-}
-
 // IsTransactionWrite returns true iff the BatchRequest contains a txn write.
 func (ba *BatchRequest) IsTransactionWrite() bool {
 	return ba.hasFlag(isTxnWrite)
@@ -210,16 +204,6 @@ func (ba *BatchRequest) IsSingleAbortTransactionRequest() bool {
 func (ba *BatchRequest) IsSingleSubsumeRequest() bool {
 	if ba.IsSingleRequest() {
 		_, ok := ba.Requests[0].GetInner().(*SubsumeRequest)
-		return ok
-	}
-	return false
-}
-
-// IsSingleComputeChecksumRequest returns true iff the batch contains a single
-// request, and that request is a ComputeChecksumRequest.
-func (ba *BatchRequest) IsSingleComputeChecksumRequest() bool {
-	if ba.IsSingleRequest() {
-		_, ok := ba.Requests[0].GetInner().(*ComputeChecksumRequest)
 		return ok
 	}
 	return false
@@ -312,20 +296,6 @@ func (ba *BatchRequest) hasFlag(flag int) bool {
 		}
 	}
 	return false
-}
-
-// hasFlagForAll returns true iff all of the requests within the batch contains
-// the specified flag.
-func (ba *BatchRequest) hasFlagForAll(flag int) bool {
-	if len(ba.Requests) == 0 {
-		return false
-	}
-	for _, union := range ba.Requests {
-		if (union.GetInner().flags() & flag) == 0 {
-			return false
-		}
-	}
-	return true
 }
 
 // GetArg returns a request of the given type if one is contained in the

@@ -247,13 +247,6 @@ func (i *common) SetSensitive() {
 	i.description += " (WARNING: may compromise cluster stability or correctness; do not edit without supervision)"
 }
 
-// SetDeprecated marks the setting as obsolete. It also hides
-// it from the output of SHOW CLUSTER SETTINGS.
-func (i *common) SetDeprecated() {
-	i.description = "do not use - " + i.description
-	i.hidden = true
-}
-
 // SetOnChange installs a callback to be called when a setting's value changes.
 // `fn` should avoid doing long-running or blocking work as it is called on the
 // goroutine which handles all settings updates.

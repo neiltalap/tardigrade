@@ -18,7 +18,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/jobs/jobspb"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
-	"github.com/podomy/tardigrade/pkg/util/hlc"
 	"github.com/podomy/tardigrade/pkg/util/protoutil"
 	"github.com/podomy/tardigrade/pkg/util/syncutil"
 	"github.com/podomy/tardigrade/pkg/util/timeutil"
@@ -212,11 +211,6 @@ func FractionUpdater(f float32) FractionProgressedFn {
 	}
 }
 
-// HighWaterProgressedFn is a callback that computes a job's high-water mark
-// given its details. It is safe to modify details in the callback; those
-// modifications will be automatically persisted to the database record.
-type HighWaterProgressedFn func(ctx context.Context, details jobspb.ProgressDetails) hlc.Timestamp
-
 // FractionProgressed updates the progress of the tracked job. It sets the job's
 // FractionCompleted field to the value returned by progressedFn and persists
 // progressedFn's modifications to the job's progress details, if any.
@@ -241,29 +235,6 @@ func (j *Job) FractionProgressed(ctx context.Context, progressedFn FractionProgr
 		}
 		md.Progress.Progress = &jobspb.Progress_FractionCompleted{
 			FractionCompleted: fractionCompleted,
-		}
-		ju.UpdateProgress(md.Progress)
-		return nil
-	})
-}
-
-// HighWaterProgressed updates the progress of the tracked job. It sets the
-// job's HighWater field to the value returned by progressedFn and persists
-// progressedFn's modifications to the job's progress details, if any.
-func (j *Job) HighWaterProgressed(ctx context.Context, progressedFn HighWaterProgressedFn) error {
-	return j.Update(ctx, func(txn *client.Txn, md JobMetadata, ju *JobUpdater) error {
-		if err := md.CheckRunning(); err != nil {
-			return err
-		}
-		highWater := progressedFn(ctx, md.Progress.Details)
-		if highWater.Less(hlc.Timestamp{}) {
-			return errors.Errorf(
-				"Job: high-water %s is outside allowable range > 0.0 (job %d)",
-				highWater, j.id,
-			)
-		}
-		md.Progress.Progress = &jobspb.Progress_HighWater{
-			HighWater: &highWater,
 		}
 		ju.UpdateProgress(md.Progress)
 		return nil
@@ -389,15 +360,6 @@ func (j *Job) SetDetails(ctx context.Context, details interface{}) error {
 	return j.Update(ctx, func(txn *client.Txn, md JobMetadata, ju *JobUpdater) error {
 		md.Payload.Details = jobspb.WrapPayloadDetails(details)
 		ju.UpdatePayload(md.Payload)
-		return nil
-	})
-}
-
-// SetProgress sets the details field of the currently running tracked job.
-func (j *Job) SetProgress(ctx context.Context, details interface{}) error {
-	return j.Update(ctx, func(txn *client.Txn, md JobMetadata, ju *JobUpdater) error {
-		md.Progress.Details = jobspb.WrapProgressDetails(details)
-		ju.UpdateProgress(md.Progress)
 		return nil
 	})
 }

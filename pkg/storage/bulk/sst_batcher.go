@@ -102,13 +102,6 @@ type SSTBatcher struct {
 	rowCounter RowCounter
 }
 
-// MakeSSTBatcher makes a ready-to-use SSTBatcher.
-func MakeSSTBatcher(ctx context.Context, db sender, flushBytes uint64) (*SSTBatcher, error) {
-	b := &SSTBatcher{db: db, maxSize: flushBytes, disallowShadowing: true}
-	err := b.Reset()
-	return b, err
-}
-
 func (b *SSTBatcher) updateMVCCStats(key engine.MVCCKey, value []byte) {
 	metaKeySize := int64(len(key.Key)) + 1
 	metaValSize := int64(0)

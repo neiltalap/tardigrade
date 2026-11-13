@@ -871,16 +871,6 @@ type delayingHeader struct {
 	DelayMS  int32
 }
 
-// GRPCDialRaw calls grpc.Dial with options appropriate for the context.
-// Unlike GRPCDialNode, it does not start an RPC heartbeat to validate the
-// connection. This connection will not be reconnected automatically;
-// the returned channel is closed when a reconnection is attempted.
-// This method implies a DefaultClass ConnectionClass for the returned
-// ClientConn.
-func (ctx *Context) GRPCDialRaw(target string) (*grpc.ClientConn, <-chan struct{}, error) {
-	return ctx.grpcDialRaw(target, 0, DefaultClass)
-}
-
 func (ctx *Context) grpcDialRaw(
 	target string, remoteNodeID roachpb.NodeID, class ConnectionClass,
 ) (*grpc.ClientConn, <-chan struct{}, error) {

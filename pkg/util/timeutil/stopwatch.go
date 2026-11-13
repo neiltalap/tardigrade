@@ -31,17 +31,6 @@ type StopWatch struct {
 	timeSource func() time.Time
 }
 
-// NewStopWatch creates a new StopWatch.
-func NewStopWatch() *StopWatch {
-	return newStopWatch(Now)
-}
-
-// NewTestStopWatch create a new StopWatch with the given time source. It is
-// used for testing only.
-func NewTestStopWatch(timeSource func() time.Time) *StopWatch {
-	return newStopWatch(timeSource)
-}
-
 func newStopWatch(timeSource func() time.Time) *StopWatch {
 	return &StopWatch{timeSource: timeSource}
 }

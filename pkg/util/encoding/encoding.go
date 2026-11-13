@@ -1744,12 +1744,6 @@ func EncodeNullValue(appendTo []byte, colID uint32) []byte {
 	return EncodeValueTag(appendTo, colID, Null)
 }
 
-// EncodeNotNullValue encodes a not null value, appends it to the supplied
-// buffer, and returns the final buffer.
-func EncodeNotNullValue(appendTo []byte, colID uint32) []byte {
-	return EncodeValueTag(appendTo, colID, NotNull)
-}
-
 // EncodeBoolValue encodes a bool value, appends it to the supplied buffer, and
 // returns the final buffer.
 func EncodeBoolValue(appendTo []byte, colID uint32, b bool) []byte {
@@ -2073,19 +2067,6 @@ func DecodeUntaggedDecimalValue(b []byte) (remaining []byte, d apd.Decimal, err 
 	}
 	d, err = DecodeNonsortingDecimal(b[:int(i)], nil)
 	return b[int(i):], d, err
-}
-
-// DecodeIntoUntaggedDecimalValue is like DecodeUntaggedDecimalValue except it
-// writes the new Decimal into the input apd.Decimal pointer, which must be
-// non-nil.
-func DecodeIntoUntaggedDecimalValue(d *apd.Decimal, b []byte) (remaining []byte, err error) {
-	var i uint64
-	b, _, i, err = DecodeNonsortingStdlibUvarint(b)
-	if err != nil {
-		return b, err
-	}
-	err = DecodeIntoNonsortingDecimal(d, b[:int(i)], nil)
-	return b[int(i):], err
 }
 
 // DecodeDurationValue decodes a value encoded by EncodeUntaggedDurationValue.

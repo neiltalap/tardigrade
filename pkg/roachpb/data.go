@@ -33,7 +33,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/util/duration"
 	"github.com/podomy/tardigrade/pkg/util/encoding"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
-	"github.com/podomy/tardigrade/pkg/util/interval"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/protoutil"
 	"github.com/podomy/tardigrade/pkg/util/timeutil"
@@ -590,16 +589,6 @@ func (v Value) GetDecimal() (apd.Decimal, error) {
 		return apd.Decimal{}, fmt.Errorf("value type is not %s: %s", ValueType_DECIMAL, tag)
 	}
 	return encoding.DecodeNonsortingDecimal(v.dataBytes(), nil)
-}
-
-// GetDecimalInto decodes a decimal value from the bytes of the receiver,
-// writing it directly into the provided non-null apd.Decimal. If the
-// tag is not DECIMAL an error will be returned.
-func (v Value) GetDecimalInto(d *apd.Decimal) error {
-	if tag := v.GetTag(); tag != ValueType_DECIMAL {
-		return fmt.Errorf("value type is not %s: %s", ValueType_DECIMAL, tag)
-	}
-	return encoding.DecodeIntoNonsortingDecimal(d, v.dataBytes(), nil)
 }
 
 // GetTimeseries decodes an InternalTimeSeriesData value from the bytes
@@ -1870,20 +1859,6 @@ func (s Span) ContainsKey(key Key) bool {
 // ProperlyContainsKey returns whether the span properly contains the given key.
 func (s Span) ProperlyContainsKey(key Key) bool {
 	return bytes.Compare(key, s.Key) > 0 && bytes.Compare(key, s.EndKey) < 0
-}
-
-// AsRange returns the Span as an interval.Range.
-func (s Span) AsRange() interval.Range {
-	startKey := s.Key
-	endKey := s.EndKey
-	if len(endKey) == 0 {
-		endKey = s.Key.Next()
-		startKey = endKey[:len(startKey)]
-	}
-	return interval.Range{
-		Start: interval.Comparable(startKey),
-		End:   interval.Comparable(endKey),
-	}
 }
 
 func (s Span) String() string {

@@ -90,16 +90,6 @@ func (s *Settings) IsCPUProfiling() bool {
 	return atomic.LoadInt32(&s.cpuProfiling) == 1
 }
 
-// SetCPUProfiling is called from the pprofui to inform the system that a CPU
-// profile is being recorded.
-func (s *Settings) SetCPUProfiling(to bool) {
-	i := int32(0)
-	if to {
-		i = 1
-	}
-	atomic.StoreInt32(&s.cpuProfiling, i)
-}
-
 // NoSettings is used when a func requires a Settings but none is available
 // (for example, a CLI subcommand that does not connect to a cluster).
 var NoSettings *Settings // = nil

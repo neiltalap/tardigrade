@@ -49,12 +49,6 @@ func Get(ctx context.Context, url string) (resp *http.Response, err error) {
 	return DefaultClient.Get(ctx, url)
 }
 
-// Head does like http.Head but uses the provided context and obeys its cancellation.
-// It also uses the default client with a default 3 second timeout.
-func Head(ctx context.Context, url string) (resp *http.Response, err error) {
-	return DefaultClient.Head(ctx, url)
-}
-
 // Post does like http.Post but uses the provided context and obeys its cancellation.
 // It also uses the default client with a default 3 second timeout.
 func Post(
@@ -66,15 +60,6 @@ func Post(
 // Get does like http.Client.Get but uses the provided context and obeys its cancellation.
 func (c *Client) Get(ctx context.Context, url string) (resp *http.Response, err error) {
 	req, err := NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Do(req)
-}
-
-// Head does like http.Client.Head but uses the provided context and obeys its cancellation.
-func (c *Client) Head(ctx context.Context, url string) (resp *http.Response, err error) {
-	req, err := NewRequestWithContext(ctx, "HEAD", url, nil)
 	if err != nil {
 		return nil, err
 	}

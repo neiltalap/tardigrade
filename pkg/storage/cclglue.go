@@ -25,10 +25,3 @@ var importCmdFn ImportCmdFunc = func(context.Context, batcheval.CommandArgs) (*r
 // ImportCmdFunc is the type of the function that will be called as the
 // implementation of the Import command.
 type ImportCmdFunc func(context.Context, batcheval.CommandArgs) (*roachpb.ImportResponse, error)
-
-// SetImportCmd allows setting the function that will be called as the
-// implementation of the Import command. Only allowed to be called by Init.
-func SetImportCmd(fn ImportCmdFunc) {
-	// This is safe if SetImportCmd is only called at init time.
-	importCmdFn = fn
-}

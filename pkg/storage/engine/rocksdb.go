@@ -541,12 +541,6 @@ type RocksDB struct {
 
 var _ Engine = &RocksDB{}
 
-// SetRocksDBOpenHook sets the DBOpenHook function that will be called during
-// RocksDB initialization. It is intended to be called by CCL code.
-func SetRocksDBOpenHook(fn unsafe.Pointer) {
-	C.DBSetOpenHook(fn)
-}
-
 // NewRocksDB allocates and returns a new RocksDB object.
 // This creates options and opens the database. If the database
 // doesn't yet exist at the specified directory, one is initialized
@@ -1245,46 +1239,6 @@ func (r *RocksDB) GetStats() (*Stats, error) {
 		PendingCompactionBytesEstimate: int64(s.pending_compaction_bytes_estimate),
 		L0FileCount:                    int64(s.l0_file_count),
 	}, nil
-}
-
-// GetTickersAndHistograms retrieves maps of all RocksDB tickers and histograms.
-// It differs from `GetStats` by getting _every_ ticker and histogram, and by not
-// getting anything else (DB properties, for example).
-func (r *RocksDB) GetTickersAndHistograms() (*enginepb.TickersAndHistograms, error) {
-	res := new(enginepb.TickersAndHistograms)
-	var s C.DBTickersAndHistogramsResult
-	if err := statusToError(C.DBGetTickersAndHistograms(r.rdb, &s)); err != nil {
-		return nil, err
-	}
-
-	tickers := (*[MaxArrayLen / C.sizeof_TickerInfo]C.TickerInfo)(
-		unsafe.Pointer(s.tickers))[:s.tickers_len:s.tickers_len]
-	res.Tickers = make(map[string]uint64)
-	for _, ticker := range tickers {
-		name := cStringToGoString(ticker.name)
-		value := uint64(ticker.value)
-		res.Tickers[name] = value
-	}
-	C.free(unsafe.Pointer(s.tickers))
-
-	res.Histograms = make(map[string]enginepb.HistogramData)
-	histograms := (*[MaxArrayLen / C.sizeof_HistogramInfo]C.HistogramInfo)(
-		unsafe.Pointer(s.histograms))[:s.histograms_len:s.histograms_len]
-	for _, histogram := range histograms {
-		name := cStringToGoString(histogram.name)
-		value := enginepb.HistogramData{
-			Mean:  float64(histogram.mean),
-			P50:   float64(histogram.p50),
-			P95:   float64(histogram.p95),
-			P99:   float64(histogram.p99),
-			Max:   float64(histogram.max),
-			Count: uint64(histogram.count),
-			Sum:   uint64(histogram.sum),
-		}
-		res.Histograms[name] = value
-	}
-	C.free(unsafe.Pointer(s.histograms))
-	return res, nil
 }
 
 // GetCompactionStats returns the internal RocksDB compaction stats. See
@@ -3295,53 +3249,6 @@ func unlockFile(lock C.DBFileLock) error {
 func MVCCScanDecodeKeyValue(repr []byte) (key MVCCKey, value []byte, orepr []byte, err error) {
 	k, ts, value, orepr, err := enginepb.ScanDecodeKeyValue(repr)
 	return MVCCKey{k, ts}, value, orepr, err
-}
-
-// ExportToSst exports changes to the keyrange [start.Key, end.Key) over the
-// interval (start.Timestamp, end.Timestamp]. Passing exportAllRevisions exports
-// every revision of a key for the interval, otherwise only the latest value
-// within the interval is exported. Deletions are included if all revisions are
-// requested or if the start.Timestamp is non-zero. Returns the bytes of an
-// SSTable containing the exported keys, the size of exported data, or an error.
-func ExportToSst(
-	ctx context.Context, e Reader, start, end MVCCKey, exportAllRevisions bool, io IterOptions,
-) ([]byte, roachpb.BulkOpSummary, error) {
-
-	var cdbEngine *C.DBEngine
-	switch v := e.(type) {
-	case *RocksDB:
-		cdbEngine = v.rdb
-	case *rocksDBReadOnly:
-		cdbEngine = v.parent.rdb
-	default:
-		panic(errors.Errorf("Not a rocksdb or rocksdbReadOnly engine but a %T", e))
-	}
-
-	var data C.DBString
-	var intentErr C.DBString
-	var bulkopSummary C.DBString
-
-	err := statusToError(C.DBExportToSst(goToCKey(start), goToCKey(end), C.bool(exportAllRevisions),
-		goToCIterOptions(io), cdbEngine, &data, &intentErr, &bulkopSummary))
-
-	if err != nil {
-		if err.Error() == "WriteIntentError" {
-			var e roachpb.WriteIntentError
-			if err := protoutil.Unmarshal(cStringToGoBytes(intentErr), &e); err != nil {
-				return nil, roachpb.BulkOpSummary{}, errors.Wrap(err, "failed to decode write intent error")
-			}
-
-			return nil, roachpb.BulkOpSummary{}, &e
-		}
-		return nil, roachpb.BulkOpSummary{}, err
-	}
-
-	var summary roachpb.BulkOpSummary
-	if err := protoutil.Unmarshal(cStringToGoBytes(bulkopSummary), &summary); err != nil {
-		return nil, roachpb.BulkOpSummary{}, errors.Wrap(err, "failed to decode BulkopSummary")
-	}
-
-	return cStringToGoBytes(data), summary, nil
 }
 
 func notFoundErrOrDefault(err error) error {

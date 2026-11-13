@@ -42,14 +42,6 @@ var serverCfg = func() server.Config {
 
 var sqlAuditLogDir log.DirName
 
-// GetServerCfgStores provides direct public access to the StoreSpecList inside
-// serverCfg. This is used by CCL code to populate some fields.
-//
-// WARNING: consider very carefully whether you should be using this.
-func GetServerCfgStores() base.StoreSpecList {
-	return serverCfg.Stores
-}
-
 var baseCfg = serverCfg.Config
 
 // initCLIDefaults serves as the single point of truth for

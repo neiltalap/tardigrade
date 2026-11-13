@@ -734,37 +734,3 @@ func (cm *CertificateManager) GetCACertPath() (string, error) {
 
 	return filepath.Join(cm.certsDir, ca.Filename), nil
 }
-
-// ListCertificates returns all loaded certificates, or an error if not yet initialized.
-func (cm *CertificateManager) ListCertificates() ([]*CertInfo, error) {
-	cm.mu.RLock()
-	defer cm.mu.RUnlock()
-
-	if !cm.initialized {
-		return nil, errors.New("certificate manager has not been initialized")
-	}
-
-	ret := make([]*CertInfo, 0, 2+len(cm.clientCerts))
-	if cm.caCert != nil {
-		ret = append(ret, cm.caCert)
-	}
-	if cm.clientCACert != nil {
-		ret = append(ret, cm.clientCACert)
-	}
-	if cm.uiCACert != nil {
-		ret = append(ret, cm.uiCACert)
-	}
-	if cm.nodeCert != nil {
-		ret = append(ret, cm.nodeCert)
-	}
-	if cm.uiCert != nil {
-		ret = append(ret, cm.uiCert)
-	}
-	if cm.clientCerts != nil {
-		for _, cert := range cm.clientCerts {
-			ret = append(ret, cert)
-		}
-	}
-
-	return ret, nil
-}
