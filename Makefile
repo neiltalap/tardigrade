@@ -158,9 +158,12 @@ GO      ?= go
 GOFLAGS ?=
 TAR     ?= tar
 
-# Ensure we have an unambiguous GOPATH.
+# Ensure we have an unambiguous GOPATH for the legacy dep-based flow.
+# When go.mod is present (module mode), plain `go build ./...` and
+# `go test ./...` work from anywhere and no GOPATH layout is required.
 GOPATH := $(shell $(GO) env GOPATH)
 
+ifeq "$(wildcard $(CURDIR)/go.mod)" ""
 ifneq "$(or $(findstring :,$(GOPATH)),$(findstring ;,$(GOPATH)))" ""
 $(error GOPATHs with multiple entries are not supported)
 endif
@@ -179,6 +182,9 @@ $(error GOPATH=/ is not supported)
 endif
 
 $(info GOPATH set to $(GOPATH))
+else
+$(info Module mode (go.mod present): no GOPATH layout required)
+endif
 
 # We install our vendored tools to a directory within this repository to avoid
 # overwriting any user-installed binaries of the same name in the default GOBIN.
@@ -278,8 +284,11 @@ endif
 
 
 # Update the git hooks and install commands from dependencies whenever they
-# change.
-bin/.bootstrap: $(GITHOOKS) Gopkg.lock | bin/.submodules-initialized
+# change. In module mode (go.mod present) tools install pinned from the
+# module graph instead of ./vendor; `dep` (legacy) and `go-bindata`
+# (dead UI pipeline) are intentionally not installed.
+bin/.bootstrap: $(GITHOOKS) Gopkg.lock go.mod | bin/.submodules-initialized
+ifeq "$(wildcard $(CURDIR)/go.mod)" ""
 	@$(GO_INSTALL) -v \
 		./vendor/github.com/client9/misspell/cmd/misspell \
 		./vendor/github.com/cockroachdb/crlfmt \
@@ -295,6 +304,25 @@ bin/.bootstrap: $(GITHOOKS) Gopkg.lock | bin/.submodules-initialized
 		./vendor/golang.org/x/tools/cmd/stringer \
 		./vendor/golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow \
 		./vendor/honnef.co/go/tools/cmd/staticcheck
+else
+	@GOBIN='$(abspath bin)' GOFLAGS= $(GO) install \
+		github.com/client9/misspell/cmd/misspell@v0.3.4 \
+		github.com/cockroachdb/crlfmt@v0.0.0-20181113173958-3c56c65c97a1 \
+		github.com/cockroachdb/gostdlib/cmd/gofmt@v1.11.0 \
+		github.com/cockroachdb/gostdlib/x/tools/cmd/goimports@v1.11.0 \
+		github.com/cockroachdb/stress@v0.0.0-20170808184505-29b5d31b4c3a \
+		github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway@v1.9.5 \
+		github.com/kisielk/errcheck@v1.1.0 \
+		github.com/mattn/goveralls@v0.0.2 \
+		github.com/mibk/dupl@v1.0.0 \
+		github.com/wadey/gocovmerge@v0.0.0-20160331181800-b5bfa59ec0ad \
+		golang.org/x/lint/golint@v0.0.0-20190409202823-959b441ac422 \
+		golang.org/x/perf/cmd/benchstat@v0.0.0-20180704124530-6e6d33e29852 \
+		golang.org/x/tools/cmd/goyacc@v0.0.0-20190524140312-2c0ae7006135 \
+		golang.org/x/tools/cmd/stringer@v0.0.0-20190524140312-2c0ae7006135 \
+		golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@v0.0.0-20190524140312-2c0ae7006135 \
+		honnef.co/go/tools/cmd/staticcheck@v0.0.0-20190530104931-1f0868a609b7
+endif
 	touch $@
 
 .SECONDARY: bin/.submodules-initialized
@@ -841,10 +869,28 @@ bench benchshort: TESTTIMEOUT := $(BENCHTIMEOUT)
 # that longer running benchmarks can skip themselves.
 benchshort: override TESTFLAGS += -benchtime=1ns -short
 
-.PHONY: check test testshort testrace testlogic testbaselogic testoptlogic bench benchshort
+.PHONY: check test testshort testrace testlogic testbaselogic testoptlogic bench benchshort buildmod testmod
 test: ## Run tests.
 check test testshort testrace bench benchshort:
 	$(xgo) test $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' -run "$(TESTS)" $(if $(BENCHES),-bench "$(BENCHES)") -timeout $(TESTTIMEOUT) $(PKG) $(TESTFLAGS)
+
+# Module-mode shortcuts: no GOPATH layout, builder image, or C++ toolchain
+# required for pure-Go packages. Cgo packages (storage engine, anything
+# linking jemalloc/libroach) still need the builder flow above.
+buildmod: ## Build all pure-Go packages in module mode.
+	GO111MODULE=on GOFLAGS=-mod=mod $(GO) build ./pkg/... ./pkg/cmd/...
+
+testmod: ## Run module-mode tests for the solid-core fast loop.
+	GO111MODULE=on GOFLAGS=-mod=mod $(GO) test -vet=off -count=1 -timeout 15m \
+		github.com/podomy/tardigrade/pkg/keys \
+		github.com/podomy/tardigrade/pkg/base \
+		github.com/podomy/tardigrade/pkg/util/encoding \
+		github.com/podomy/tardigrade/pkg/util/uuid \
+		github.com/podomy/tardigrade/pkg/util/caller \
+		github.com/podomy/tardigrade/pkg/roachpb \
+		github.com/podomy/tardigrade/pkg/sql/parser \
+		github.com/podomy/tardigrade/pkg/sql/lex \
+		github.com/podomy/tardigrade/pkg/jobs
 
 .PHONY: stress stressrace
 stress: ## Run tests under stress.
