@@ -93,8 +93,7 @@ DUPLFLAGS    := -t 100
 GOFLAGS      :=
 TAGS         :=
 ARCHIVE      := cockroach.src.tgz
-STARTFLAGS   := -s type=mem,size=1GiB --logtostderr
-BUILDTARGET  := ./pkg/cmd/cockroach
+BUILDTARGET  := ./pkg/cmd/cockroach-oss
 SUFFIX       := $(GOEXE)
 INSTALL      := install
 prefix       := /usr/local
@@ -743,7 +742,6 @@ build/defs.mk.sig: sig = $(PATH):$(CURDIR):$(GO):$(GOPATH):$(CC):$(CXX):$(TARGET
 build/defs.mk.sig: .ALWAYS_REBUILD
 	@echo '$(sig)' | cmp -s - $@ || echo '$(sig)' > $@
 
-COCKROACH      := ./cockroach$(SUFFIX)
 COCKROACHOSS   := ./cockroachoss$(SUFFIX)
 COCKROACHSHORT := ./cockroachshort$(SUFFIX)
 
@@ -823,7 +821,7 @@ $(go-targets): override LINKFLAGS += \
 # The build.utcTime format must remain in sync with TimeFormat in
 # pkg/build/info.go. It is not installed in tests to avoid busting the cache on
 # every rebuild.
-$(COCKROACH) $(COCKROACHOSS) $(COCKROACHSHORT) go-install: override LINKFLAGS += \
+$(COCKROACHOSS) $(COCKROACHSHORT) go-install: override LINKFLAGS += \
 	-X "github.com/podomy/tardigrade/pkg/build.utcTime=$(shell date -u '+%Y/%m/%d %H:%M:%S')"
 
 SETTINGS_DOC_PAGE := docs/generated/settings/settings.html
@@ -833,7 +831,7 @@ SETTINGS_DOC_PAGE := docs/generated/settings/settings.html
 # dependencies are rebuilt which is useful when switching between
 # normal and race test builds.
 .PHONY: go-install
-$(COCKROACH) $(COCKROACHOSS) $(COCKROACHSHORT) go-install:
+$(COCKROACHOSS) $(COCKROACHSHORT) go-install:
 	 $(xgo) $(build-mode) -v $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' $(BUILDTARGET)
 
 # The build targets, in addition to producing a Cockroach binary, silently
@@ -850,10 +848,10 @@ $(COCKROACH) $(COCKROACHOSS) $(COCKROACHSHORT) go-install:
 # unnoticed until the docs team comes along, potentially months later. Much
 # better to make the developer who introduces the breakage fix the breakage.
 .PHONY: build buildoss buildshort
-build: ## Build the CockroachDB binary.
+build: ## Build the Tardigrade binary (OSS-only).
 buildoss: ## Build the CockroachDB binary without any CCL-licensed code.
 buildshort: ## Build the CockroachDB binary without the admin UI.
-build: $(COCKROACH)
+build: buildoss
 buildoss: $(COCKROACHOSS)
 buildshort: $(COCKROACHSHORT)
 # DOCGEN_TARGETS is empty (docs removed for core); the settings page cannot
@@ -861,21 +859,13 @@ buildshort: $(COCKROACHSHORT)
 # skips generated docs. `make generate` still lists the dormant rule.
 build buildoss buildshort: $(DOCGEN_TARGETS)
 
-# For historical reasons, symlink cockroach to cockroachshort.
-# TODO(benesch): see if it would break anyone's workflow to remove this.
-buildshort:
-	ln -sf $(COCKROACHSHORT) $(COCKROACH)
 
 .PHONY: install
-install: ## Install the CockroachDB binary.
-install: $(COCKROACH)
+install: ## Install the Tardigrade binary.
+install: $(COCKROACHOSS)
 	$(INSTALL) -d -m 755 $(DESTDIR)$(bindir)
-	$(INSTALL) -m 755 $(COCKROACH) $(DESTDIR)$(bindir)/cockroach
+	$(INSTALL) -m 755 $(COCKROACHOSS) $(DESTDIR)$(bindir)/cockroach
 
-.PHONY: start
-start: $(COCKROACH)
-start:
-	$(COCKROACH) start $(STARTFLAGS)
 
 # Build, but do not run the tests.
 # PKG is expanded and all packages are built and moved to their directory.
@@ -1236,7 +1226,7 @@ bin/.docgen_functions: bin/docgen
 	docgen functions docs/generated/sql --quiet
 	touch $@
 
-settings-doc-gen := $(if $(filter buildshort,$(MAKECMDGOALS)),$(COCKROACHSHORT),$(COCKROACH))
+settings-doc-gen := $(if $(filter buildshort,$(MAKECMDGOALS)),$(COCKROACHSHORT),$(COCKROACHOSS))
 
 $(SETTINGS_DOC_PAGE): $(settings-doc-gen)
 	@$(settings-doc-gen) gen settings-list --format=html > $@
