@@ -915,7 +915,6 @@ func NewStore(
 		s.raftSnapshotQueue = newRaftSnapshotQueue(s, s.cfg.Gossip)
 		// NOTE: If more queue types are added, please also add them to the list of
 		// queues on the EnqueueRange debug page as defined in
-		// pkg/ui/src/views/reports/containers/enqueueRange/index.tsx
 		s.scanner.AddQueues(
 			s.gcQueue, s.mergeQueue, s.splitQueue, s.replicateQueue, s.replicaGCQueue,
 			s.raftLogQueue, s.raftSnapshotQueue)

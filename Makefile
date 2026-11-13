@@ -184,7 +184,7 @@ $(info GOPATH set to $(GOPATH))
 # overwriting any user-installed binaries of the same name in the default GOBIN.
 GO_INSTALL := GOBIN='$(abspath bin)' GOFLAGS= $(GO) install
 
-# Prefer tools we've installed with go install and Yarn to those elsewhere on
+# Prefer tools we've installed with go install to those elsewhere on
 # the PATH.
 export PATH := $(abspath bin):$(PATH)
 
@@ -891,11 +891,6 @@ testrace: ## Run tests with the Go race detector enabled.
 testrace stressrace roachprod-stressrace: override GOFLAGS += -race
 testrace stressrace roachprod-stressrace: export GORACE := halt_on_error=1
 testrace stressrace roachprod-stressrace: TESTTIMEOUT := $(RACETIMEOUT)
-
-# Directory scans in the builder image are excruciatingly slow when running
-# Docker for Mac, so we filter out the 20k+ UI dependencies that are
-# guaranteed to be irrelevant to save nearly 10s on every Make invocation.
-FIND_RELEVANT := find ./pkg -name node_modules -prune -o
 
 bench: ## Run benchmarks.
 bench benchshort: TESTS := -
