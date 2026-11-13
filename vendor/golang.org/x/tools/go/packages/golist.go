@@ -141,8 +141,9 @@ extractQueries:
 	if sizeserr != nil {
 		return nil, sizeserr
 	}
-	// types.SizesFor always returns nil or a *types.StdSizes
-	response.dr.Sizes, _ = sizes.(*types.StdSizes)
+	// types.SizesFor returns nil or a types.Sizes (e.g. *types.gcSizes on
+	// go1.26+, *types.StdSizes on older toolchains); store it directly.
+	response.dr.Sizes = sizes
 
 	var containsCandidates []string
 
