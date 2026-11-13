@@ -336,25 +336,6 @@ func (s *Server) ResetSQLStats(ctx context.Context) {
 	s.sqlStats.resetStats(ctx)
 }
 
-// GetScrubbedStmtStats returns the statement statistics by app, with the
-// queries scrubbed of their identifiers. Any statements which cannot be
-// scrubbed will be omitted from the returned map.
-func (s *Server) GetScrubbedStmtStats() []roachpb.CollectedStatementStatistics {
-	return s.sqlStats.getScrubbedStmtStats(s.cfg.VirtualSchemas)
-}
-
-// GetUnscrubbedStmtStats returns the same thing as GetScrubbedStmtStats, except
-// identifiers (e.g. table and column names) aren't scrubbed from the statements.
-func (s *Server) GetUnscrubbedStmtStats() []roachpb.CollectedStatementStatistics {
-	return s.sqlStats.getUnscrubbedStmtStats(s.cfg.VirtualSchemas)
-}
-
-// GetStmtStatsLastReset returns the time at which the statement statistics were
-// last cleared.
-func (s *Server) GetStmtStatsLastReset() time.Time {
-	return s.sqlStats.getLastReset()
-}
-
 // GetExecutorConfig returns this server's executor config.
 func (s *Server) GetExecutorConfig() *ExecutorConfig {
 	return s.cfg

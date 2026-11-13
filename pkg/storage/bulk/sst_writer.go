@@ -176,13 +176,6 @@ func (f *memFile) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-func (f *memFile) ReadAt(p []byte, off int64) (int, error) {
-	if off >= int64(len(f.data)) {
-		return 0, io.EOF
-	}
-	return copy(p, f.data[off:]), nil
-}
-
 func (f *memFile) Write(p []byte) (int, error) {
 	f.data = append(f.data, p...)
 	return len(p), nil

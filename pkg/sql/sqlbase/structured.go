@@ -3133,25 +3133,6 @@ func ColumnNeedsBackfill(desc *ColumnDescriptor) bool {
 	return desc.HasDefault() || !desc.Nullable || desc.IsComputed()
 }
 
-// HasColumnBackfillMutation returns whether the table has any queued column
-// mutations that require a backfill.
-func (desc *TableDescriptor) HasColumnBackfillMutation() bool {
-	for _, m := range desc.Mutations {
-		col := m.GetColumn()
-		if col == nil {
-			// Index backfills don't affect changefeeds.
-			continue
-		}
-		// It's unfortunate that there's no one method we can call to check if a
-		// mutation will be a backfill or not, but this logic was extracted from
-		// backfill.go.
-		if m.Direction == DescriptorMutation_DROP || ColumnNeedsBackfill(col) {
-			return true
-		}
-	}
-	return false
-}
-
 // GoingOffline returns true if the table is being dropped or is importing.
 func (desc *TableDescriptor) GoingOffline() bool {
 	return desc.Dropped() || desc.State == TableDescriptor_OFFLINE

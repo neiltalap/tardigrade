@@ -61,12 +61,6 @@ func (s *Store) MustForceReplicaGCScanAndProcess() {
 	mustForceScanAndProcess(context.TODO(), s, s.replicaGCQueue.baseQueue)
 }
 
-// MustForceMergeScanAndProcess iterates over all ranges and enqueues any that
-// may need to be merged.
-func (s *Store) MustForceMergeScanAndProcess() {
-	mustForceScanAndProcess(context.TODO(), s, s.mergeQueue.baseQueue)
-}
-
 // ForceSplitScanAndProcess iterates over all ranges and enqueues any that
 // may need to be split.
 func (s *Store) ForceSplitScanAndProcess() error {

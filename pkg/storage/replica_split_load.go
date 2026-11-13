@@ -26,11 +26,6 @@ var SplitByLoadQPSThreshold = settings.RegisterIntSetting(
 	2500, // 2500 req/s
 )
 
-// SplitByLoadQPSThreshold returns the QPS request rate for a given replica.
-func (r *Replica) SplitByLoadQPSThreshold() float64 {
-	return float64(SplitByLoadQPSThreshold.Get(&r.store.cfg.Settings.SV))
-}
-
 // SplitByLoadEnabled returns whether load based splitting is enabled.
 // Although this is a method of *Replica, the configuration is really global,
 // shared across all stores.

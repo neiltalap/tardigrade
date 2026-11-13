@@ -13,12 +13,8 @@ package sql
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/podomy/tardigrade/pkg/roachpb"
@@ -26,11 +22,9 @@ import (
 	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/parser"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
-	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/syncutil"
 	"github.com/podomy/tardigrade/pkg/util/timeutil"
-	"github.com/cockroachdb/errors"
 )
 
 type stmtKey struct {
@@ -315,12 +309,6 @@ func (s *sqlStats) resetStats(ctx context.Context) {
 	s.Unlock()
 }
 
-func (s *sqlStats) getLastReset() time.Time {
-	s.Lock()
-	defer s.Unlock()
-	return s.lastReset
-}
-
 // Save the existing data for an application to the info log.
 func dumpStmtStats(ctx context.Context, appName string, stats map[stmtKey]*stmtStats) {
 	if len(stats) == 0 {
@@ -371,124 +359,4 @@ func scrubStmtStatKey(vt VirtualTabler, key string) (string, bool) {
 	f.SetReformatTableNames(reformatFn)
 	f.FormatNode(stmt.AST)
 	return f.CloseAndGetString(), true
-}
-
-func (s *sqlStats) getScrubbedStmtStats(
-	vt *VirtualSchemaHolder,
-) []roachpb.CollectedStatementStatistics {
-	return s.getStmtStats(vt, true /* scrub */)
-}
-
-func (s *sqlStats) getUnscrubbedStmtStats(
-	vt *VirtualSchemaHolder,
-) []roachpb.CollectedStatementStatistics {
-	return s.getStmtStats(vt, false /* scrub */)
-}
-
-func (s *sqlStats) getStmtStats(
-	vt *VirtualSchemaHolder, scrub bool,
-) []roachpb.CollectedStatementStatistics {
-	s.Lock()
-	defer s.Unlock()
-	var ret []roachpb.CollectedStatementStatistics
-	salt := ClusterSecret.Get(&s.st.SV)
-	for appName, a := range s.apps {
-		a.Lock()
-		if cap(ret) == 0 {
-			// guesstimate that we'll need apps*(queries-per-app).
-			ret = make([]roachpb.CollectedStatementStatistics, 0, len(a.stmts)*len(s.apps))
-		}
-		for q, stats := range a.stmts {
-			maybeScrubbed := q.stmt
-			maybeHashedAppName := appName
-			ok := true
-			if scrub {
-				maybeScrubbed, ok = scrubStmtStatKey(vt, q.stmt)
-				if !strings.HasPrefix(appName, sqlbase.ReportableAppNamePrefix) {
-					maybeHashedAppName = HashForReporting(salt, appName)
-				}
-			}
-			if ok {
-				k := roachpb.StatementStatisticsKey{
-					Query:       maybeScrubbed,
-					DistSQL:     q.distSQLUsed,
-					Opt:         q.optUsed,
-					ImplicitTxn: q.implicitTxn,
-					Failed:      q.failed,
-					App:         maybeHashedAppName,
-				}
-				stats.Lock()
-				data := stats.data
-				stats.Unlock()
-
-				if scrub {
-					// Quantize the counts to avoid leaking information that way.
-					quantizeCounts(&data)
-					data.SensitiveInfo = data.SensitiveInfo.GetScrubbedCopy()
-				}
-
-				ret = append(ret, roachpb.CollectedStatementStatistics{Key: k, Stats: data})
-			}
-		}
-		a.Unlock()
-	}
-	return ret
-}
-
-// bucket10 buckets a number by order of magnitude base 10, eg 637 -> 100.
-// The numbers 0-10 are reported unchanged.
-func bucket10(num int64) int64 {
-	if num <= 0 {
-		return 0
-	}
-	if num < 10 {
-		return num
-	}
-	res := int64(10)
-	for ; res < 1000000000000000000 && res*10 < num; res *= 10 {
-	}
-	return res
-}
-
-// quantizeCounts ensures that the counts are bucketed into "simple" values.
-func quantizeCounts(d *roachpb.StatementStatistics) {
-	oldCount := d.Count
-	newCount := bucket10(oldCount)
-	d.Count = newCount
-	// The SquaredDiffs values are meant to enable computing the variance
-	// via the formula variance = squareddiffs / (count - 1).
-	// Since we're adjusting the count, we must re-compute a value
-	// for SquaredDiffs that keeps the same variance with the new count.
-	oldCountMinusOne := float64(oldCount - 1)
-	newCountMinusOne := float64(newCount - 1)
-	d.NumRows.SquaredDiffs = (d.NumRows.SquaredDiffs / oldCountMinusOne) * newCountMinusOne
-	d.ParseLat.SquaredDiffs = (d.ParseLat.SquaredDiffs / oldCountMinusOne) * newCountMinusOne
-	d.PlanLat.SquaredDiffs = (d.PlanLat.SquaredDiffs / oldCountMinusOne) * newCountMinusOne
-	d.RunLat.SquaredDiffs = (d.RunLat.SquaredDiffs / oldCountMinusOne) * newCountMinusOne
-	d.ServiceLat.SquaredDiffs = (d.ServiceLat.SquaredDiffs / oldCountMinusOne) * newCountMinusOne
-	d.OverheadLat.SquaredDiffs = (d.OverheadLat.SquaredDiffs / oldCountMinusOne) * newCountMinusOne
-
-	d.MaxRetries = bucket10(d.MaxRetries)
-
-	d.FirstAttemptCount = int64((float64(d.FirstAttemptCount) / float64(oldCount)) * float64(newCount))
-}
-
-// FailedHashedValue is used as a default return value for when HashForReporting
-// cannot hash a value correctly.
-const FailedHashedValue = "unknown"
-
-// HashForReporting 1-way hashes values for use in stat reporting. The secret
-// should be the cluster.secret setting.
-func HashForReporting(secret, appName string) string {
-	// If no secret is provided, we cannot irreversibly hash the value, so return
-	// a default value.
-	if len(secret) == 0 {
-		return FailedHashedValue
-	}
-	hash := hmac.New(sha256.New, []byte(secret))
-	if _, err := hash.Write([]byte(appName)); err != nil {
-		panic(errors.NewAssertionErrorWithWrappedErrf(err,
-			`"It never returns an error." -- https://golang.org/pkg/hash`))
-	}
-	return hex.EncodeToString(hash.Sum(nil)[:4])
 }

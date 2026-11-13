@@ -110,25 +110,6 @@ func (t *TableName) Equals(other *TableName) bool {
 	return *t == *other
 }
 
-// ToUnresolvedObjectName converts the table name to an unresolved object name.
-// Schema and catalog are included if indicated by the ExplicitSchema and
-// ExplicitCatalog flags.
-func (t *TableName) ToUnresolvedObjectName() *UnresolvedObjectName {
-	u := &UnresolvedObjectName{}
-
-	u.NumParts = 1
-	u.Parts[0] = string(t.TableName)
-	if t.ExplicitSchema {
-		u.Parts[u.NumParts] = string(t.SchemaName)
-		u.NumParts++
-	}
-	if t.ExplicitCatalog {
-		u.Parts[u.NumParts] = string(t.CatalogName)
-		u.NumParts++
-	}
-	return u
-}
-
 // tableExpr implements the TableExpr interface.
 func (*TableName) tableExpr() {}
 
