@@ -1,0 +1,14 @@
+{
+  // tardigrade-main is a pre-modules GOPATH tree (no go.mod).
+  // Open THIS folder in VS Code (not /home/neil/tardigrade):
+  //   /home/neil/gopath/src/github.com/podomy/tardigrade
+  // (bind mount of the repo; same files, GOPATH-valid path).
+  // Then reload the window. If the mount is gone after a
+  // reboot, restore it with:
+  //   sudo mount --bind /home/neil/tardigrade /home/neil/gopath/src/github.com/podomy/tardigrade
+  "go.toolsEnvVars": {
+    "GO111MODULE": "off",
+    "GOPATH": "/home/neil/gopath:/home/neil/go"
+  },
+  "go.testTimeout": "10m"
+}
