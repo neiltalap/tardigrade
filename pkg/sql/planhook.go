@@ -19,20 +19,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/util/hlc"
 )
 
-// planHookFn is a function that can intercept a statement being planned and
-// provide an alternate implementation. It's primarily intended to allow
-// implementation of certain sql statements to live outside of the sql package.
-//
-// To intercept a statement the function should return a non-nil function for
-// `fn` as well as the appropriate sqlbase.ResultColumns describing the results
-// it will return (if any). If the hook plan requires sub-plans to be planned
-// and started by the usual machinery (e.g. to run a subquery), it must return
-// then as well. `fn` will be called in a goroutine during the `Start` phase of
-// plan execution.
-type planHookFn func(
-	context.Context, tree.Statement, PlanHookState,
-) (fn PlanHookRowFn, header sqlbase.ResultColumns, subplans []planNode, avoidBuffering bool, err error)
-
 // PlanHookRowFn describes the row-production for hook-created plans. The
 // channel argument is used to return results to the plan's runner. It's
 // a blocking channel, so implementors should be careful to only use blocking
@@ -41,16 +27,6 @@ type planHookFn func(
 //
 //TODO(dt): should this take runParams like a normal planNode.Next?
 type PlanHookRowFn func(context.Context, []planNode, chan<- tree.Datums) error
-
-var planHooks []planHookFn
-
-// wrappedPlanHookFn is similar to planHookFn but returns an existing plan type.
-// Additionally, it takes a context.
-type wrappedPlanHookFn func(
-	context.Context, tree.Statement, PlanHookState,
-) (planNode, error)
-
-var wrappedPlanHooks []wrappedPlanHookFn
 
 func (p *planner) RunParams(ctx context.Context) runParams {
 	return runParams{ctx, p.ExtendedEvalContext(), p}
@@ -88,19 +64,6 @@ type PlanHookState interface {
 	ResolveMutableTableDescriptor(
 		ctx context.Context, tn *ObjectName, required, includeOffline bool, requiredType ResolveRequiredType,
 	) (table *MutableTableDescriptor, err error)
-}
-
-// AddPlanHook adds a hook used to short-circuit creating a planNode from a
-// tree.Statement. If the func returned by the hook is non-nil, it is used to
-// construct a planNode that runs that func in a goroutine during Start.
-func AddPlanHook(f planHookFn) {
-	planHooks = append(planHooks, f)
-}
-
-// AddWrappedPlanHook adds a hook used to short-circuit creating a planNode from a
-// tree.Statement. If the returned plan is non-nil, it is used directly by the planner.
-func AddWrappedPlanHook(f wrappedPlanHookFn) {
-	wrappedPlanHooks = append(wrappedPlanHooks, f)
 }
 
 // hookFnNode is a planNode implemented in terms of a function. It begins the

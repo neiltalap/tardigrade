@@ -132,25 +132,6 @@ func (p *planner) dropIndexByName(
 		return nil
 	}
 
-	// Check if requires CCL binary for eventual zone config removal.
-	_, zone, _, err := GetZoneConfigInTxn(ctx, p.txn, uint32(tableDesc.ID), nil, "", false)
-	if err != nil {
-		return err
-	}
-
-	for _, s := range zone.Subzones {
-		if s.IndexID != uint32(idx.ID) {
-			_, err = GenerateSubzoneSpans(
-				p.ExecCfg().Settings, p.ExecCfg().ClusterID(), tableDesc.TableDesc(), zone.Subzones, false /* newSubzones */)
-			if sqlbase.IsCCLRequiredError(err) {
-				return sqlbase.NewCCLRequiredError(fmt.Errorf("schema change requires a CCL binary "+
-					"because table %q has at least one remaining index or partition with a zone config",
-					tableDesc.Name))
-			}
-			break
-		}
-	}
-
 	// Remove all foreign key references and backreferences from the index.
 	// TODO (lucy): This is incorrect for two reasons: The first is that FKs won't
 	// be restored if the DROP INDEX is rolled back, and the second is that

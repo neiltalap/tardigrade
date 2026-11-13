@@ -154,15 +154,6 @@ type ObserverStatement interface {
 	observerStatement()
 }
 
-// CCLOnlyStatement is a marker interface for statements that require
-// a CCL binary for successful planning or execution.
-// It is used to enhance error messages when attempting to use these
-// statements in non-CCL binaries.
-type CCLOnlyStatement interface {
-	cclOnlyStatement()
-}
-
-
 // StatementType implements the Statement interface.
 func (*AlterTable) StatementType() StatementType { return DDL }
 

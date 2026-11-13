@@ -13,7 +13,6 @@ package sql
 import (
 	"bytes"
 
-	"github.com/podomy/tardigrade/pkg/base"
 	"github.com/podomy/tardigrade/pkg/config"
 	"github.com/podomy/tardigrade/pkg/keys"
 	"github.com/podomy/tardigrade/pkg/roachpb"
@@ -63,8 +62,6 @@ import (
 // the common prefix (the encoded table ID) and if `EndKey` is equal to
 // `Key.PrefixEnd()` it is omitted.
 //
-// This function has tests in the partitionccl package.
-//
 // TODO(benesch): remove the hasNewSubzones parameter when a statement to clear
 // all subzones at once is introduced.
 func GenerateSubzoneSpans(
@@ -74,15 +71,6 @@ func GenerateSubzoneSpans(
 	subzones []config.Subzone,
 	hasNewSubzones bool,
 ) ([]config.SubzoneSpan, error) {
-	// Removing zone configs does not require a valid license.
-	if hasNewSubzones {
-		org := ClusterOrganization.Get(&st.SV)
-		if err := base.CheckEnterpriseEnabled(st, clusterID, org,
-			"replication zones on indexes or partitions"); err != nil {
-			return nil, err
-		}
-	}
-
 	a := &sqlbase.DatumAlloc{}
 
 	subzoneIndexByIndexID := make(map[sqlbase.IndexID]int32)

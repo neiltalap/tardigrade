@@ -306,14 +306,6 @@ const (
 	// We're using the postgres "Internal Error" error class "XX".
 	RangeUnavailable = "XXC00"
 
-	// CCLRequired signals that a CCL binary is required to complete this
-	// task.
-	CCLRequired = "XXC01"
-
-	// CCLValidLicenseRequired signals that a valid CCL license is
-	// required to complete this task.
-	CCLValidLicenseRequired = "XXC02"
-
 	// TransactionCommittedWithSchemaChangeFailure signals that the
 	// non-DDL payload of a transaction was committed successfully but
 	// some DDL operation failed, without rolling back the rest of the

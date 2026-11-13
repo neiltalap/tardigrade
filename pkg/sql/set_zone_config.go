@@ -857,10 +857,6 @@ func removeIndexZoneConfigs(
 		zone.DeleteIndexSubzones(uint32(indexDesc.ID))
 	}
 
-	// Ignore CCL required error to allow schema change to progress.
 	_, err = writeZoneConfig(ctx, txn, tableID, tableDesc, zone, execCfg, false /* hasNewSubzones */)
-	if err != nil && !sqlbase.IsCCLRequiredError(err) {
-		return err
-	}
-	return nil
+	return err
 }

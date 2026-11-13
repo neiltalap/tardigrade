@@ -350,33 +350,6 @@ func startExec(params runParams, plan planNode) error {
 	return walkPlan(params.ctx, plan, o)
 }
 
-func (p *planner) maybePlanHook(ctx context.Context, stmt tree.Statement) (planNode, error) {
-	// TODO(dan): This iteration makes the plan dispatch no longer constant
-	// time. We could fix that with a map of `reflect.Type` but including
-	// reflection in such a primary codepath is unfortunate. Instead, the
-	// upcoming IR work will provide unique numeric type tags, which will
-	// elegantly solve this.
-	for _, planHook := range planHooks {
-		if fn, header, subplans, avoidBuffering, err := planHook(ctx, stmt, p); err != nil {
-			return nil, err
-		} else if fn != nil {
-			if avoidBuffering {
-				p.curPlan.avoidBuffering = true
-			}
-			return &hookFnNode{f: fn, header: header, subplans: subplans}, nil
-		}
-	}
-	for _, planHook := range wrappedPlanHooks {
-		if node, err := planHook(ctx, stmt, p); err != nil {
-			return nil, err
-		} else if node != nil {
-			return node, err
-		}
-	}
-
-	return nil, nil
-}
-
 // newPlan constructs a planNode from a statement. This is used
 // recursively by the various node constructors.
 func (p *planner) newPlan(
@@ -402,10 +375,6 @@ func (p *planner) newPlan(
 			return nil, pgerror.Newf(pgcode.ReadOnlySQLTransaction,
 				"cannot execute %s in a read-only transaction", stmt.StatementTag())
 		}
-	}
-
-	if plan, err := p.maybePlanHook(ctx, stmt); plan != nil || err != nil {
-		return plan, err
 	}
 
 	switch n := stmt.(type) {
@@ -523,9 +492,6 @@ func (p *planner) newPlan(
 		return p.Values(ctx, n, desiredTypes)
 	case *tree.ValuesClauseWithNames:
 		return p.Values(ctx, n, desiredTypes)
-	case tree.CCLOnlyStatement:
-		return nil, pgerror.Newf(pgcode.CCLRequired,
-			"a CCL binary is required to use this statement type: %T", stmt)
 	default:
 		var catalog optCatalog
 		catalog.init(p)

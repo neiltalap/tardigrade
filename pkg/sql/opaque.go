@@ -16,8 +16,6 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/sql/opt"
 	"github.com/podomy/tardigrade/pkg/sql/opt/optbuilder"
-	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
-	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase"
 	"github.com/cockroachdb/errors"
@@ -118,12 +116,6 @@ func buildOpaque(
 		plan, err = p.ShowZoneConfig(ctx, n)
 	case *tree.Truncate:
 		plan, err = p.Truncate(ctx, n)
-	case tree.CCLOnlyStatement:
-		plan, err = p.maybePlanHook(ctx, stmt)
-		if plan == nil && err == nil {
-			return nil, nil, pgerror.Newf(pgcode.CCLRequired,
-				"a CCL binary is required to use this statement type: %T", stmt)
-		}
 	default:
 		return nil, nil, errors.AssertionFailedf("unknown opaque statement %T", stmt)
 	}
