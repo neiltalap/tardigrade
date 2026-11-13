@@ -13,7 +13,6 @@ package row
 import (
 	"context"
 
-	"github.com/podomy/tardigrade/pkg/internal/client"
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/storage/engine/enginepb"
 )
@@ -31,19 +30,7 @@ type KVFetcher struct {
 	newSpan       bool
 }
 
-// NewKVFetcher creates a new KVFetcher.
-func NewKVFetcher(
-	txn *client.Txn,
-	spans roachpb.Spans,
-	reverse bool,
-	useBatchLimit bool,
-	firstBatchLimit int64,
-	returnRangeInfo bool,
-) (*KVFetcher, error) {
-	kvBatchFetcher, err := makeKVBatchFetcher(txn, spans, reverse, useBatchLimit, firstBatchLimit, returnRangeInfo)
-	return newKVFetcher(&kvBatchFetcher), err
-}
-
+// newKVFetcher creates a new KVFetcher wrapping the given batch fetcher.
 func newKVFetcher(batchFetcher kvBatchFetcher) *KVFetcher {
 	return &KVFetcher{
 		kvBatchFetcher: batchFetcher,
