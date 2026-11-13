@@ -1724,8 +1724,6 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT8);
 		t.Fatal(err)
 	}
 
-	tableDesc := sqlbase.GetTableDescriptor(kvDB, "t", "test")
-
 	testCases := []struct {
 		sql    string
 		status jobs.Status
@@ -1773,7 +1771,7 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT8);
 		}
 	}
 
-	tableDesc = sqlbase.GetTableDescriptor(kvDB, "t", "test")
+	tableDesc := sqlbase.GetTableDescriptor(kvDB, "t", "test")
 	if e := 13; e != len(tableDesc.Mutations) {
 		t.Fatalf("e = %d, v = %d", e, len(tableDesc.Mutations))
 	}
@@ -4811,7 +4809,7 @@ CREATE TABLE t.test (k INT PRIMARY KEY, v INT8);
 		t.Fatal(err)
 	}
 
-	tableDesc := sqlbase.GetTableDescriptor(kvDB, "t", "test")
+	var tableDesc *sqlbase.TableDescriptor
 	// Wait until indexes are created.
 	for r := retry.Start(retryOpts); r.Next(); {
 		tableDesc = sqlbase.GetTableDescriptor(kvDB, "t", "test")

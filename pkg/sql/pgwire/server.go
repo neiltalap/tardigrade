@@ -620,8 +620,6 @@ func parseOptions(ctx context.Context, data []byte) (sql.SessionArgs, error) {
 				args.SessionDefaults[key] = value
 			} else {
 				if !exists {
-					if _, ok := sql.UnsupportedVars[key]; ok {
-					}
 					log.Warningf(ctx, "unknown configuration parameter: %q", key)
 				} else {
 					return sql.SessionArgs{}, pgerror.Newf(pgcode.CantChangeRuntimeParam,

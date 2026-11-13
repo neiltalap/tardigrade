@@ -231,7 +231,6 @@ func encodeKeyToBuf(buf []byte, key MVCCKey, keyLen int) {
 		pos += walltimeEncodedLen
 		if key.Timestamp.Logical != 0 {
 			binary.BigEndian.PutUint32(buf[pos:], uint32(key.Timestamp.Logical))
-			pos += logicalEncodedLen
 		}
 	}
 	buf[len(buf)-1] = byte(timestampLength)

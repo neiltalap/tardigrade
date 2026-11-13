@@ -29,9 +29,6 @@ func (d *delegator) delegateShowVar(n *tree.ShowVar) (tree.Statement, error) {
 	origName := n.Name
 	name := strings.ToLower(n.Name)
 
-	if name == "locality" {
-	}
-
 	if name == "all" {
 		return parse(
 			"SELECT variable, value FROM crdb_internal.session_variables WHERE hidden = FALSE",

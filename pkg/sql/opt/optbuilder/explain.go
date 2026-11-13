@@ -40,9 +40,6 @@ func (b *Builder) buildExplain(explain *tree.Explain, inScope *scope) (outScope 
 
 	case tree.ExplainDistSQL:
 		analyze := opts.Flags.Contains(tree.ExplainFlagAnalyze)
-		if analyze {
-		} else {
-		}
 		if analyze && tree.IsStmtParallelized(explain.Statement) {
 			panic(pgerror.Newf(pgcode.FeatureNotSupported,
 				"EXPLAIN ANALYZE does not support RETURNING NOTHING statements"))
@@ -50,9 +47,6 @@ func (b *Builder) buildExplain(explain *tree.Explain, inScope *scope) (outScope 
 		cols = sqlbase.ExplainDistSQLColumns
 
 	case tree.ExplainOpt:
-		if opts.Flags.Contains(tree.ExplainFlagVerbose) {
-		} else {
-		}
 		cols = sqlbase.ExplainOptColumns
 
 	case tree.ExplainVec:
