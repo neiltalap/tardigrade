@@ -285,13 +285,9 @@ bin/.bootstrap: $(GITHOOKS) Gopkg.lock | bin/.submodules-initialized
 		./vendor/github.com/cockroachdb/gostdlib/cmd/gofmt \
 		./vendor/github.com/cockroachdb/gostdlib/x/tools/cmd/goimports \
 		./vendor/github.com/cockroachdb/stress \
-		./vendor/github.com/golang/dep/cmd/dep \
 		./vendor/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway \
-		./vendor/github.com/kevinburke/go-bindata/go-bindata \
 		./vendor/github.com/kisielk/errcheck \
-		./vendor/github.com/mattn/goveralls \
 		./vendor/github.com/mibk/dupl \
-		./vendor/github.com/wadey/gocovmerge \
 		./vendor/golang.org/x/lint/golint \
 		./vendor/golang.org/x/perf/cmd/benchstat \
 		./vendor/golang.org/x/tools/cmd/goyacc \
@@ -944,9 +940,7 @@ testslow testraceslow:
 
 .PHONY: upload-coverage
 upload-coverage: bin/.bootstrap
-	$(GO) install ./vendor/github.com/wadey/gocovmerge
-	$(GO) install ./vendor/github.com/mattn/goveralls
-	@build/upload-coverage.sh
+	@echo "coverage upload disabled for core (goveralls/gocovmerge de-vendored)" >&2; exit 1
 
 .PHONY: acceptance
 acceptance: ## Run acceptance tests.
