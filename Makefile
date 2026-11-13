@@ -1127,7 +1127,10 @@ pkg/sql/parser/sql.go: pkg/sql/parser/gen/sql.go.tmp | bin/.bootstrap
 	 cat $^ | \
 	 sed -E 's/^const ([A-Z][_A-Z0-9]*) =.*$$/const \1 = lex.\1/g') > $@.tmp || rm $@.tmp
 	mv -f $@.tmp $@
-	goimports -w $@
+	@# goimports resolved from the module graph (x/tools May-24),
+	@# not the floating bin/goimports: only the graph build
+	@# reproduces the committed file byte-for-byte.
+	GOFLAGS=-mod=mod $(GO) run github.com/cockroachdb/gostdlib/x/tools/cmd/goimports -w $@
 
 # This modifies the grammar to:
 # - improve the types used by the generated parser for non-terminals

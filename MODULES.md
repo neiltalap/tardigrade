@@ -38,9 +38,11 @@ bootstrap installs pinned tools via go install pkg@version,
 the go-libedit cgo override is dropped (it compiles from the
 module cache with its own directives), upload-coverage uses
 the bootstrapped binaries, and proto include roots point at
-the pinned module-cache paths. c-deps/ carries no nested
-go.mod: no c-deps submodule holds imported Go packages, so
-the module walk never enters it.
+the pinned module-cache paths. c-deps/ carries a nested
+go.mod stub so the main module walk stops before the C++
+submodules (the protobuf fork ships Go examples whose
+imports would otherwise escape the pinned graph, and its
+.cc files break the go tool).
 
 Source fixes for non-GOPATH layout (both auto-detect, both
 keep the old path when no go.mod is present):
