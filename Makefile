@@ -334,7 +334,6 @@ build/variables.mk: Makefile build/archive/contents/Makefile build/defs.mk
 # common because both the root Makefile and protobuf.mk have C dependencies.
 
 host-is-macos := $(findstring Darwin,$(UNAME))
-host-is-mingw := $(findstring MINGW,$(UNAME))
 
 ifdef host-is-macos
 # On macOS 10.11, XCode SDK v8.1 (and possibly others) indicate the presence of
@@ -362,13 +361,11 @@ ifneq ($(HOST_TRIPLE),$(TARGET_TRIPLE))
 is-cross-compile := 1
 endif
 
-target-is-windows := $(findstring w64,$(TARGET_TRIPLE))
-
 # CMAKE_TARGET_MESSAGES=OFF prevents CMake from printing progress messages
 # whenever a target is fully built to prevent spammy output from make when
 # c-deps are all already built. Progress messages are still printed when actual
 # compilation is being performed.
-cmake-flags := -DCMAKE_TARGET_MESSAGES=OFF $(if $(host-is-mingw),-G 'MSYS Makefiles')
+cmake-flags := -DCMAKE_TARGET_MESSAGES=OFF
 configure-flags :=
 
 # Use xcmake-flags when invoking CMake on libraries/binaries for the target
@@ -404,15 +401,6 @@ ENABLE_ROCKSDB_ASSERTIONS ?=
 
 BUILD_DIR := $(GOPATH)/native/$(TARGET_TRIPLE)
 
-# In MinGW, cgo flags don't handle Unix-style paths, so convert our base path to
-# a Windows-style path.
-#
-# TODO(benesch): Figure out why. MinGW transparently converts Unix-style paths
-# everywhere else.
-ifdef host-is-mingw
-BUILD_DIR := $(shell cygpath -m $(BUILD_DIR))
-endif
-
 JEMALLOC_DIR := $(BUILD_DIR)/jemalloc$(if $(use-msan),_msan)
 PROTOBUF_DIR := $(BUILD_DIR)/protobuf$(if $(use-msan),_msan)
 ROCKSDB_DIR  := $(BUILD_DIR)/rocksdb$(if $(use-msan),_msan)$(if $(use-stdmalloc),_stdmalloc)$(if $(ENABLE_ROCKSDB_ASSERTIONS),_assert)
@@ -432,7 +420,7 @@ PROTOC 		 := $(PROTOC_DIR)/protoc
 
 C_LIBS_COMMON = \
 	$(if $(use-stdmalloc),,$(LIBJEMALLOC)) \
-	$(if $(target-is-windows),,$(LIBEDIT)) \
+	$(LIBEDIT) \
 	$(LIBPROTOBUF) $(LIBSNAPPY) $(LIBROCKSDB)
 C_LIBS_OSS = $(C_LIBS_COMMON) $(LIBROACH)
 
@@ -558,7 +546,7 @@ $(ROCKSDB_DIR)/Makefile: $(C_DEPS_DIR)/rocksdb-rebuild | bin/.submodules-initial
 	  -DSNAPPY_LIBRARIES=$(LIBSNAPPY) -DSNAPPY_INCLUDE_DIR="$(SNAPPY_SRC_DIR);$(SNAPPY_DIR)" -DWITH_SNAPPY=ON \
 	  $(if $(use-stdmalloc),,-DJEMALLOC_LIBRARIES=$(LIBJEMALLOC) -DJEMALLOC_INCLUDE_DIR=$(JEMALLOC_DIR)/include -DWITH_JEMALLOC=ON) \
 	  -DCMAKE_BUILD_TYPE=$(if $(ENABLE_ROCKSDB_ASSERTIONS),Debug,Release) \
-	  -DFAIL_ON_WARNINGS=$(if $(findstring windows,$(XGOOS)),0,1) \
+	  -DFAIL_ON_WARNINGS=1 \
 	  -DUSE_RTTI=1
 
 $(SNAPPY_DIR)/Makefile: $(C_DEPS_DIR)/snappy-rebuild | bin/.submodules-initialized

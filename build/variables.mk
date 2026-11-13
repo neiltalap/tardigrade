@@ -126,3 +126,5 @@ define VALID_VARS
   XCXX
   XGOARCH
   XGOOS
+  prefix
+endef
