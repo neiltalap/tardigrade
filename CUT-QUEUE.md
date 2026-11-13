@@ -259,3 +259,131 @@ the dual-mode Makefile, accepting that builder CI must
 be reworked and `go mod tidy` stays forever banned?
 If yes, which branch absorbs the editor-only commits
 (d1255e4, 4b1b84b) first?
+
+
+11. Loop-coord vendor wave L1: google orphans (flatbuffers/go-cmp/go-querystring/pprof)
+----------------------------------------------------------------------------------------
+Status: SAFE-LOOP (cut in gated batch L1; B5 complete, no claim conflicts).
+
+Evidence: precise import-path grep for each of the four
+paths returns zero hits repo-wide outside the dirs
+themselves (pkg/, pkg/cmd/, vendor/, Makefile, build/,
+scripts/ all screened 2026-11-13). btree (same org)
+stays: pkg/cli + storage import it. E3 cut flatbuffers
++ go-cmp 2026-11-13 with the same evidence; the tree
+was reset by a restart and both are back, still
+zero-ref. Sizes: flatbuffers 120K, go-cmp 240K,
+go-querystring 24K, pprof 784K (~1.2M total).
+
+Decision required: none. Gated keys+base per batch;
+revert on FAIL.
+
+Owner question: none.
+
+
+12. Loop-coord vendor wave L2: debug/doc libs (ianlancetaylor x2, BurntSushi/toml, blackfriday, md2man)
+-------------------------------------------------------------------------------------------------------
+Status: SAFE-LOOP (cut in gated batch L2).
+
+Evidence: zero import-path refs repo-wide (same screen
+as 11) for ianlancetaylor/cgosymbolizer (216K),
+ianlancetaylor/demangle (144K), BurntSushi/toml
+(164K), russross/blackfriday (168K),
+cpuguy83/go-md2man (24K). E3's old blocks re-checked
+and overturned with current-tree evidence: honnef.co
+(staticcheck, kept) does NOT import BurntSushi/toml;
+benesch/cgosymbolizer (live, pkg/cli) does NOT import
+ianlancetaylor/* (different org, different package);
+this cobra tree does NOT import md2man, so blackfriday's
+only in-tree chain (md2man) is itself dead. md2man is
+not built by bin/.bootstrap and is absent from the
+hard tool-skip list, so it is cut as a dead lib, not
+as a tool. (~0.7M total.)
+
+CORRECTION 2026-11-13 (loop-coord): the vendor-side
+half of this screen used parent-repo `git grep`,
+which does NOT descend into the vendor submodule, so
+every vendor-importer check returned a false ZERO.
+L4's gate caught 4 live chains; a correct re-check
+(`git -C vendor grep`) plus a pristine-HEAD pass
+overturned most of this entry: cgosymbolizer IS
+imported by benesch/cgosymbolizer, BurntSushi/toml IS
+imported by honnef.co config, md2man IS imported by
+cobra/doc (which itself imports blackfriday, so
+blackfriday is live too). All four were restored via
+`git -C vendor checkout`, re-gated green. ONLY
+ianlancetaylor/demangle (144K) stands cut: its sole
+pristine importer is google/pprof, cut in wave L1.
+Lesson: vendor-importer checks must run inside the
+submodule; and re-verify AFTER deleting nothing
+(deleted dirs hide as importers).
+
+Decision required: none. Gated keys+base per batch.
+
+Owner question: none.
+
+
+13. Loop-coord vendor wave L3: dead sarama/websocket chains (eapache x3, pierrec/lz4, gorilla, jmespath, maruel)
+----------------------------------------------------------------------------------------------------------------
+Status: SAFE-LOOP (cut in gated batch L3).
+
+Evidence: zero import-path refs repo-wide (same screen
+as 11) for eapache/go-resiliency (20K),
+eapache/go-xerial-snappy (28K), eapache/queue (24K),
+pierrec/lz4 (92K), gorilla/websocket (160K),
+jmespath/go-jmespath (104K), maruel/panicparse (68K).
+E3 cut gorilla/websocket, jmespath (+aws), and
+panicparse with the same evidence before the reset;
+B5's sarama cut (2026-11-13, wave 6) removed the last
+live importer of the eapache/pierrec chain. E3's
+"eapache+pierrec (sarama)" skip reason is therefore
+spent. (~0.5M total.)
+
+Decision required: none. Gated keys+base per batch.
+
+Owner question: none.
+
+
+14. Loop-coord vendor wave L4: prometheus/win-only leftovers (beorn7, matttproud, spew, ghodss, logfmt, go-observer, GoLLRB, konsorten, mousetrap, wmi, go-ole)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+Status: SAFE-LOOP (cut in gated batch L4).
+
+Evidence: zero import-path refs repo-wide (same screen
+as 11) for beorn7/perks (28K), matttproud/
+golang_protobuf_extensions (44K), davecgh/go-spew
+(100K), ghodss/yaml (48K), go-logfmt/logfmt (64K),
+opentracing-contrib/go-observer (28K), petar/GoLLRB
+(44K), konsorten/go-windows-terminal-sequences (20K),
+inconshreveable/mousetrap (24K), StackExchange/wmi
+(36K), go-ole/go-ole (284K). Stale skip reasons
+overturned: F skipped spew (importers were sarama +
+testify; B5 cut sarama and this testify tree never
+imported spew) and go-observer (importer was zipkin;
+zipkin root files no longer reference it); E3's
+konsorten (logrus, cut by B5), mousetrap (cobra, this
+tree never imports), wmi/go-ole (gopsutil, never
+imports), ghodss (grpc-gateway, never imports),
+logfmt/go-observer (zipkin chain, never imports)
+blocks all re-verified empty. prometheus/common +
+client_golang stay (pkg/util/metric imports them; they
+do not import beorn7/matttproud). (~0.7M total.)
+
+CORRECTION 2026-11-13 (loop-coord): same false-ZERO
+method bug as entry 12 (parent-repo grep misses the
+submodule). Correct re-check: beorn7 IS imported by
+client_golang/summary.go, matttproud by common/expfmt,
+spew by testify/assert, ghodss/yaml by the gateway
+descriptor package, logfmt + go-observer by the zipkin
+root files, GoLLRB by btree/btree_mem.go, mousetrap by
+cobra/command_win.go, wmi by gopsutil/gosigar windows
+files, and go-ole by wmi itself (found only after
+restoring wmi; deleted dirs hide as importers). Ten
+paths restored, re-gated green, plus linux + windows
+vendcheck builds of every restored chain. ONLY
+konsorten/go-windows-terminal-sequences (20K) stands
+cut: its sole pristine importer is logrus, cut by B5.
+The F/E3 skip reasons for the other ten were valid.
+
+Decision required: none. Gated keys+base per batch.
+
+Owner question: none.

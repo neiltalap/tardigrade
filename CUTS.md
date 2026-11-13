@@ -770,3 +770,84 @@ Cut batch 2026-11-13, wave 5 (scout-H ts gateway)
   inert wire-compat shells, same class as the RangeFeed
   stub. Revisit only with the exact upstream protoc +
   plugin versions that generated the checked-in files.
+
+Cut batch 2026-11-13, wave 6 (cutter-B5 vendor)
+===============================================
+
+  - Vendor working-tree only, 54M to 44M, 14 deletions,
+    all keys+base gated, 0 reverts: vitess.io, Azure
+    org (azure-pipeline-go + azure-storage-blob-go),
+    cloud.google.com/go, go.opencensus.io,
+    golang.org/x/oauth2 (subdir; x/ siblings intact),
+    google.golang.org/api (subdir; genproto/grpc/
+    appengine intact), googleapis/gax-go, nlopes/slack,
+    sirupsen/logrus, zipkin collector-kafka.go +
+    collector-scribe.go (files; cut before sarama so
+    the tracing build stays green), Shopify/sarama,
+    DataDog/zstd (subdir), zipkin thrift/gen-go/scribe
+    (subdir; zipkincore stays). Dependency-order
+    cutting throughout (collectors before sarama/zstd/
+    thrift evaluation). SKIP with evidence:
+    google.golang.org/appengine (out of scope, guard
+    clause), apache/thrift whole-cut (surviving
+    collector-http.go + zipkincore gen-go still import
+    it; would break the tracing build). Reason BLOAT.
+    Pointer not bumped (upstream remote).
+
+  Green: keys, base PASS; tracing vendor build clean.
+
+Cut batch 2026-11-13, wave 7 (loop-coord vendor)
+================================================
+
+  - Vendor working-tree only, 44M to 42M, 13 deletions
+    standing, 14 restored, all keys+base gated:
+    google/flatbuffers, google/go-cmp, google/
+    go-querystring, google/pprof (google/ now btree
+    only), ianlancetaylor/demangle (sole pristine
+    importer pprof, cut same wave), eapache/
+    go-resiliency + go-xerial-snappy + queue and
+    pierrec/lz4 (sole pristine importer sarama, cut by
+    B5), gorilla/websocket (sole pristine importer
+    nlopes/slack, cut by B5), jmespath/go-jmespath
+    (sole pristine importer aws-sdk-go, cut by V/E3),
+    maruel/panicparse (no importers anywhere),
+    konsorten/go-windows-terminal-sequences (sole
+    pristine importer logrus, cut by B5). Every
+    pristine importer lives in a dir that is itself
+    already deleted with passing gates. Reason BLOAT.
+    Pointer not bumped (upstream remote).
+  - Restored with evidence (10 in L4 + 4 tainted, all
+    via `git -C vendor checkout`, re-gated green):
+    beorn7/perks (client_golang), matttproud/
+    golang_protobuf_extensions (common/expfmt), spew
+    (testify/assert), ghodss/yaml (gateway
+    descriptor), go-logfmt/logfmt + go-observer
+    (zipkin root files), GoLLRB (btree_mem.go),
+    mousetrap (cobra/command_win.go), wmi (gopsutil/
+    gosigar windows files), go-ole (wmi/swbemservices),
+    ianlancetaylor/cgosymbolizer (benesch),
+    BurntSushi/toml (honnef.co config), md2man
+    (cobra/doc), blackfriday (md2man). Old F/E3 skip
+    reasons for these were valid and stand.
+  - Method lesson, recorded so no cutter repeats it:
+    parent-repo `git grep -- vendor/` NEVER descends
+    into the vendor submodule and returns false ZERO
+    for every vendor-importer check. Vendor checks
+    must run as `git -C vendor grep` (or plain
+    grep -r), and must run against the pristine tree:
+    already-deleted dirs hide as importers (blackfriday
+    looked dead only because md2man was already
+    deleted; go-ole only because wmi was). Gate order
+    that catches this class: keys+base, then a
+    transitive vendcheck build (linux + windows) of
+    every touched chain, then the wider sweep.
+  - Standing-cut proof: linux + GOOS=windows builds of
+    a probe binary importing every restored chain pass
+    clean; keys, base, encoding, uuid, roachpb, parser,
+    lex, lint passes all PASS (jobs: no test files),
+    matching the allgreen-triage baseline (no NEW
+    failures; 39 c-deps-linker REDs are pre-existing
+    env limits, untouched).
+
+  Green: keys, base, encoding, uuid, roachpb, parser,
+  lex, lint passes PASS.
