@@ -453,11 +453,6 @@ func RandType(rng *rand.Rand) *types.T {
 	return randType(rng, seedTypes)
 }
 
-// RandScalarType returns a random type value that is not an array or tuple.
-func RandScalarType(rng *rand.Rand) *types.T {
-	return randType(rng, types.Scalar)
-}
-
 // RandArrayContentsType returns a random type that's guaranteed to be valid to
 // use as the contents of an array.
 func RandArrayContentsType(rng *rand.Rand) *types.T {
@@ -900,22 +895,6 @@ func NullEncDatum() EncDatum {
 	return EncDatum{Datum: tree.DNull}
 }
 
-// GenEncDatumRowsInt converts rows of ints to rows of EncDatum DInts.
-// If an int is negative, the corresponding value is NULL.
-func GenEncDatumRowsInt(inputRows [][]int) EncDatumRows {
-	rows := make(EncDatumRows, len(inputRows))
-	for i, inputRow := range inputRows {
-		for _, x := range inputRow {
-			if x < 0 {
-				rows[i] = append(rows[i], NullEncDatum())
-			} else {
-				rows[i] = append(rows[i], IntEncDatum(x))
-			}
-		}
-	}
-	return rows
-}
-
 // MakeIntRows constructs a numRows x numCols table where rows[i][j] = i + j.
 func MakeIntRows(numRows, numCols int) EncDatumRows {
 	rows := make(EncDatumRows, numRows)
@@ -935,24 +914,6 @@ func MakeRandIntRows(rng *rand.Rand, numRows int, numCols int) EncDatumRows {
 		rows[i] = make(EncDatumRow, numCols)
 		for j := 0; j < numCols; j++ {
 			rows[i][j] = IntEncDatum(rng.Int())
-		}
-	}
-	return rows
-}
-
-// MakeRandIntRowsInRange constructs a numRows * numCols table where the values
-// are random integers in the range [0, maxNum).
-func MakeRandIntRowsInRange(
-	rng *rand.Rand, numRows int, numCols int, maxNum int, nullProbability float64,
-) EncDatumRows {
-	rows := make(EncDatumRows, numRows)
-	for i := range rows {
-		rows[i] = make(EncDatumRow, numCols)
-		for j := 0; j < numCols; j++ {
-			rows[i][j] = IntEncDatum(rng.Intn(maxNum))
-			if rng.Float64() < nullProbability {
-				rows[i][j] = NullEncDatum()
-			}
 		}
 	}
 	return rows

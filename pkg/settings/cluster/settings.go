@@ -18,7 +18,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
-	"github.com/podomy/tardigrade/pkg/util/envutil"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/protoutil"
 	"github.com/podomy/tardigrade/pkg/util/tracing"
@@ -76,11 +75,6 @@ type Settings struct {
 	// Set to 1 if a profile is active (if the profile is being grabbed through
 	// the `pprofui` server as opposed to the raw endpoint).
 	cpuProfiling int32 // atomic
-}
-
-// TelemetryOptOut is a place for controlling whether to opt out of telemetry or not.
-func TelemetryOptOut() bool {
-	return envutil.EnvOrDefaultBool("COCKROACH_SKIP_ENABLING_DIAGNOSTIC_REPORTING", false)
 }
 
 // IsCPUProfiling returns true if a pprofui CPU profile is being recorded. This can

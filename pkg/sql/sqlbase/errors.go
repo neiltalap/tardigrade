@@ -70,14 +70,6 @@ func NewUndefinedDatabaseError(name string) error {
 		pgcode.InvalidCatalogName, "database %q does not exist", name)
 }
 
-// NewInvalidWildcardError creates an error that represents the result of expanding
-// a table wildcard over an invalid database or schema prefix.
-func NewInvalidWildcardError(name string) error {
-	return pgerror.Newf(
-		pgcode.InvalidCatalogName,
-		"%q does not match any valid database or schema", name)
-}
-
 // NewUndefinedRelationError creates an error that represents a missing database table or view.
 func NewUndefinedRelationError(name tree.NodeFormatter) error {
 	return pgerror.Newf(pgcode.UndefinedTable,
@@ -128,13 +120,6 @@ func NewRangeUnavailableError(
 	return pgerror.Newf(pgcode.RangeUnavailable,
 		"key range id:%d is unavailable; missing nodes: %s. Original error: %v",
 		rangeID, nodeIDs, origErr)
-}
-
-// NewWindowInAggError creates an error for the case when a window function is
-// nested within an aggregate function.
-func NewWindowInAggError() error {
-	return pgerror.New(pgcode.Grouping,
-		"window functions are not allowed in aggregate")
 }
 
 // NewAggInAggError creates an error for the case when an aggregate function is
