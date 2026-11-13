@@ -191,15 +191,6 @@ func TestLint(t *testing.T) {
 // licenses/APL.txt.
 `)
 
-		cclHeader := regexp.MustCompile(`// Copyright 20\d\d The Cockroach Authors.
-//
-// Licensed as a CockroachDB Enterprise file under the Cockroach Community
-// License \(the "License"\); you may not use this file except in compliance with
-// the License. You may obtain a copy of the License at
-//
-//     https://github.com/podomy/tardigrade/blob/master/licenses/CCL.txt
-`)
-
 		// These extensions identify source files that should have copyright headers.
 		extensions := []string{
 			"*.go", "*.cc", "*.h", "*.js", "*.ts", "*.tsx", "*.s", "*.S", "*.styl", "*.proto", "*.rl",
@@ -222,13 +213,7 @@ func TestLint(t *testing.T) {
 			stream.GrepNot(`_generated\.go`),
 			stream.GrepNot(`/embedded.go`),
 		), func(filename string) {
-			isCCL := strings.Contains(filename, "ccl/")
-			var expHeader *regexp.Regexp
-			if isCCL {
-				expHeader = cclHeader
-			} else {
-				expHeader = bslHeader
-			}
+			expHeader := bslHeader
 
 			file, err := os.Open(filepath.Join(pkgDir, filename))
 			if err != nil {
@@ -244,7 +229,7 @@ func TestLint(t *testing.T) {
 			data = data[0:n]
 
 			if expHeader.Find(data) == nil {
-				t.Errorf("did not find expected license header (ccl=%v) in %s", isCCL, filename)
+				t.Errorf("did not find expected license header in %s", filename)
 			}
 		}); err != nil {
 			t.Fatal(err)
@@ -1166,8 +1151,6 @@ func TestLint(t *testing.T) {
 			stream.GrepNot(`cockroach/pkg/(server/serverpb|ts/tspb): github\.com/golang/protobuf/proto$`),
 			stream.GrepNot(`cockroach/pkg/server/debug/pprofui: path$`),
 			stream.GrepNot(`cockroach/pkg/util/caller: path$`),
-			stream.GrepNot(`cockroach/pkg/ccl/storageccl: path$`),
-			stream.GrepNot(`cockroach/pkg/ccl/workloadccl: path$`),
 			stream.GrepNot(`cockroach/pkg/util/uuid: github\.com/satori/go\.uuid$`),
 		), func(s string) {
 			pkgStr := strings.Split(s, ": ")

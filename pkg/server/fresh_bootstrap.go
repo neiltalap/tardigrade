@@ -40,13 +40,6 @@ func (s *Server) bootstrapFreshCluster(ctx context.Context) error {
 	if err := s.populateVersionSetting(ctx); err != nil {
 		return errors.Wrap(err, "populating version setting")
 	}
-	if !cluster.TelemetryOptOut() {
-		if err := s.runStmtAsRootWithRetry(
-			ctx, "opt-in-diagnostics", `SET CLUSTER SETTING diagnostics.reporting.enabled = true`,
-		); err != nil {
-			return err
-		}
-	}
 	if err := s.runStmtAsRootWithRetry(
 		ctx, "disable-net-trace", `SET CLUSTER SETTING trace.debug.enable = false`,
 	); err != nil {

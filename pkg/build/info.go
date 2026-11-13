@@ -32,7 +32,7 @@ var (
 	cgoCompiler     = cgoVersion()
 	cgoTargetTriple string
 	platform        = fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH)
-	// Distribution is changed by the CCL init-time hook in non-APL builds.
+	// Distribution identifies this build.
 	Distribution = "OSS"
 	typ          string // Type of this build: <empty>, "development", or "release[-gnu|-musl]"
 	channel      = "unknown"

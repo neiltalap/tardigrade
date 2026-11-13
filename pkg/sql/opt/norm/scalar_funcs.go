@@ -18,7 +18,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/sql/opt/props/physical"
 	"github.com/podomy/tardigrade/pkg/sql/sem/tree"
 	"github.com/podomy/tardigrade/pkg/sql/types"
-	"github.com/podomy/tardigrade/pkg/util/json"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/cockroachdb/errors"
 )
@@ -96,24 +95,6 @@ func (c *CustomFuncs) SimplifyCoalesce(args memo.ScalarListExpr) opt.ScalarExpr 
 	// All operands up to the last were null (or the last is the only operand),
 	// so return the last operand without the wrapping COALESCE function.
 	return args[len(args)-1]
-}
-
-// IsJSONScalar returns if the JSON value is a number, string, true, false, or null.
-func (c *CustomFuncs) IsJSONScalar(value opt.ScalarExpr) bool {
-	v := value.(*memo.ConstExpr).Value.(*tree.DJSON)
-	return v.JSON.Type() != json.ObjectJSONType && v.JSON.Type() != json.ArrayJSONType
-}
-
-// MakeSingleKeyJSONObject returns a JSON object with one entry, mapping key to value.
-func (c *CustomFuncs) MakeSingleKeyJSONObject(key, value opt.ScalarExpr) opt.ScalarExpr {
-	k := key.(*memo.ConstExpr).Value.(*tree.DString)
-	v := value.(*memo.ConstExpr).Value.(*tree.DJSON)
-
-	builder := json.NewObjectBuilder(1)
-	builder.Add(string(*k), v.JSON)
-	j := builder.Build()
-
-	return c.f.ConstructConst(&tree.DJSON{JSON: j})
 }
 
 // IsConstValueEqual returns whether const1 and const2 are equal.

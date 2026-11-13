@@ -167,8 +167,7 @@ type StoreSpec struct {
 	// RocksDBOptions contains RocksDB specific options using a semicolon
 	// separated key-value syntax ("key1=value1; key2=value2").
 	RocksDBOptions string
-	// ExtraOptions is a serialized protobuf set by Go CCL code and passed through
-	// to C CCL code.
+	// ExtraOptions is reserved for future use.
 	ExtraOptions []byte
 }
 

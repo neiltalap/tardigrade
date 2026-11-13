@@ -82,7 +82,6 @@ var allowedFunctions = []string{
 	"(*github.com/podomy/tardigrade/pkg/sql/sqlbase.Descriptor).Table",
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase.TestDefaultExprNil",
 	"github.com/podomy/tardigrade/pkg/sql/sqlbase.TestKeysPerRow",
-	"github.com/podomy/tardigrade/pkg/ccl/backupccl.readBackupDescriptor",
 }
 
 func isAllowed(obj *types.Func) bool {

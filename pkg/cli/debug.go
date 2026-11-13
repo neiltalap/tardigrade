@@ -74,11 +74,6 @@ Create a ballast file to fill the store directory up to a given amount
 	RunE: runDebugBallast,
 }
 
-// PopulateRocksDBConfigHook is a callback set by CCL code.
-// It populates any needed fields in the RocksDBConfig.
-// It must do nothing in OSS code.
-var PopulateRocksDBConfigHook func(*engine.RocksDBConfig) error
-
 func parsePositiveInt(arg string) (int64, error) {
 	i, err := strconv.ParseInt(arg, 10, 64)
 	if err != nil {
@@ -128,12 +123,6 @@ func OpenEngine(
 		MaxOpenFiles: maxOpenFiles,
 		MustExist:    opts.MustExist,
 		ReadOnly:     opts.ReadOnly,
-	}
-
-	if PopulateRocksDBConfigHook != nil {
-		if err := PopulateRocksDBConfigHook(&cfg); err != nil {
-			return nil, err
-		}
 	}
 
 	db, err := engine.NewRocksDB(cfg, cache)
@@ -1048,8 +1037,7 @@ func removeDeadReplicas(
 	return batch, nil
 }
 
-// DebugCmdsForRocksDB lists debug commands that access rocksdb through the engine
-// and need encryption flags (injected by CCL code).
+// DebugCmdsForRocksDB lists debug commands that access rocksdb through the engine.
 // Note: do NOT include commands that just call rocksdb code without setting up an engine.
 var DebugCmdsForRocksDB = []*cobra.Command{
 	debugCompactCmd,
@@ -1073,7 +1061,7 @@ var debugCmds = append(DebugCmdsForRocksDB,
 	debugEnvCmd,
 )
 
-// DebugCmd is the root of all debug commands. Exported to allow modification by CCL code.
+// DebugCmd is the root of all debug commands.
 var DebugCmd = &cobra.Command{
 	Use:   "debug [command]",
 	Short: "debugging commands",

@@ -25,7 +25,6 @@ func TestNoLinkForbidden(t *testing.T) {
 		true,
 		nil,
 		[]string{
-			"github.com/podomy/tardigrade/pkg/ccl",
 			"github.com/podomy/tardigrade/pkg/ui/distccl",
 		},
 	)

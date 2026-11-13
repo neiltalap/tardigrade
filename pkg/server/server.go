@@ -72,7 +72,6 @@ import (
 	"github.com/podomy/tardigrade/pkg/util/tracing"
 	"github.com/podomy/tardigrade/pkg/util/uuid"
 	"github.com/cockroachdb/logtags"
-	raven "github.com/getsentry/raven-go"
 	gwruntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -1385,12 +1384,6 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	s.refreshSettings()
-
-	raven.SetTagsContext(map[string]string{
-		"cluster":   s.ClusterID().String(),
-		"node":      s.NodeID().String(),
-		"server_id": fmt.Sprintf("%s-%s", s.ClusterID().Short(), s.NodeID()),
-	})
 
 	// We can now add the node registry.
 	s.recorder.AddNode(s.registry, s.node.Descriptor, s.node.startedAt, s.cfg.AdvertiseAddr, s.cfg.HTTPAdvertiseAddr, s.cfg.SQLAdvertiseAddr)

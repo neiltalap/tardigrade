@@ -101,11 +101,6 @@ type DistSQLPlanner struct {
 	rpcCtx *rpc.Context
 }
 
-// ReplicaOraclePolicy controls which policy the physical planner uses to choose
-// a replica for a given range. It is exported so that it may be overwritten
-// during initialization by CCL code to enable follower reads.
-var ReplicaOraclePolicy = replicaoracle.BinPackingChoice
-
 // If true, the plan diagram (in JSON) is logged for each plan (used for
 // debugging).
 var logPlanDiagram = envutil.EnvOrDefaultBool("COCKROACH_DISTSQL_LOG_PLAN", false)
@@ -186,7 +181,7 @@ func (dsp *DistSQLPlanner) SetNodeDesc(desc roachpb.NodeDescriptor) {
 	dsp.nodeDesc = desc
 	if dsp.spanResolver == nil {
 		sr := physicalplan.NewSpanResolver(dsp.st, dsp.distSender, dsp.gossip, desc,
-			dsp.rpcCtx, ReplicaOraclePolicy)
+			dsp.rpcCtx, replicaoracle.BinPackingChoice)
 		dsp.SetSpanResolver(sr)
 	}
 }
