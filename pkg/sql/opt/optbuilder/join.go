@@ -52,8 +52,9 @@ func (b *Builder) buildJoin(join *tree.JoinTableExpr, inScope *scope) (outScope 
 		}
 
 	case tree.AstMerge:
-		flags.DisallowLookupJoin = true
-		flags.DisallowHashJoin = true
+		panic(pgerror.Newf(pgcode.FeatureNotSupported,
+			"MERGE join hint is not supported: the merge join executor has been removed",
+		))
 
 	default:
 		panic(pgerror.Newf(
