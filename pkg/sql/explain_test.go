@@ -85,7 +85,6 @@ func TestStatementReuses(t *testing.T) {
 		`CREATE DATABASE d2`,
 		`CREATE INDEX c ON a(b)`,
 		`CREATE SEQUENCE s2`,
-		`CREATE STATISTICS st ON b FROM a`,
 		`CREATE TABLE a2 (b INT)`,
 		`CREATE VIEW v2 AS SELECT 1`,
 

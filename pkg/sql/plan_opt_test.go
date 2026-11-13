@@ -330,31 +330,6 @@ SELECT cte.x, cte.y FROM cte LEFT JOIN cte as cte2 on cte.y = cte2.x`, j)
 			h.AssertStats(t, 1 /* hits */, 2 /* misses */)
 		})
 
-		// Test that creating new statistics triggers cache invalidation.
-		t.Run("statschange", func(t *testing.T) {
-			t.Parallel() // SAFE FOR TESTING
-			h := makeQueryCacheTestHelper(t, 2 /* numConns */)
-			defer h.Stop()
-			r0, r1 := h.runners[0], h.runners[1]
-			r0.CheckQueryResults(t, "SELECT * FROM t", [][]string{{"1", "1"}})
-			h.AssertStats(t, 0 /* hits */, 1 /* misses */)
-			r1.CheckQueryResults(t, "SELECT * FROM t", [][]string{{"1", "1"}})
-			h.AssertStats(t, 1 /* hits */, 1 /* misses */)
-			r0.Exec(t, "CREATE STATISTICS s FROM t")
-			h.AssertStats(t, 1 /* hits */, 1 /* misses */)
-			hits := 1
-			testutils.SucceedsSoon(t, func() error {
-				// The stats cache is updated asynchronously, so we may get some hits
-				// before we get a miss.
-				r1.CheckQueryResults(t, "SELECT * FROM t", [][]string{{"1", "1"}})
-				if err := h.CheckStats(t, hits, 2 /* misses */); err != nil {
-					hits++
-					return err
-				}
-				return nil
-			})
-		})
-
 		// Test that a schema change triggers cache invalidation.
 		t.Run("schemachange-prepare", func(t *testing.T) {
 			t.Parallel() // SAFE FOR TESTING

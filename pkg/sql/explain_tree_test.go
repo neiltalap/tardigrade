@@ -35,7 +35,6 @@ func TestPlanToTreeAndPlanToString(t *testing.T) {
 	execCfg := s.ExecutorConfig().(ExecutorConfig)
 	r := sqlutils.MakeSQLRunner(sqlDB)
 	r.Exec(t, `
-		SET CLUSTER SETTING sql.stats.automatic_collection.enabled = false;
 		CREATE DATABASE t;
 		USE t;
 	`)

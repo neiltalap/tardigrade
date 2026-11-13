@@ -20,9 +20,6 @@
 [submodule "c-deps/googletest"]
 	path = c-deps/googletest
 	url = https://github.com/cockroachdb/googletest
-[submodule "c-deps/krb5"]
-	path = c-deps/krb5
-	url = https://github.com/cockroachdb/krb5.git
 [submodule "c-deps/libedit"]
 	path = c-deps/libedit
 	url = https://github.com/cockroachdb/libedit.git

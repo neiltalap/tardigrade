@@ -191,13 +191,13 @@ func TestStopServer(t *testing.T) {
 
 	// Connect to server 1, ensure it is answering requests over HTTP and GRPC.
 	server1 := tc.Server(1)
-	var response serverpb.JSONResponse
+	var response serverpb.NodesResponse
 
 	httpClient1, err := server1.GetHTTPClient()
 	if err != nil {
 		t.Fatal(err)
 	}
-	url := server1.AdminURL() + "/_status/metrics/local"
+	url := server1.AdminURL() + "/_status/nodes"
 	if err := httputil.GetJSON(httpClient1, url, &response); err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func TestStopServer(t *testing.T) {
 	statusClient1 := serverpb.NewStatusClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	if _, err := statusClient1.Metrics(ctx, &serverpb.MetricsRequest{NodeId: "local"}); err != nil {
+	if _, err := statusClient1.Nodes(ctx, &serverpb.NodesRequest{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -241,7 +241,7 @@ func TestStopServer(t *testing.T) {
 	}
 
 	grpcErrorText := "rpc error"
-	if _, err := statusClient1.Metrics(ctx, &serverpb.MetricsRequest{NodeId: "local"}); err == nil {
+	if _, err := statusClient1.Nodes(ctx, &serverpb.NodesRequest{}); err == nil {
 		t.Fatal("Expected GRPC Request to fail after server stopped")
 	} else if !testutils.IsError(err, grpcErrorText) {
 		t.Fatalf("Expected error from GRPC with text %q, got error with text %q", grpcErrorText, err.Error())
@@ -252,7 +252,7 @@ func TestStopServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	url = tc.Server(0).AdminURL() + "/_status/metrics/local"
+	url = tc.Server(0).AdminURL() + "/_status/nodes"
 	if err := httputil.GetJSON(httpClient1, url, &response); err != nil {
 		t.Fatal(err)
 	}

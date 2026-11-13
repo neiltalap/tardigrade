@@ -1628,7 +1628,7 @@ EXPLAIN SELECT * FROM onecolumn RIGHT LOOKUP JOIN twocolumn USING(x)
 statement error could not produce a query plan conforming to the LOOKUP JOIN hint
 EXPLAIN SELECT * FROM onecolumn INNER LOOKUP JOIN twocolumn USING(x)
 
-statement error could not produce a query plan conforming to the MERGE JOIN hint
+statement error MERGE join hint is not supported: the merge join executor has been removed
 EXPLAIN SELECT * FROM onecolumn INNER MERGE JOIN twocolumn ON onecolumn.x > twocolumn.y
 
 # Test that we can force a hash join (instead of merge join).
