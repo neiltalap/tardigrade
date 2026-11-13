@@ -1490,6 +1490,11 @@ func (r *distinctBatch) close() {
 	if i := &r.normalIter.rocksDBIterator; i.iter != nil {
 		i.destroy()
 	}
+	// Reset the cached-iterator guards like rocksDBBatch.Close does for its
+	// own iterators. Without this, a batch recycled through batchPool keeps
+	// stale inuse flags and the next user's NewIterator panics spuriously.
+	r.prefixIter.inuse = false
+	r.normalIter.inuse = false
 }
 
 // batchIterator wraps rocksDBIterator and ensures that the buffered mutations

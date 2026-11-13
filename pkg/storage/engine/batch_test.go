@@ -962,6 +962,7 @@ func TestBatchDistinct(t *testing.T) {
 	// Similarly, for distinct batch iterators we will see previous writes to the
 	// batch.
 	iter := distinct.NewIterator(IterOptions{UpperBound: roachpb.KeyMax})
+	defer iter.Close()
 	iter.Seek(mvccKey("a"))
 	if ok, err := iter.Valid(); !ok {
 		t.Fatalf("expected iterator to be valid; err=%v", err)
