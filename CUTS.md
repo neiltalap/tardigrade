@@ -982,15 +982,17 @@ Cut batch 2026-11-13, wave 11 (vendor working-tree cont.)
   - cutter-X (1 file, landed): BurntSushi/toml session.vim
     (editor file; toml pkg itself live via honnef.co).
     Reason BLOAT.
-  - cutter-X2 (in flight at record time): lufia/iostat (8
-    files) deleted, zero-ref re-verified both directions
-    by coord-v2, claim backfilled (was log-only). Adoption
-    pending wave-end re-gate.
-  - cutter-Y2 + cutter-OS2 (in flight at record time):
-    60 vendor OS-specific files claimed (gopsutil
-    darwin/windows, w32, cobra command_win, x/sys unix
-    darwin, crypto ssh terminal windows). Adoption pending
-    wave-end re-gate.
+  - cutter-X2 (LANDED, working-tree-only): lufia/iostat
+    (8 files) deleted, zero-ref re-verified both directions
+    by coord-v2, claim backfilled (was log-only). Final
+    gate keys+base PASS per X2 log, re-gated coord-side.
+    No commits, vendor cut only.
+  - cutter-Y2 + cutter-OS2 (LANDED, working-tree-only):
+    60 vendor OS-specific files (gopsutil darwin/windows,
+    w32, cobra command_win, x/sys unix darwin, crypto ssh
+    terminal windows). gopsutil importers (server/status)
+    suite green with cuts in tree; keys+base re-gated
+    coord-side. OS2 extra gate: status importer build ok.
   - Vendored toolchain shim (allgreen-lint, standing):
     golang.org/x/tools/go/packages/{packages,golist}.go
     adapted to go1.26 types.Sizes (checked-in tree predates
@@ -1029,21 +1031,28 @@ Cut batch 2026-11-13, wave 12 (coord adoptions + in-flight)
     in libroach cmake; per-path keys+base gates in PY log.
     Claims were log-only; coord backfilled all 40 to
     shared CLAIMS (no dups). Reason BLOAT.
-  - cutter-DEAD (IN FLIGHT at record time): survey-unused
-    60 U1000 dead symbols in prod files (admin 22, status
-    14, rowexec 10, singles). Claimed in shared CLAIMS.
-    Working-tree admin.go surgery (-415) builds clean
-    (pkg/server/... exit 0). Re-gate (pkg/server + status
-    suites) and CUTS/commit pending wave end. NOT green yet.
+  - cutter-DEAD (LANDED as dbc6dba, committed by wave
+    itself): 25/60 U1000 symbols (cap), admin.go 22 +
+    status.go 9, -424 lines, no reverts. Re-gated
+    coord-side: serverpb, status, server (21.9s) suites
+    PASS; keys+base PASS; full pkg build exit 0.
+    Remaining 35/60 unclaimed for future waves.
   - verify-full flakes (no action taken): S3
     TestDiskBackedIndexedRowContainer FAIL reproduced 4/5
-    runs coord-side; file untouched since fork, time-seeded
-    rng, unstable-sort-vs-idx comparison -> pre-existing
-    flake, not a cut regression (baseline never ran it
-    green here). S6 testcluster/reducesql/sqlutils build
-    failures raced DEAD's mid-verify admin.go edit;
-    verify wave re-verifies on settled HEAD. Test files
-    untouched per HARD LIMITS.
+    runs coord-side, 4/4 verify-side (combined 8/9 FAIL).
+    Decisive dependency audit: test file, sqlbase Rand
+    generators (testutils.go), datum comparison (datum.go),
+    container, and mon are ALL untouched since fork
+    04ad466 (99ccf0d touched only surface/tree files +
+    datum_invariants_test; 89c2399 touched only
+    result_columns/structured/system). Outcome distribution
+    identical on pristine -> pre-existing broken randomized
+    test (unstable sort vs idx with tied keys), NOT a cut
+    regression. cgo-sweep's single GREEN was a lucky seed.
+    S6 testcluster/reducesql/sqlutils build failures raced
+    DEAD's mid-verify admin.go edit; solo-retries PASS,
+    S6-RERUN RC=0. Verify FINAL: 195 GREEN, 0 TIMEOUTs.
+    Test files untouched per HARD LIMITS.
 
   Green: keys, base PASS; pkg/server build exit 0 WITH
   DEAD surgery; protobuf configure exit 0 post-third_party.
