@@ -892,6 +892,11 @@ testrace stressrace roachprod-stressrace: override GOFLAGS += -race
 testrace stressrace roachprod-stressrace: export GORACE := halt_on_error=1
 testrace stressrace roachprod-stressrace: TESTTIMEOUT := $(RACETIMEOUT)
 
+# Directory scans in the builder image are excruciatingly slow when running
+# Docker for Mac, so we filter out the 20k+ UI dependencies that are
+# guaranteed to be irrelevant to save nearly 10s on every Make invocation.
+FIND_RELEVANT := find ./pkg -name node_modules -prune -o
+
 bench: ## Run benchmarks.
 bench benchshort: TESTS := -
 bench benchshort: BENCHES := .
