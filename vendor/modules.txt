@@ -90,7 +90,7 @@ github.com/cockroachdb/cmux
 github.com/cockroachdb/cockroach-go/crdb
 # github.com/cockroachdb/crlfmt v0.0.0-20181113173958-3c56c65c97a1
 ## explicit
-# github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa
+# github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa => github.com/cockroachdb/datadriven v0.0.0-20190531201743-edce55837238
 ## explicit
 github.com/cockroachdb/datadriven
 # github.com/cockroachdb/errors v1.2.5-0.20200501211520-ad1964b7f014
@@ -616,3 +616,4 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v2 => github.com/cockroachdb/yaml v0.0.0-20180705215940-0e2822948641
 # vitess.io/vitess => github.com/cockroachdb/vitess v2.2.0-rc.1.0.20180830030426-1740ce8b3188+incompatible
 # golang.org/x/net v0.0.0-20190813000000-74dc4d7220e7 => golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
+# github.com/cockroachdb/datadriven => github.com/cockroachdb/datadriven v0.0.0-20190531201743-edce55837238

@@ -59,8 +59,22 @@ Editor: open /home/neil/tardigrade directly. No GOPATH,
 no shim, no bind mount. Full cluster/cgo work still needs
 the builder image (jemalloc, libroach headers).
 
-Status: fast loop green in module mode (keys, base,
-encoding, uuid, caller, roachpb incl. TestNoLinkForbidden,
-parser, lex, jobs; memo, execbuilder, sql, cliflags,
-serverpb, tspb build clean). sql dep-guard test binaries
-need cgo jemalloc in both modes (builder image).
+Status: fast loop green in default vendor mode (keys,
+base, encoding, uuid, caller, roachpb incl.
+TestNoLinkForbidden, parser, lex, jobs) plus all seven
+opt suites (idxconstraint, memo, norm, optbuilder,
+testcat, xform, exprgen) and reduce; memo, execbuilder,
+sql, cliflags, serverpb, tspb build clean; full-repo
+go build ./... 195 packages ok, 1 cgo-jemalloc package
+needs the builder image (same as GOPATH mode).
+Remaining red, all verified pre-existing on
+tardigrade-main and unrelated to modules: roachpb
+TestMakePriority (probabilistic win-ratio flake, passes
+on retry), three lint-pass harnesses (analysistest GOPATH
+overlay unresolvable under this toolchain; hash pass
+panics inside 2019 x/tools), cgo test binaries.
+Fixes made along the way, all committed on this branch:
+datadriven pinned to the locked May revision (etcd pulls
+an August one whose golden format differs), MERGE-hint
+now errors honestly at build time (was silently
+hash-fallbacking after the executor cut).

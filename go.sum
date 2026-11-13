@@ -84,6 +84,8 @@ github.com/cockroachdb/cockroach-go v0.0.0-20181001143604-e0a95dfd547c h1:2zRrJW
 github.com/cockroachdb/cockroach-go v0.0.0-20181001143604-e0a95dfd547c/go.mod h1:XGLbWH/ujMcbPbhZq52Nv6UrCghb1yGn//133kEsvDk=
 github.com/cockroachdb/crlfmt v0.0.0-20181113173958-3c56c65c97a1 h1:SUEb0buGhlsuGeoW222wo81V8xiIX7EYR12bsMk9XoQ=
 github.com/cockroachdb/crlfmt v0.0.0-20181113173958-3c56c65c97a1/go.mod h1:uY/PY/C5c2cIFaeWGjdZSd0eptkmXiX5vd92GMZZ50M=
+github.com/cockroachdb/datadriven v0.0.0-20190531201743-edce55837238 h1:uNljlOxtOHrPnRoPPx+JanqjAGZpNiqAGVBfGskd/pg=
+github.com/cockroachdb/datadriven v0.0.0-20190531201743-edce55837238/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa h1:OaNxuTZr7kxeODyLWsRMC+OD03aFUH+mW6r2d+MWa5Y=
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
 github.com/cockroachdb/errors v1.2.5-0.20200501211520-ad1964b7f014 h1:xM7jB3e9VRgQUcJgLNDTeTrggoO+IqWjDxGOsm6OTQQ=

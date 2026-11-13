@@ -349,3 +349,5 @@ replace gopkg.in/yaml.v2 => github.com/cockroachdb/yaml v0.0.0-20180705215940-0e
 replace vitess.io/vitess => github.com/cockroachdb/vitess v2.2.0-rc.1.0.20180830030426-1740ce8b3188+incompatible
 
 replace golang.org/x/net v0.0.0-20190813000000-74dc4d7220e7 => golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
+
+replace github.com/cockroachdb/datadriven => github.com/cockroachdb/datadriven v0.0.0-20190531201743-edce55837238
