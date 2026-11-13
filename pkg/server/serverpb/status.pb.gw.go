@@ -65,10 +65,6 @@ func request_Status_Node_0(ctx context.Context, marshaler runtime.Marshaler, cli
 
 }
 
-var ()
-
-var ()
-
 func request_Status_Gossip_0(ctx context.Context, marshaler runtime.Marshaler, client StatusClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq GossipRequest
 	var metadata runtime.ServerMetadata
@@ -95,8 +91,6 @@ func request_Status_Gossip_0(ctx context.Context, marshaler runtime.Marshaler, c
 	return msg, metadata, err
 
 }
-
-var ()
 
 var (
 	filter_Status_ListSessions_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
@@ -202,18 +196,6 @@ func request_Status_CancelSession_0(ctx context.Context, marshaler runtime.Marsh
 
 }
 
-var ()
-
-var ()
-
-var ()
-
-var ()
-
-var ()
-
-var ()
-
 // RegisterStatusHandlerFromEndpoint is same as RegisterStatusHandler but
 // automatically dials to "endpoint" and closes the connection when "ctx" gets done.
 func RegisterStatusHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error) {
@@ -280,6 +262,7 @@ func RegisterStatusHandlerClient(ctx context.Context, mux *runtime.ServeMux, cli
 		forward_Status_Nodes_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
+
 	mux.Handle("GET", pattern_Status_Node_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -308,6 +291,7 @@ func RegisterStatusHandlerClient(ctx context.Context, mux *runtime.ServeMux, cli
 		forward_Status_Node_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
+
 	mux.Handle("GET", pattern_Status_Gossip_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -336,6 +320,7 @@ func RegisterStatusHandlerClient(ctx context.Context, mux *runtime.ServeMux, cli
 		forward_Status_Gossip_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
+
 	mux.Handle("GET", pattern_Status_ListSessions_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -364,6 +349,7 @@ func RegisterStatusHandlerClient(ctx context.Context, mux *runtime.ServeMux, cli
 		forward_Status_ListSessions_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
+
 	mux.Handle("GET", pattern_Status_ListLocalSessions_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -392,6 +378,7 @@ func RegisterStatusHandlerClient(ctx context.Context, mux *runtime.ServeMux, cli
 		forward_Status_ListLocalSessions_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
+
 	mux.Handle("GET", pattern_Status_CancelQuery_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -420,6 +407,7 @@ func RegisterStatusHandlerClient(ctx context.Context, mux *runtime.ServeMux, cli
 		forward_Status_CancelQuery_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
+
 	mux.Handle("GET", pattern_Status_CancelSession_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -448,6 +436,7 @@ func RegisterStatusHandlerClient(ctx context.Context, mux *runtime.ServeMux, cli
 		forward_Status_CancelSession_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
+
 	return nil
 }
 

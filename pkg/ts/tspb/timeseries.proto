@@ -141,10 +141,6 @@ message DumpRequest {}
 service TimeSeries {
   // URL: /ts/query
   rpc Query(TimeSeriesQueryRequest) returns (TimeSeriesQueryResponse) {
-    option (google.api.http) = {
-      post: "/ts/query"
-      body: "*"
-    };
   }
 
   // Dump returns a stream of raw timeseries data that has been stored on the

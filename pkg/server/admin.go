@@ -135,8 +135,6 @@ func (s *adminServer) isNotFoundError(err error) bool {
 
 // AllMetricMetadata returns all metrics' metadata.
 
-// ChartCatalog returns a catalog of Admin UI charts useful for debugging.
-
 // Databases is an endpoint that returns a list of databases.
 
 // DatabaseDetails is an endpoint that returns grants and a list of table names

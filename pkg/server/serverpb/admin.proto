@@ -18,7 +18,6 @@ import "server/serverpb/status.proto";
 import "storage/engine/enginepb/mvcc.proto";
 import "storage/storagepb/liveness.proto";
 import "storage/storagepb/log.proto";
-import "ts/catalog/chart_catalog.proto";
 import "util/metric/metric.proto";
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
@@ -698,68 +697,9 @@ message EnqueueRangeResponse {
   repeated Details details = 1;
 }
 
-// ChartCatalogRequest requests returns a catalog of Admin UI charts.
-message ChartCatalogRequest {
-}
-
-// ChartCatalogResponse returns a catalog of Admin UI charts useful for debugging.
-message ChartCatalogResponse {
-  repeated cockroach.ts.catalog.ChartSection catalog = 1 [(gogoproto.nullable) = false];
-}
-
 // Admin is the gRPC API for the admin UI. Through grpc-gateway, we offer
 // REST-style HTTP endpoints that locally proxy to the gRPC endpoints.
 service Admin {
-  // URL: /_admin/v1/users
-
-  // URL: /_admin/v1/databases
-
-  // Example URL: /_admin/v1/databases/system
-
-  // Example URL: /_admin/v1/databases/system/tables/ui
-
-  // Example URL: /_admin/v1/databases/system/tables/ui/stats
-
-  // Example URL: /_admin/v1/nontablestats
-
-  // Example URLs:
-  // Example URLs:
-  // - /_admin/v1/events
-  // - /_admin/v1/events?limit=100
-  // - /_admin/v1/events?type=create_table
-  // - /_admin/v1/events?type=create_table&limit=100
-  // - /_admin/v1/events?type=drop_table&target_id=4
-  // - /_admin/v1/events?type=drop_table&target_id=4&limit=100
-
-  // This requires a POST. Because of the libraries we're using, the POST body
-  // must be in the following format:
-  //
-  // {"key_values":
-  //   { "key1": "base64_encoded_value1"},
-  //   ...
-  //   { "keyN": "base64_encoded_valueN"},
-  // }
-  //
-  // Note that all keys are quoted strings and that all values are base64-
-  // encoded.
-  //
-  // Together, SetUIData and GetUIData provide access to a "cookie jar" for the
-  // admin UI. The structure of the underlying data is meant to be opaque to the
-  // server.
-
-  // Example URLs:
-  // - /_admin/v1/uidata?keys=MYKEY
-  // - /_admin/v1/uidata?keys=MYKEY1&keys=MYKEY2
-  //
-  // Yes, it's a little odd that the query parameter is named "keys" instead of
-  // "key". I would've preferred that the URL parameter be named "key". However,
-  // it's clearer for the protobuf field to be named "keys," which makes the URL
-  // parameter "keys" as well.
-
-  // Cluster returns metadata for the cluster.
-
-  // Settings returns the cluster-wide settings for the cluster.
-
   // Health returns liveness for the node target of the request.
   rpc Health(HealthRequest) returns (HealthResponse) {
     option (google.api.http) = {
@@ -799,28 +739,4 @@ service Admin {
   // authorization. See #42567.
   rpc DecommissionStatus(DecommissionStatusRequest) returns (DecommissionStatusResponse) {
   }
-
-  // URL: /_admin/v1/rangelog
-  // URL: /_admin/v1/rangelog?limit=100
-  // URL: /_admin/v1/rangelog/1
-  // URL: /_admin/v1/rangelog/1?limit=100
-    };
-  }
-
-
-  // URL: /_admin/v1/metricmetadata
-
-  // URL: /_admin/v1/chartcatalog
-
-
-  // EnqueueRange runs the specified range through the specified queue on the
-  // range's leaseholder store, returning the detailed trace and error
-  // information from doing so. Parameters must be provided in the body of the
-  // POST request.
-  // For example:
-  //
-  // {
-  //   "queue": "raftlog",
-  //   "rangeId": 10
-  // }
 }

@@ -38,7 +38,7 @@ func (m *HistogramData) Reset()         { *m = HistogramData{} }
 func (m *HistogramData) String() string { return proto.CompactTextString(m) }
 func (*HistogramData) ProtoMessage()    {}
 func (*HistogramData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_histogram_c670bdfae8c3567c, []int{0}
+	return fileDescriptor_histogram_dd54e77154d6824c, []int{0}
 }
 func (m *HistogramData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -91,7 +91,7 @@ func (m *HistogramData_Bucket) Reset()         { *m = HistogramData_Bucket{} }
 func (m *HistogramData_Bucket) String() string { return proto.CompactTextString(m) }
 func (*HistogramData_Bucket) ProtoMessage()    {}
 func (*HistogramData_Bucket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_histogram_c670bdfae8c3567c, []int{0, 0}
+	return fileDescriptor_histogram_dd54e77154d6824c, []int{0, 0}
 }
 func (m *HistogramData_Bucket) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -606,10 +606,10 @@ var (
 )
 
 func init() {
-	proto.RegisterFile("sql/stats/histogram.proto", fileDescriptor_histogram_c670bdfae8c3567c)
+	proto.RegisterFile("sql/stats/histogram.proto", fileDescriptor_histogram_dd54e77154d6824c)
 }
 
-var fileDescriptor_histogram_c670bdfae8c3567c = []byte{
+var fileDescriptor_histogram_dd54e77154d6824c = []byte{
 	// 347 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x90, 0xcd, 0x4a, 0xeb, 0x40,
 	0x1c, 0xc5, 0x33, 0x4d, 0xdb, 0x7b, 0xef, 0xf4, 0xd6, 0x45, 0x54, 0x88, 0x15, 0xa6, 0x41, 0x10,
