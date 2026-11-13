@@ -1067,3 +1067,78 @@ the time). Safe: BOTH protoc+libprotobuf cmake invocations pass
 cmake configure exit 0 post-removal. Fresh clones restore via
 `git submodule update --init --recursive`. Pointer (protobuf
 20f5237) unchanged — working-tree-only, like all submodule cuts.
+
+Cut batch 2026-11-14, loop-D (deadcode sweeps 1-5, all committed + pushed)
+===========================================================================
+
+  Run under the cut-loop gate on tardigrade-main with a purpose-built
+  AST detector (go/ast walk of pkg/, in-package zero-ref scan) followed
+  by per-candidate filesystem verification. Method lesson, learned the
+  hard way and recorded so no cutter repeats it: repo-wide `git grep`
+  misses (a) gitignored generated files (optgen *.og.go, goyacc sql.go
+  are untracked build artifacts) and (b) interface-satisfaction sites
+  (`var _ Reader`, `encoding.RegisterCompressor`, `var _ DBHandle`
+  never mention the method name). Every candidate below was therefore
+  re-verified with filesystem grep over pkg/ including ignored files,
+  both identifier forms, plus Makefile/CMake/build-tag/testdata
+  screens. Two near-misses caught by that second pass and SKIPPED:
+  norm.CustomFuncs.IntersectionCols (called from ignored
+  explorer.og.go:732) and row Fetcher.NextRowWithErrors (required by
+  the execinfra RowFetcher interface, rowfetcher.go:49). Also SKIPPED
+  with evidence: cgo //export funcs (rocksDBLog, prettyPrintKey),
+  ToSlice/CommitTimestampFixed/WritableIndexCount/RunParams/DrainMeta/
+  IsVectorized/GetDatums/GetUnit/GetMeasurement/SetOnFlush/Decompress/
+  InitialState/GetEnvStats (all interface-required), Marshal/Unmarshal
+  YAML (reflection-called), gateway Register*FromEndpoint (generated
+  .gw.go, regen would restore), gofuzz-tagged Fuzz* entry points,
+  go-bindata embedded.go helpers (DO NOT EDIT), StartJob/
+  NewFakeNodeLiveness/FakeIncrementEpoch (jobs entry 7 territory),
+  sdnotify (live: start_unix.go/start.go), ObjectIter (json.JSON
+  iface), InitialState-adjacent raft/etcd loggers, and the intentional
+  conn_executor notifyStatsRefresherOfNewTables no-op stub.
+
+  - 3eb6628 (167 lines): pkg/testutils/sort.go whole file
+    (SortStructs + structSorter machinery, 120) + ForceTableGC
+    (pkg/testutils/sqlutils/gc.go whole file, 47). Zero refs;
+    QueryTableID stays (sql zone tests use it). Green: keys, base,
+    all pkg/testutils/... suites PASS.
+  - bf29df5 (241 lines): 9 testutils helpers - sql_runner
+    MakeRoundRobinSQLRunner + CheckQueryResultsRetry plus the orphaned
+    RoundRobinDBHandle type/assertion/ctor/methods cascade (nothing
+    constructs it), CreateTableDebug, jobutils WaitForJob/RunJob/
+    BulkOpResponseFilter/GetLastJobID/GetJobProgress (bulk-job test
+    helpers for deleted BACKUP/IMPORT coverage), buildutil
+    VerifyTransitiveWhitelist (dep-era checker; VerifyNoImports
+    stays). Unused imports dropped per file. Green: keys, base,
+    vet clean, all pkg/testutils/... suites PASS.
+  - 65e36e0 (162 lines): security/utils.go whole file
+    (KeyUsageToString/ExtKeyUsageToString, 82), PEMContentsToX509
+    (PEMToCertificates stays), SimplifySerialInColumnDefWithRowID
+    (bulk-IMPORT helper; assertValidSerialColumnDef stays),
+    tree OverrideWindowDef (window-cut orphan) + its pgerror/pgcode
+    imports. Green: keys, base, security PASS; tree/parser/lex PASS
+    with -vet=off (the one type_check.go vet note reproduces on
+    pristine HEAD under go1.26 - pre-existing toolchain strictness,
+    not a cut regression).
+  - 3f762d2 (343 lines): stats/histogram.go whole file (223:
+    EquiDepthHistogram + HistogramClusterMode setting + 5 estimation
+    helpers; collection went in 4618ad5, read path untouched),
+    new_stat.go InsertNewStats + InsertNewStat (cascade: singular's
+    only caller was the plural; GossipTableStatAdded stays - ALTER
+    TABLE calls it), row exported NewKVFetcher ctor (live path uses
+    newKVFetcher), rowexec VectorizeAlwaysException interface (zero
+    implementers; colexec orphan). Histogram key string
+    sql.stats.histogram_collection.enabled zero refs. Green: keys,
+    base PASS; row + rowexec suites PASS (stats: no test files).
+  - 4136af7 (127 lines): sqlbase ConditionalGetTableDescFromTxn,
+    GenEncDatumRowsInt, MakeRandIntRowsInRange, RandScalarType,
+    NewInvalidWildcardError, NewWindowInAggError (window-era),
+    tree MustBeDFloat/MustBeDDecimal (sibling MustBe* stay),
+    NewIndexedVar ctor (ordinal ctors stay), parser EndsInSemicolon
+    (LastLexicalToken stays), settings TelemetryOptOut + envutil
+    import (telemetry-cut orphan). Green: keys, base PASS;
+    tree/parser/lex/sqlbase/settings/cluster suites PASS.
+
+  Total: 5 commits, 1040 deletions, 0 reverts (record holds).
+  Detector scripts kept out of tree (/tmp/opencode/deadscan.go,
+  deadcheck.sh, fscheck.sh); evidence logs at /tmp/opencode/*.out.

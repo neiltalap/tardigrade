@@ -419,3 +419,76 @@ Owner question: is function-level dead-code deletion in
 live packages approved at all, and which clusters are
 explicitly off-limits (e.g. anything touching
 txn/commit paths vs pure admin/status commentary)?
+
+
+16. rocksdb examples/ (10 files, 1339 lines, 68K)
+-------------------------------------------------
+Status: SAFE-LOOP (cut in gated batch; zero build refs).
+
+Evidence (verified 2026-11-14): c-deps/rocksdb/examples/
+(column_families/compact_files/c_simple/options_file/simple/
+transaction/optimistic_transaction/multi_processes examples +
+own Makefile) has zero refs in CMakeLists.txt, src.mk, and the
+top-level Makefile (grep for "example" minus prose hits returns
+only env_hdfs.cc, which is unrelated). Our build drives rocksdb
+via cmake (Makefile EXTRA_XCMAKE_FLAGS), never via the examples/
+Makefile. Gate: scratch cmake configure exit 0 with the
+Makefile's exact flags (same as wave-10 gate). Split into 2-3
+commits (~400 lines each) to respect the small-batch rule.
+NOTE: hdfs/ (env_hdfs.h) SKIPPED - env_hdfs.cc IS in the cmake
+source list (CMakeLists.txt:542); only examples/ is dead.
+
+Decision required: none. Revert on configure FAIL.
+
+Owner question: none.
+
+
+17. c-deps/protobuf docs + protoc-artifacts + root tests.sh
+-----------------------------------------------------------
+Status: SAFE-LOOP (verify refs file-by-file, then cut in one
+gated batch).
+
+Evidence (verified 2026-11-14): c-deps/protobuf/docs/ (24K:
+performance.md, third_party.md) and protoc-artifacts/ (28K:
+release-binary build scripts) have zero refs in cmake/
+CMakeLists.txt, the root CMakeLists.txt, and build/ (only hit
+for "tests.sh" in-tree is objectivec/Tests distribution list
+in Makefile.am:497, an already-deleted dir). Root tests.sh
+(20K) is the upstream CI driver, never invoked by our build.
+Sizes are small (docs+artifacts ~52K + tests.sh); batch with
+any adjacent protobuf orphans found during the per-file screen.
+Gate: scratch cmake configure exit 0 (protobuf invocation).
+
+Decision required: none. Revert on configure FAIL.
+
+Owner question: none.
+
+
+18. Method-grep hazard list (analyzed 2026-11-14, DO NOT CUT without interface audit)
+--------------------------------------------------------------------------------------
+Status: NEEDS-DECISION only insofar as each needs an interface-
+satisfaction proof; default is SKIP (all verified live or
+generated). Recorded so future loops do not re-propose them.
+
+Evidence: filesystem grep over pkg/ INCLUDING gitignored
+generated files (optgen *.og.go, goyacc sql.go are untracked;
+parent-repo `git grep` misses them) plus interface-decl search:
+IntersectionCols (called from ignored explorer.og.go:732),
+NextRowWithErrors (execinfra RowFetcher iface), forRF (copysets
+Reader iface), getSlotIdx + GetCPUCombinedPercentNorm (own
+package/settings + rowexec iface decls), Decompress/InitialState/
+GetEnvStats/CommitTimestampFixed/ToSlice/WritableIndexCount/
+RunParams/DrainMeta/IsVectorized/GetDatums (interface-required),
+Marshal/Unmarshal YAML + String-style methods (reflection/fmt),
+gateway Register*FromEndpoint (generated .gw.go), Fuzz* (gofuzz
+build tag), bindata embedded.go helpers (DO NOT EDIT source),
+rocksDBLog/prettyPrintKey (cgo //export), StartJob /
+NewFakeNodeLiveness (jobs entry 7), sdnotify (live callers),
+ObjectIter (json.JSON iface), notifyStatsRefresherOfNewTables
+(intentional no-op stub, entry 15).
+
+Decision required: any future cut from this list must cite the
+interface declaration it was checked against and the filesystem
+(not git) grep that cleared ignored generated files.
+
+Owner question: none; close as reference.
