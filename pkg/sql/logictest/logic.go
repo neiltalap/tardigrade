@@ -36,10 +36,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/podomy/tardigrade/pkg/base"
-	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/security"
 	"github.com/podomy/tardigrade/pkg/server"
-	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/sql/execinfra"
 	"github.com/podomy/tardigrade/pkg/sql/parser"
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
@@ -390,15 +388,6 @@ type testClusterConfig struct {
 	distSQLMetadataTestEnabled bool
 	// if set and the -test.short flag is passed, skip this config.
 	skipShort bool
-	// If not empty, bootstrapVersion controls what version the cluster will be
-	// bootstrapped at.
-	bootstrapVersion cluster.ClusterVersion
-	// If not empty, serverVersion is used to set what the Server will consider to
-	// be "the server version".
-	// TODO(andrei): clarify this comment and many others around the "server
-	// version".
-	serverVersion  roachpb.Version
-	disableUpgrade bool
 }
 
 // logicTestConfigs contains all possible cluster configs. A test file can
@@ -418,16 +407,6 @@ var logicTestConfigs = []testClusterConfig{
 		numNodes:            1,
 		overrideDistSQLMode: "off",
 		overrideVectorize:   "off",
-	},
-	{
-		name:                "local-v1.1@v1.0-noupgrade",
-		numNodes:            1,
-		overrideDistSQLMode: "off",
-		bootstrapVersion: cluster.ClusterVersion{
-			Version: roachpb.Version{Major: 1},
-		},
-		serverVersion:  roachpb.Version{Major: 1, Minor: 1},
-		disableUpgrade: true,
 	},
 	{
 		name:              "local-vec",
@@ -1050,31 +1029,6 @@ func (t *logicTest) setup(cfg testClusterConfig) {
 		distSQLKnobs.MetadataTestLevel = execinfra.On
 	}
 	params.ServerArgs.Knobs.DistSQL = distSQLKnobs
-	if cfg.bootstrapVersion != (cluster.ClusterVersion{}) {
-		params.ServerArgs.Knobs.Store.(*storage.StoreTestingKnobs).BootstrapVersion = &cfg.bootstrapVersion
-	}
-	if cfg.disableUpgrade {
-		if params.ServerArgs.Knobs.Server == nil {
-			params.ServerArgs.Knobs.Server = &server.TestingKnobs{}
-		}
-		params.ServerArgs.Knobs.Server.(*server.TestingKnobs).DisableAutomaticVersionUpgrade = 1
-	}
-
-	if cfg.serverVersion != (roachpb.Version{}) {
-		// If we want to run a specific server version, we assume that it
-		// supports at least the bootstrap version.
-		paramsPerNode := map[int]base.TestServerArgs{}
-		minVersion := cfg.serverVersion
-		if cfg.bootstrapVersion != (cluster.ClusterVersion{}) {
-			minVersion = cfg.bootstrapVersion.Version
-		}
-		for i := 0; i < cfg.numNodes; i++ {
-			nodeParams := params.ServerArgs
-			nodeParams.Settings = cluster.MakeClusterSettings(minVersion, cfg.serverVersion)
-			paramsPerNode[i] = nodeParams
-		}
-		params.ServerArgsPerNode = paramsPerNode
-	}
 
 	// Automatic statistics collection has been removed, so there are no
 	// collection tunables to set here.
