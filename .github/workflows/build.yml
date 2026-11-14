@@ -36,7 +36,7 @@ jobs:
             -e GOPATH=/go -e CC=cc -e CXX=c++ -e IGNORE_GOVERS=1 \
             -u "$(id -u):$(id -g)" \
             cockroachdb/builder:20191029-105705 \
-            make -j"$(nproc)" BUILD_DIR=/out libjemalloc libsnappy libprotobuf librocksdb
+            make -j"$(nproc)" BUILD_DIR=/out libsnappy libprotobuf librocksdb
           # libroach configures directly: its Makefile rule wants a
           # protoc regen, but the generated protos are already tracked.
           docker run --rm \
@@ -51,7 +51,6 @@ jobs:
                 -DCMAKE_BUILD_TYPE=Release \
                 -DPROTOBUF_LIB=/out/protobuf/libprotobuf.a \
                 -DROCKSDB_LIB=/out/rocksdb/librocksdb.a \
-                -DJEMALLOC_LIB=/out/jemalloc/lib/libjemalloc.a \
                 -DSNAPPY_LIB=/out/snappy/libsnappy.a \
                 -DCRYPTOPP_LIB= &&
               make -j"$(nproc)" roach'
@@ -66,7 +65,6 @@ jobs:
             artifacts/native-cdeps/protobuf/libprotobuf.a \
             artifacts/native-cdeps/snappy/libsnappy.a \
             artifacts/native-cdeps/libroach/libroach.a \
-            artifacts/native-cdeps/jemalloc/lib/libjemalloc.a \
             /usr/local/lib/
           sudo ldconfig
 
