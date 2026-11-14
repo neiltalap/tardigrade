@@ -21,7 +21,7 @@ func TestNoLinkForbidden(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	// Verify that the cockroach floss binary doesn't depend on certain packages.
 	buildutil.VerifyNoImports(t,
-		"github.com/podomy/tardigrade/cmd/cockroach-oss",
+		"github.com/podomy/tardigrade/pkg/cmd/cockroach-oss",
 		true,
 		nil,
 		[]string{

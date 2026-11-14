@@ -85,7 +85,7 @@ GOFLAGS      :=
 TAGS         :=
 ARCHIVE      := cockroach.src.tgz
 STARTFLAGS   := -s type=mem,size=1GiB --logtostderr
-BUILDTARGET  := ./cmd/cockroach-oss
+BUILDTARGET  := ./pkg/cmd/cockroach-oss
 SUFFIX       := $(GOEXE)
 INSTALL      := install
 prefix       := /usr/local
@@ -659,10 +659,10 @@ build-mode = build -o $@
 
 go-install: build-mode = install
 
-$(COCKROACHOSS): BUILDTARGET = ./cmd/cockroach-oss
+$(COCKROACHOSS): BUILDTARGET = ./pkg/cmd/cockroach-oss
 $(COCKROACHOSS): $(C_LIBS_OSS)
 
-$(COCKROACHSHORT): BUILDTARGET = ./cmd/cockroach-short
+$(COCKROACHSHORT): BUILDTARGET = ./pkg/cmd/cockroach-short
 
 $(go-targets-oss): $(C_LIBS_OSS)
 
@@ -764,7 +764,7 @@ check test testshort testrace bench benchshort:
 # required for pure-Go packages. Cgo packages (storage engine, anything
 # linking libroach) still need the builder flow above.
 buildmod: ## Build all pure-Go packages in module mode.
-	GO111MODULE=on GOFLAGS=-mod=mod $(GO) build ./pkg/... ./cmd/...
+	GO111MODULE=on GOFLAGS=-mod=mod $(GO) build ./pkg/... ./pkg/cmd/...
 
 testmod: ## Run module-mode tests for the solid-core fast loop.
 	GO111MODULE=on GOFLAGS=-mod=mod $(GO) test -vet=off -count=1 -timeout 15m \
@@ -1176,13 +1176,13 @@ bin/logictestopt: $(OPTGEN_TARGETS)
 
 $(bins): bin/%: bin/%.d | bin/prereqs bin/.submodules-initialized
 	@echo go install -v $*
-	bin/prereqs $(if $($*-package),$($*-package),./cmd/$*) > $@.d.tmp
+	bin/prereqs $(if $($*-package),$($*-package),./pkg/cmd/$*) > $@.d.tmp
 	mv -f $@.d.tmp $@.d
-	@$(GO_INSTALL) -v $(if $($*-package),$($*-package),./cmd/$*)
+	@$(GO_INSTALL) -v $(if $($*-package),$($*-package),./pkg/cmd/$*)
 
 # Stubs for cloud/CI tools removed for core.
 bin/roachprod bin/github-post bin/github-pull-request-make bin/publish-artifacts bin/publish-provisional-artifacts bin/teamcity-trigger:
-	@echo "$@ removed for core (see CUTS.md)" >&2; exit 1
+	@echo "$@ removed for core (see pkg/cmd removal)" >&2; exit 1
 
 # Stubs for developer binaries removed for core. These are only ever built
 # on demand (never as build prerequisites), so a hard error is honest.

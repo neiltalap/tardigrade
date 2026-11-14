@@ -76,7 +76,7 @@ jobs:
       - name: Build OSS binary
         run: |
           go mod download
-          go build -mod=mod -o cockroachoss ./cmd/cockroach-oss
+          go build -mod=mod -o cockroachoss ./pkg/cmd/cockroach-oss
 
       - name: Inspect linkage
         run: ldd ./cockroachoss || true

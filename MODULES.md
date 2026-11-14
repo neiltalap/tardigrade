@@ -85,11 +85,11 @@ rocksdb built via repo make in cockroachdb/builder:
 20191029-105705 with CC=cc; libroach via direct cmake,
 its Makefile rule's protoc regen skipped since the
 protos are tracked) are installed to /usr/local/lib on
-this machine. `go build -mod=mod ./cmd/cockroach-oss`
+this machine. `go build -mod=mod ./pkg/cmd/cockroach-oss`
 links; the binary runs `version` and passes a
 single-node SQL smoke test. Fresh-clone proof: clean
 clone + `go mod download` + `go build -mod=mod
-./cmd/cockroach-oss` succeeds with no vendor/,
+./pkg/cmd/cockroach-oss` succeeds with no vendor/,
 and package tests run. build.yml CI now runs this
 two-stage flow (builder image for C++, setup-go 1.26
 for the Go build + smoke).
