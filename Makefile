@@ -119,10 +119,7 @@ help: ## Print help for targets with comments.
 		"make testbaselogic" "Run all the baseSQL SQL logic tests." \
 		"make testlogic FILES='prepare fk'" "Run the logic tests in the files named prepare and fk." \
 		"make testlogic FILES=fk SUBTESTS='20042|20045'" "Run the logic tests within subtests 20042 and 20045 in the file named fk." \
-		"make testlogic TESTCONFIG=local" "Run the logic tests for the cluster configuration 'local'." \
-		"make fuzz" "Run all fuzz tests for 12m each (or whatever the default TESTTIMEOUT is)." \
-		"make fuzz PKG=./pkg/sql/... TESTTIMEOUT=1m" "Run all fuzz tests under the sql directory for 1m each." \
-		"make fuzz PKG=./pkg/sql/sem/tree TESTS=Decimal TESTTIMEOUT=1m" "Run the Decimal fuzz tests in the tree directory for 1m."
+		"make testlogic TESTCONFIG=local" "Run the logic tests for the cluster configuration 'local'."
 
 BUILDTYPE := development
 
@@ -288,9 +285,7 @@ bin/.bootstrap: $(GITHOOKS) Gopkg.lock go.mod | bin/.submodules-initialized
 		github.com/cockroachdb/stress@v0.0.0-20170808184505-29b5d31b4c3a \
 		github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway@v1.9.5 \
 		github.com/kisielk/errcheck@v1.1.0 \
-		github.com/mattn/goveralls@v0.0.2 \
 		github.com/mibk/dupl@v1.0.0 \
-		github.com/wadey/gocovmerge@v0.0.0-20160331181800-b5bfa59ec0ad \
 		golang.org/x/lint/golint@v0.0.0-20190409202823-959b441ac422 \
 		golang.org/x/perf/cmd/benchstat@v0.0.0-20180704124530-6e6d33e29852 \
 		golang.org/x/tools/cmd/goyacc@v0.0.0-20190524140312-2c0ae7006135 \
@@ -834,10 +829,6 @@ testslow testraceslow: override TESTFLAGS += -v
 testslow testraceslow:
 	$(xgo) test $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' -run "$(TESTS)" $(if $(BENCHES),-bench "$(BENCHES)") -timeout $(TESTTIMEOUT) $(PKG) $(TESTFLAGS) | grep -F ': Test' | sed -E 's/(--- PASS: |\(|\))//g' | awk '{ print $$2, $$1 }' | sort -rn | head -n 10
 
-.PHONY: upload-coverage
-upload-coverage: bin/.bootstrap
-	@echo "coverage upload disabled for core (goveralls/gocovmerge de-vendored)" >&2; exit 1
-
 .PHONY: dupl
 dupl: bin/.bootstrap
 	$(FIND_RELEVANT) \
@@ -1234,11 +1225,6 @@ bin/uptodate:
 	@mkdir -p bin
 	@printf '#!/bin/sh\n# uptodate stub: uptodate <target> <srcdir>...\nupd_target=$$1; shift\n[ -e "$$upd_target" ] || exit 1\nfor d in "$$@"; do\n  [ -e "$$d" ] || continue\n  if find "$$d" -newer "$$upd_target" -print -quit 2>/dev/null | grep -q .; then exit 1; fi\ndone\nexit 0\n' > $@
 	@chmod +x $@
-
-.PHONY: fuzz
-fuzz: ## Run fuzz tests.
-fuzz:
-	@echo "fuzz harness removed for core (see pkg/cmd/fuzz removal)" >&2; exit 1
 
 .PRECIOUS: bin/%.d
 bin/%.d: ;
