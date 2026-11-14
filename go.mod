@@ -350,4 +350,9 @@ replace vitess.io/vitess => github.com/cockroachdb/vitess v2.2.0-rc.1.0.20180830
 
 replace golang.org/x/net v0.0.0-20190813000000-74dc4d7220e7 => golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 
+// Tardigrade fork: May-2019 x/tools plus a one-line go1.26 fix
+// (go/packages no longer asserts sizes to *types.StdSizes).
+// See third_party/x-tools/README.tardigrade.
+replace golang.org/x/tools => ./third_party/x-tools
+
 replace github.com/cockroachdb/datadriven => github.com/cockroachdb/datadriven v0.0.0-20190531201743-edce55837238

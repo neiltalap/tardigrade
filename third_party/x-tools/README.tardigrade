@@ -1,0 +1,19 @@
+Patched fork of golang.org/x/tools @ v0.0.0-20190524140312-2c0ae7006135
+(the dep-era pin, May 2019).
+
+Only the packages imported by this repo are vendored here
+(go/analysis + analysistest + checker + passes/inspect,
+go/ast/{astutil,inspector}, go/buildutil, go/{packages,
+gcexportdata,internal/{gcimporter,packagesdriver}},
+container/intsets, internal/{fastwalk,gopathwalk,semver}).
+
+Patch vs upstream (1 functional line + comment):
+go/packages no longer asserts the sizes result to *types.StdSizes
+(go1.26's types.SizesFor returns *types.gcSizes, so the assertion
+yielded nil and every type-check panicked on Sizes.Sizeof).
+driverResponse.Sizes is now types.Sizes, assigned directly.
+
+Wired via `replace golang.org/x/tools => ./third_party/x-tools`
+in the root go.mod. Do not extend this fork; if the repo ever
+moves to a newer x/tools, delete this directory and drop the
+replace.

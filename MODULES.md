@@ -127,6 +127,17 @@ optgen/exprgen/custom_funcs.go while leaving the
 testdata references; the harness resolves names by
 reflection (expr_gen.go), so this is red on main by
 construction. Everything else in the gate stays green.
+x/tools fork (red-test loop, Nov 2026): the May-2019 x/tools
+asserts go/packages sizes to *types.StdSizes, but go1.26's
+types.SizesFor returns *types.gcSizes, so every analysistest
+type-check panicked (hash/timer passes). Upgrading x/tools was
+rejected: even the minimal fixed version (v0.13.0) drags
+x/crypto+x/net+x/text+x/sys 2019->2023 repo-wide. Instead
+third_party/x-tools vendors the 15 imported 2019 packages
+with the one-line upstream-identical fix (driverResponse.Sizes
+is now types.Sizes), wired via a filesystem replace (no graph
+churn, no go.sum change). Verified: full go build ./... green;
+hash/timer/descriptormarshal/unconvert + util/xform/memo green.
 Fixes made along the way, all committed on this branch:
 datadriven pinned to the locked May revision (etcd pulls
 an August one whose golden format differs), MERGE-hint
