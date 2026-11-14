@@ -1208,3 +1208,14 @@ Cut batch 2026-11-14, loop-M (main branch, modules, no vendor)
   the sibling; copysets protos; c-deps groups).
 
   Total: 5 commits, 1616 deletions.
+
+2026-11-14 cut loop (sql + green dirs), batch 1: gofuzz entry points
+(119 lines). Removed pkg/sql/parser/fuzz/fuzz.go (FuzzParse),
+pkg/sql/sem/tree/fuzz.go (FuzzParseDDecimal, FuzzParseDDate),
+pkg/sql/pgwire/pgwirebase/fuzz.go (FuzzDecodeOidDatum). All carried
+// +build gofuzz, zero repo-wide references, fuzz harness mains long
+gone; parser/fuzz/empty.go stays as the normal-build package stub.
+Out of scope but verified identically dead for the sibling loop:
+pkg/util/uuid/fuzz.go (Fuzz, 42 lines) + pkg/util/json/fuzz.go
+(FuzzParseJSON, 21 lines), both gofuzz-tagged with zero refs.
+Gate: go build ./pkg/... + parser/pgwire/sem.tree suites green.
