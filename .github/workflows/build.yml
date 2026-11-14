@@ -6,7 +6,7 @@ name: build
 # compiles and links the Go binary against the installed static libs.
 on:
   push:
-    branches: [tardigrade-main, release-19.2]
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
 
