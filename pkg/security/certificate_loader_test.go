@@ -130,8 +130,9 @@ func countLoadedCertificates(certsDir string) (int, error) {
 func makeTestCert(
 	t *testing.T, commonName string, keyUsage x509.KeyUsage, extUsages []x509.ExtKeyUsage,
 ) (*x509.Certificate, []byte) {
-	// Make smallest rsa key possible: not saved.
-	key, err := rsa.GenerateKey(rand.Reader, 512)
+	// Make the smallest rsa key the stdlib allows (1024 bits as of Go
+	// 1.24, which rejects anything smaller): not saved.
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		t.Fatalf("error on GenerateKey for CN=%s: %v", commonName, err)
 	}
