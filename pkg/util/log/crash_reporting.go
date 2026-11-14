@@ -22,14 +22,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/podomy/tardigrade/pkg/build"
 	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/util"
 	"github.com/podomy/tardigrade/pkg/util/caller"
 	"github.com/podomy/tardigrade/pkg/util/envutil"
 	"github.com/podomy/tardigrade/pkg/util/sysutil"
 	"github.com/podomy/tardigrade/pkg/util/timeutil"
-	raven "github.com/getsentry/raven-go"
 	"github.com/pkg/errors"
 )
 
@@ -41,9 +39,6 @@ import (
 const depthForRecoverAndReportPanic = 3
 
 var (
-	// crashReportEnv controls the version reported in crash reports
-	crashReportEnv = "development"
-
 	// DiagnosticsReportingEnabled wraps "diagnostics.reporting.enabled".
 	//
 	// "diagnostics.reporting.enabled" enables reporting of metrics related to a
@@ -211,52 +206,9 @@ func ReportPanic(ctx context.Context, sv *settings.Values, r interface{}, depth 
 		logging.printPanicToFile(r)
 	}
 
-	SendCrashReport(ctx, sv, depth+1, "", []interface{}{r}, ReportTypePanic)
-
 	// Ensure that the logs are flushed before letting a panic
 	// terminate the server.
 	Flush()
-}
-
-var crashReportURL = func() string {
-	var defaultURL string
-	if build.SeemsOfficial() {
-		defaultURL = "https://ignored:ignored@errors.cockroachdb.com/sentry"
-	}
-	return envutil.EnvOrDefaultString("COCKROACH_CRASH_REPORTS", defaultURL)
-}()
-
-// crashReportingActive is set to true if raven has been initialized.
-var crashReportingActive bool
-
-// SetupCrashReporter sets the crash reporter info.
-func SetupCrashReporter(ctx context.Context, cmd string) {
-	if crashReportURL == "" {
-		return
-	}
-	if err := raven.SetDSN(crashReportURL); err != nil {
-		panic(errors.Wrap(err, "failed to setup crash reporting"))
-	}
-	crashReportingActive = true
-
-	if cmd == "start" {
-		cmd = "server"
-	}
-	info := build.GetInfo()
-	raven.SetRelease(info.Tag)
-	raven.SetEnvironment(crashReportEnv)
-	raven.SetTagsContext(map[string]string{
-		"cmd":          cmd,
-		"platform":     info.Platform,
-		"distribution": info.Distribution,
-		"rev":          info.Revision,
-		"goversion":    info.GoVersion,
-	})
-}
-
-var crdbPaths = []string{
-	"github.com/podomy/tardigrade",
-	"go.etcd.io/etcd/raft",
 }
 
 func uptimeTag(now time.Time) string {
@@ -421,154 +373,6 @@ func ReportablesToSafeError(depth int, format string, reportables []interface{})
 		message: fmt.Sprintf("%s:%d: %s%s%s", filepath.Base(file), line, format, sep, strings.Join(redacted, "; ")),
 	}
 	return err
-}
-
-// ReportType is used to differentiate between an actual crash/panic and just
-// reporting an error. This data is useful for stability purposes.
-type ReportType int
-
-const (
-	// ReportTypePanic signifies that this is an actual panic.
-	ReportTypePanic ReportType = iota
-	// ReportTypeError signifies that this is just a report of an error but it
-	// still may include an exception and stack trace.
-	ReportTypeError
-)
-
-// SendCrashReport posts to sentry. The `reportables` is essentially the `args...` in
-// `log.Fatalf(format, args...)` (similarly for `log.Fatal`) or `[]interface{}{arg}` in
-// `panic(arg)`.
-//
-// The format string and those items in `reportables` which are a) an error or b) (values of or
-// pointers to) `log.Safe` will be used verbatim to construct the error that is reported to sentry.
-//
-// TODO(dt,knz,sql-team): we need to audit all sprintf'ing of values into the errors and strings
-// passed to panic, to ensure raw user data is kept separate and can thus be elided here. For now,
-// the type is about all we can assume is safe to report, which combined with file and line info
-// should be at least somewhat helpful in telling us where crashes are coming from. We capture the
-// full stacktrace below, so we only need the short file and line here help uniquely identify the
-// error. Some exceptions, like a runtime.Error, are assumed to be fine as-is.
-//
-// The crashReportType parameter adds a tag to the event that shows if the
-// cluster did indeed crash or not.
-func SendCrashReport(
-	ctx context.Context,
-	sv *settings.Values,
-	depth int,
-	format string,
-	reportables []interface{},
-	crashReportType ReportType,
-) {
-	if !ShouldSendReport(sv) {
-		return
-	}
-	err := ReportablesToSafeError(depth+1, format, reportables)
-	ex := raven.NewException(err, NewStackTrace(depth+1))
-	SendReport(ctx, err.Error(), crashReportType, nil, ex)
-}
-
-// ShouldSendReport returns true iff SendReport() should be called.
-func ShouldSendReport(sv *settings.Values) bool {
-	if sv == nil || !DiagnosticsReportingEnabled.Get(sv) || !CrashReports.Get(sv) {
-		return false // disabled via settings.
-	}
-	if !crashReportingActive {
-		return false // disabled via empty URL env var.
-	}
-	return true
-}
-
-// SendReport uploads a detailed error report to sentry.
-// Note that there can be at most one reportable object of each type in the report.
-// For more messages, use extraDetails.
-// The crashReportType parameter adds a tag to the event that shows if the
-// cluster did indeed crash or not.
-func SendReport(
-	ctx context.Context,
-	errMsg string,
-	crashReportType ReportType,
-	extraDetails map[string]interface{},
-	details ...ReportableObject,
-) {
-	packet := raven.NewPacket(errMsg, details...)
-
-	for extraKey, extraValue := range extraDetails {
-		packet.Extra[extraKey] = extraValue
-	}
-
-	if !ReportSensitiveDetails {
-		// Avoid leaking the machine's hostname by injecting the literal "<redacted>".
-		// Otherwise, raven.Client.Capture will see an empty ServerName field and
-		// automatically fill in the machine's hostname.
-		packet.ServerName = "<redacted>"
-	}
-	tags := map[string]string{
-		"uptime": uptimeTag(timeutil.Now()),
-	}
-
-	switch crashReportType {
-	case ReportTypePanic:
-		tags["report_type"] = "panic"
-	case ReportTypeError:
-		tags["report_type"] = "error"
-	}
-
-	for _, f := range tagFns {
-		v := f.value(ctx)
-		if v != "" {
-			tags[f.key] = maybeTruncate(v)
-		}
-	}
-
-	eventID, ch := raven.DefaultClient.Capture(packet, tags)
-	select {
-	case <-ch:
-		Shout(ctx, Severity_ERROR, "Reported as error "+eventID)
-	case <-time.After(10 * time.Second):
-		Shout(ctx, Severity_ERROR, "Time out trying to submit crash report")
-	}
-}
-
-// ReportOrPanic either reports an error to sentry, if run from a release
-// binary, or panics, if triggered in tests. This is intended to be used for
-// failing assertions which are recoverable but serious enough to report and to
-// cause tests to fail.
-//
-// Like SendCrashReport, the format string should not contain any sensitive
-// data, and unsafe reportables will be redacted before reporting.
-func ReportOrPanic(
-	ctx context.Context, sv *settings.Values, format string, reportables ...interface{},
-) {
-	if !build.IsRelease() || (sv != nil && PanicOnAssertions.Get(sv)) {
-		panic(fmt.Sprintf(format, reportables...))
-	}
-	Warningf(ctx, format, reportables...)
-	SendCrashReport(ctx, sv, 1 /* depth */, format, reportables, ReportTypeError)
-}
-
-// Sentry max tag value length.
-// From: https://github.com/getsentry/sentry-docs/pull/1304/files
-const maxTagLen = 200
-
-func maybeTruncate(tagValue string) string {
-	if len(tagValue) > maxTagLen {
-		const truncatedSuffix = " [...]"
-		return tagValue[:maxTagLen-len(truncatedSuffix)] + truncatedSuffix
-	}
-	return tagValue
-}
-
-type tagFn struct {
-	key   string
-	value func(context.Context) string
-}
-
-var tagFns []tagFn
-
-// RegisterTagFn adds a function for tagging crash reports based on the context.
-// This is intended to be called by other packages at init time.
-func RegisterTagFn(key string, value func(context.Context) string) {
-	tagFns = append(tagFns, tagFn{key, value})
 }
 
 // ErrorSource attempts to return the file:line where `i` was created if `i` has

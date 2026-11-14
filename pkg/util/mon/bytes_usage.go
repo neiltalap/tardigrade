@@ -394,10 +394,8 @@ func (mm *BytesMonitor) doStop(ctx context.Context, check bool) {
 	}
 
 	if check && mm.mu.curAllocated != 0 {
-		log.ReportOrPanic(
-			ctx, &mm.settings.SV,
-			"%s: unexpected %d leftover bytes", mm.name, mm.mu.curAllocated)
-		mm.releaseBytes(ctx, mm.mu.curAllocated)
+		panic(fmt.Sprintf(
+			"%s: unexpected %d leftover bytes", mm.name, mm.mu.curAllocated))
 	}
 
 	mm.releaseBudget(ctx)
@@ -565,10 +563,8 @@ func (b *BoundAccount) Grow(ctx context.Context, x int64) error {
 // Shrink releases part of the cumulated allocations by the specified size.
 func (b *BoundAccount) Shrink(ctx context.Context, delta int64) {
 	if b.used < delta {
-		log.ReportOrPanic(ctx, &b.mon.settings.SV,
-			"%s: no bytes in account to release, current %d, free %d",
-			b.mon.name, b.used, delta)
-		delta = b.used
+		panic(fmt.Sprintf("%s: no bytes in account to release, current %d, free %d",
+			b.mon.name, b.used, delta))
 	}
 	b.used -= delta
 	b.reserved += delta
@@ -635,9 +631,9 @@ func (mm *BytesMonitor) releaseBytes(ctx context.Context, sz int64) {
 	defer mm.mu.Unlock()
 	if mm.mu.curAllocated < sz {
 		sz = mm.mu.curAllocated
-		log.ReportOrPanic(ctx, &mm.settings.SV,
+		panic(fmt.Sprintf(
 			"%s: no bytes to release, current %d, free %d",
-			mm.name, mm.mu.curAllocated, sz)
+			mm.name, mm.mu.curAllocated, sz))
 	}
 	mm.mu.curAllocated -= sz
 	if mm.curBytesCount != nil {

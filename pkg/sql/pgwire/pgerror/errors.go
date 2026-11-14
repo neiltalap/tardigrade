@@ -18,7 +18,6 @@ import (
 	"strings"
 
 	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
-	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/cockroachdb/errors"
 	"github.com/lib/pq"
 )
@@ -136,11 +135,6 @@ func (pg *Error) Format(s fmt.State, verb rune) {
 		fmt.Fprintf(s, "(%s) %s", pg.Code, pg.Message)
 		for _, d := range pg.SafeDetail {
 			fmt.Fprintf(s, "\n-- detail --\n%s", d.SafeMessage)
-			if d.EncodedStackTrace != "" {
-				if st, ok := log.DecodeStackTrace(d.EncodedStackTrace); ok {
-					fmt.Fprintf(s, "\n%s", log.PrintStackTrace(st))
-				}
-			}
 		}
 		return
 	case verb == 'v' && s.Flag('#'):

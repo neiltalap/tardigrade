@@ -47,11 +47,6 @@ func Main() {
 
 	cmdName := commandName(os.Args[1:])
 
-	log.SetupCrashReporter(
-		context.Background(),
-		cmdName,
-	)
-
 	defer log.RecoverAndReportPanic(context.Background(), &serverCfg.Settings.SV)
 
 	err := Run(os.Args[1:])

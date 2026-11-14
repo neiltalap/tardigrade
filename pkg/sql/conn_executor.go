@@ -1986,7 +1986,6 @@ func (ex *connExecutor) txnStateTransitionsApplyWrapper(
 					" generated even though res.Err() has been set to: %s",
 				res.Err())
 			log.Error(ex.Ctx(), err)
-			errorutil.SendReport(ex.Ctx(), &ex.server.cfg.Settings.SV, err)
 			return advanceInfo{}, err
 		}
 		scc := &ex.extraTxnState.schemaChangers
@@ -2383,16 +2382,4 @@ func statementFromCtx(ctx context.Context) tree.Statement {
 		return nil
 	}
 	return stmt.(tree.Statement)
-}
-
-func init() {
-	// Register a function to include the anonymized statement in crash reports.
-	log.RegisterTagFn("statement", func(ctx context.Context) string {
-		stmt := statementFromCtx(ctx)
-		if stmt == nil {
-			return ""
-		}
-		// Anonymize the statement for reporting.
-		return anonymizeStmtAndConstants(stmt)
-	})
 }

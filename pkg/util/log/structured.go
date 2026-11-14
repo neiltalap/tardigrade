@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/podomy/tardigrade/pkg/settings"
 	"github.com/podomy/tardigrade/pkg/util/caller"
 	"github.com/cockroachdb/logtags"
 )
@@ -53,13 +52,6 @@ func addStructured(ctx context.Context, s Severity, depth int, format string, ar
 	file, line, _ := caller.Lookup(depth + 1)
 	msg := MakeMessage(ctx, format, args)
 
-	if s == Severity_FATAL {
-		// We load the ReportingSettings from the a global singleton in this
-		// call path. See the singleton's comment for a rationale.
-		if sv := settings.TODO(); sv != nil {
-			SendCrashReport(ctx, sv, depth+2, format, args, ReportTypePanic)
-		}
-	}
 	// MakeMessage already added the tags when forming msg, we don't want
 	// eventInternal to prepend them again.
 	eventInternal(ctx, (s >= Severity_ERROR), false /*withTags*/, "%s:%d %s", file, line, msg)

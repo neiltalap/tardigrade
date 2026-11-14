@@ -12,6 +12,7 @@ package execinfra
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -380,7 +381,7 @@ func (rb *rowSourceBase) consumerDone() {
 func (rb *rowSourceBase) consumerClosed(name string) {
 	status := ConsumerStatus(atomic.LoadUint32((*uint32)(&rb.ConsumerStatus)))
 	if status == ConsumerClosed {
-		log.ReportOrPanic(context.Background(), nil, "%s already closed", log.Safe(name))
+		panic(fmt.Sprintf("%s already closed", name))
 	}
 	atomic.StoreUint32((*uint32)(&rb.ConsumerStatus), uint32(ConsumerClosed))
 }

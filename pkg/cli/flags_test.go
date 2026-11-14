@@ -66,11 +66,6 @@ func TestNoLinkForbidden(t *testing.T) {
 		[]string{
 			"github.com/podomy/tardigrade/pkg/testutils", // meant for testing code only
 		},
-		// Raven (Sentry) and the errors library use go/build to determine
-		// the list of source directories (used to strip the source prefix
-		// in stack trace reports).
-		"github.com/podomy/tardigrade/vendor/github.com/getsentry/raven-go",
-		"github.com/podomy/tardigrade/vendor/github.com/cockroachdb/errors/withstack",
 	)
 }
 
