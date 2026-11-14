@@ -87,7 +87,9 @@ var defaultRE = func() *regexp.Regexp {
 	}
 	if !strings.HasSuffix(root, sep+"src") && !strings.HasSuffix(root, sep+"vendor") &&
 		!strings.HasSuffix(root, sep+"pkg/mod") {
-		panic("unable to find base path for default call resolver, got " + root)
+		// Not in a checkout (e.g. a release binary running anywhere):
+		// strip nothing rather than crash; see the defaultRE doc above.
+		return reStripNothing
 	}
 	return regexp.MustCompile(regexp.QuoteMeta(root) + pkgStrip)
 }()
