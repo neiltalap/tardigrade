@@ -1517,7 +1517,6 @@ func (desc *MutableTableDescriptor) MaybeIncrementVersion(
 	// incrementing the version and then upon reading use the MVCC timestamp to
 	// populate the ModificationTime.
 	//
-	// TODO(ajwerner): remove this check in 20.1.
 	var modTime hlc.Timestamp
 	if !settings.Version.IsActive(cluster.VersionTableDescModificationTimeFromMVCC) {
 		modTime = txn.CommitTimestamp()

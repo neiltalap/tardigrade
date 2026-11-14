@@ -97,9 +97,6 @@ type NodeStatus struct {
 	Env           []string               `protobuf:"bytes,8,rep,name=env,proto3" json:"env,omitempty"`
 	// latencies is a map of nodeIDs to nanoseconds which is the latency
 	// between this node and the other node.
-	//
-	// NOTE: this is deprecated and is only set if the min supported
-	//       cluster version is >= VersionRPCNetworkStats.
 	Latencies map[github_com_podomy_tardigrade_pkg_roachpb.NodeID]int64 `protobuf:"bytes,9,rep,name=latencies,proto3,castkey=github.com/podomy/tardigrade/pkg/roachpb.NodeID" json:"latencies" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	// activity is a map of nodeIDs to network statistics from this node
 	// to other nodes.
