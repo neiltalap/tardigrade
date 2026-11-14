@@ -257,6 +257,13 @@ there would crash sessions and silently veto test-file rewrites).
 - Wire-compat shells (`jobspb` payloads, `RangeFeed` error stub,
   diagnostics shape, inert partition fields): breaking the wire to save
   lines is vandalism, not trimming.
+- `optgen/exprgen/custom_funcs.go` test helpers (`MakeLookupJoin`,
+  `MinPhysProps`, `MakePhysProps`, `ProjectionItem`) cut in 5a63f27:
+  reverted (restored from 5a63f27^) by the red-test loop because the
+  memo `TestStats` and exprgen `TestExprGen` testdata still reference
+  them (harness resolves names by reflection; no -rewrite flag can
+  conjure deleted methods). Restoring 47 lines keeps both suites
+  green; re-cut only together with their testdata.
 
 ## Method
 

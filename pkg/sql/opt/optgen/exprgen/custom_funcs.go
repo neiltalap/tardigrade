@@ -75,6 +75,22 @@ func (c *customFuncs) ColSet(cols string) opt.ColSet {
 	return c.ColList(cols).ToSet()
 }
 
+// MinPhysProps returns the singleton minimum set of physical properties.
+func (c *customFuncs) MinPhysProps() *physical.Required {
+	return physical.MinRequired
+}
+
+// MakePhysProps returns a set of physical properties corresponding to the
+// input presentation and OrderingChoice.
+func (c *customFuncs) MakePhysProps(
+	p physical.Presentation, o physical.OrderingChoice,
+) *physical.Required {
+	return c.mem.InternPhysicalProps(&physical.Required{
+		Presentation: p,
+		Ordering:     o,
+	})
+}
+
 // ExplainOptions creates a tree.ExplainOptions from a comma-separated list of
 // options.
 func (c *customFuncs) ExplainOptions(opts string) tree.ExplainOptions {
@@ -112,6 +128,18 @@ func (c *customFuncs) FindTable(name string) opt.TableID {
 		panic(errorf("couldn't find table with name %q", name))
 	}
 	return res
+}
+
+// ProjectionItem creates a ProjectionItem. A list of such items can be used as
+// a ProjectionsExpr.
+func (c *customFuncs) ProjectionItem(
+	element opt.ScalarExpr, col opt.ColumnID,
+) memo.ProjectionsItem {
+	return memo.ProjectionsItem{
+		Element:    element,
+		ColPrivate: memo.ColPrivate{Col: col},
+		Typ:        c.mem.Metadata().ColumnMeta(col).Type,
+	}
 }
 
 // AggregationsItem creates an AggregationsItem. A list of such items can be used as
@@ -169,6 +197,25 @@ func (c *customFuncs) substituteCols(str string) string {
 	}
 	maybeEmit(len(str))
 	return b.String()
+}
+
+// MakeLookupJoin is a wrapper around ConstructLookupJoin that swaps the order
+// of the private and the filters. This is useful because the expressions are
+// evaluated in order, and we want to be able to refer to the lookup columns in
+// the ON expression. For example:
+//
+//   (MakeLookupJoin
+//     (Scan [ (Table "def") (Cols "d,e") ])
+//     [ (JoinType "left-join") (Table "abc") (Index "abc@ab") (KeyCols "a") (Cols "a,b") ]
+//     [ (Gt (Var "a") (Var "e")) ]
+//   )
+//
+// If the order of the last two was swapped, we wouldn't be able to look up
+// column a.
+func (c *customFuncs) MakeLookupJoin(
+	input memo.RelExpr, lookupJoinPrivate *memo.LookupJoinPrivate, on memo.FiltersExpr,
+) memo.RelExpr {
+	return c.f.ConstructLookupJoin(input, on, lookupJoinPrivate)
 }
 
 // Sort adds a sort enforcer which sorts according to the ordering that will be
