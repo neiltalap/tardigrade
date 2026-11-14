@@ -1,0 +1,11 @@
+# Tardigrade single-node runtime. The binary is built on the host
+# (needs Go 1.26 + the prebuilt C++ static libs) and copied in;
+# Fedora 44 matches the build host's glibc/ncurses exactly.
+FROM fedora:44
+
+RUN mkdir -p /cockroach/cockroach-data
+COPY bin/cockroach-oss /cockroach/cockroach
+
+EXPOSE 26257 8080
+
+ENTRYPOINT ["/cockroach/cockroach"]

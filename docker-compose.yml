@@ -1,0 +1,29 @@
+services:
+  tardigrade:
+    build:
+      context: .
+      dockerfile: Dockerfile.cockroach
+    image: tardigrade:local
+    container_name: tardigrade-db
+    command:
+      - start-single-node
+      - --insecure
+      - --store=/cockroach/cockroach-data
+      - --listen-addr=0.0.0.0:26257
+      - --http-addr=0.0.0.0:8080
+      - --background=false
+    ports:
+      - "26258:26257"
+      - "8081:8080"
+    volumes:
+      - cockroach-data:/cockroach/cockroach-data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/cockroach/cockroach", "sql", "--insecure", "--host=localhost:26257", "-e", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+volumes:
+  cockroach-data:
