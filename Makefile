@@ -640,16 +640,6 @@ PROTOBUF_TARGETS := bin/.go_protobuf_sources bin/.gw_protobuf_sources bin/.cpp_p
 # Doc generation removed for core (docs/ and pkg/cmd/docgen deleted).
 DOCGEN_TARGETS :=
 
-# Vectorized engine removed for core (pkg/col and pkg/sql/colexec deleted),
-# so there are no execgen targets left.
-EXECGEN_TARGETS =
-
-execgen-exclusions = $(addprefix -not -path ,$(EXECGEN_TARGETS))
-
-$(info Cleaning old generated files.)
-$(shell test -d pkg/sql/colexec && find pkg/sql/colexec -type f -name '*.eg.go' $(execgen-exclusions) -delete)
-$(shell test -d pkg/sql/exec && find pkg/sql/exec -type f -name '*.eg.go' $(execgen-exclusions) -delete 2>/dev/null)
-
 OPTGEN_TARGETS = \
 	pkg/sql/opt/memo/expr.og.go \
 	pkg/sql/opt/operator.og.go \
@@ -692,7 +682,7 @@ BUILD_TAGGED_RELEASE =
 BUILDINFO_TAG :=
 
 $(go-targets): bin/.bootstrap $(BUILDINFO) $(CGO_FLAGS_FILES) $(PROTOBUF_TARGETS)
-$(go-targets): $(SQLPARSER_TARGETS) $(EXECGEN_TARGETS) $(OPTGEN_TARGETS)
+$(go-targets): $(SQLPARSER_TARGETS) $(OPTGEN_TARGETS)
 $(go-targets): override LINKFLAGS += \
 	-X "github.com/podomy/tardigrade/pkg/build.tag=$(if $(BUILDINFO_TAG),$(BUILDINFO_TAG),$(shell cat .buildinfo/tag))" \
 	-X "github.com/podomy/tardigrade/pkg/build.rev=$(shell cat .buildinfo/rev)" \
@@ -863,7 +853,7 @@ dupl: bin/.bootstrap
 
 .PHONY: generate
 generate: ## Regenerate generated code.
-generate: protobuf $(DOCGEN_TARGETS) $(EXECGEN_TARGETS) $(OPTGEN_TARGETS) $(SQLPARSER_TARGETS) bin/langgen
+generate: protobuf $(DOCGEN_TARGETS) $(OPTGEN_TARGETS) $(SQLPARSER_TARGETS) bin/langgen
 	$(GO) generate $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' $(PKG)
 
 lint lintshort: TESTTIMEOUT := $(LINTTIMEOUT)
@@ -914,7 +904,6 @@ $(ARCHIVE): $(ARCHIVE).tmp
 ARCHIVE_EXTRAS = \
 	$(BUILDINFO) \
 	$(SQLPARSER_TARGETS) \
-	$(EXECGEN_TARGETS) \
 	$(OPTGEN_TARGETS) 
 
 # TODO(benesch): Make this recipe use `git ls-files --recurse-submodules`
@@ -1120,9 +1109,6 @@ pkg/sql/parser/help_messages.go: pkg/sql/parser/sql.y pkg/sql/parser/help.awk | 
 	mv -f $@.tmp $@
 	gofmt -s -w $@
 
-$(EXECGEN_TARGETS): bin/execgen
-	execgen $@
-
 optgen-defs := pkg/sql/opt/ops/*.opt
 optgen-norm-rules := pkg/sql/opt/norm/rules/*.opt
 optgen-xform-rules := pkg/sql/opt/xform/rules/*.opt
@@ -1164,14 +1150,9 @@ unsafe-clean-c-deps:
 	git -C $(SNAPPY_SRC_DIR)   clean -dxf
 	git -C $(LIBROACH_SRC_DIR) clean -dxf
 
-.PHONY: clean-execgen-files
-clean-execgen-files:
-	test -d ./pkg/sql/colexec && find ./pkg/sql/colexec -type f -name '*.eg.go' -exec rm {} + || true
-	test -d ./pkg/sql/exec && find ./pkg/sql/exec -type f -name '*.eg.go' -exec rm {} + || true
-
 .PHONY: clean
 clean: ## Remove build artifacts.
-clean: clean-c-deps clean-execgen-files
+clean: clean-c-deps
 	rm -rf bin/.go_protobuf_sources bin/.gw_protobuf_sources bin/.cpp_protobuf_sources build/defs.mk*
 	$(GO) clean $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' -i -cache github.com/podomy/tardigrade...
 	$(FIND_RELEVANT) -type f \( -name 'zcgo_flags*.go' -o -name '*.test' \) -exec rm {} +
@@ -1181,7 +1162,7 @@ clean: clean-c-deps clean-execgen-files
 .PHONY: maintainer-clean
 maintainer-clean: ## Like clean, but also remove some auto-generated source code.
 maintainer-clean: clean
-	rm -f $(SQLPARSER_TARGETS) $(EXECGEN_TARGETS) $(OPTGEN_TARGETS)
+	rm -f $(SQLPARSER_TARGETS) $(OPTGEN_TARGETS)
 
 .PHONY: unsafe-clean
 unsafe-clean: ## Like maintainer-clean, but also remove ALL untracked/ignored files.
@@ -1205,12 +1186,10 @@ testbins = \
   bin/logictestopt \
 
 # Mappings for binaries that don't live in pkg/cmd.
-execgen-package = ./pkg/sql/colexec/execgen/cmd/execgen
 langgen-package = ./pkg/sql/opt/optgen/cmd/langgen
 optgen-package = ./pkg/sql/opt/optgen/cmd/optgen
 logictest-package = ./pkg/sql/logictest
 logictestopt-package = ./pkg/sql/opt/exec/execbuilder
-terraformgen-package = ./pkg/cmd/roachprod/vm/aws/terraformgen
 logictest-bins := bin/logictest bin/logictestopt
 
 # Additional dependencies for binaries that depend on generated code.
@@ -1235,7 +1214,7 @@ bin/roachprod bin/github-post bin/github-pull-request-make bin/publish-artifacts
 bin/workload bin/docgen bin/execgen bin/roachtest bin/fuzz bin/allocsim bin/benchmark bin/gossipsim bin/returncheck bin/roachlint bin/urlcheck bin/generate-binary bin/terraformgen bin/zerosum bin/roachprod-stress:
 	@echo "$@ removed for core (see CUTS.md)" >&2; exit 1
 
-$(testbins): bin/%: bin/%.d | bin/prereqs $(SUBMODULES_TARGET)
+$(testbins): bin/%: bin/%.d | bin/prereqs
 	@echo go test -c $($*-package)
 	bin/prereqs -bin-name=$* -test $($*-package) > $@.d.tmp
 	mv -f $@.d.tmp $@.d
