@@ -492,3 +492,56 @@ interface declaration it was checked against and the filesystem
 (not git) grep that cleared ignored generated files.
 
 Owner question: none; close as reference.
+
+
+19. server_systemlog_gc.go (212 lines, range-log GC worker) - FOR SIBLING, NOT THIS LOOP
+------------------------------------------------------------------------------------------
+Status: NEEDS-DECISION (lives in sibling-owned pkg/server; recorded, not cut).
+
+Evidence (verified 2026-11-14): gcSystemLog + startSystemLogsGC
+(methods on *Server) have zero callers repo-wide (filesystem
+grep, both forms); the TS-maintenance queue registration that
+drove them went in da4ddea. RangeLog RPC shells
+(node.go/stores.go/roachpb honest-error stub) and
+storagepb/state.proto rangefeed_registrations stay (wire-compat).
+The worker file itself is the only dead part.
+
+Decision required: sibling (RED owner) confirms the GC worker is
+unwired and cuts or re-wires it; a non-owner cut would touch
+pkg/server against the work split.
+
+Owner question: re-wire startSystemLogsGC into server.go or
+delete the file? If deleting, drop rangeLogTTL setting + its
+testdata/docs refs in the same batch.
+
+
+20. Loop-M leftovers (verified, out of scope for this loop)
+------------------------------------------------------------
+Status: SAFE-LOOP for c-deps (working-tree-only, pointer never
+bumped - no parent commit possible); SKIP for the rest.
+
+Evidence (verified 2026-11-14):
+- c-deps/rocksdb/examples/ (10 files, 1339 lines): zero refs in
+  CMakeLists/src.mk/Makefile (only hit is libedit's unrelated
+  --disable-examples). Gate: scratch cmake configure exit 0.
+  Split 3-4 commits (~300 lines each).
+- c-deps/protobuf docs/ + protoc-artifacts/ + root tests.sh:
+  zero cmake/build refs (only hit is an objectivec dist-list
+  line for an already-deleted dir). Small batch.
+- pkg/storage/copysets protos (copysets.proto + .pb.go): package
+  has zero importers and the Go stub is cut (loop-M B5), but
+  removing the messages is a descriptor change - needs the same
+  authorization as entry 3 shells.
+- pkg/util/log/testshout (47 lines): zero importers, BUT it is
+  the only coverage for log.Shout (kept functionality).
+  Deleting it loses coverage for zero product gain - SKIP,
+  do not re-propose.
+- pkg/jobs/metrics.go remainder (Metrics struct + MetricStruct +
+  empty InitHooks): live via registry.metrics + server.go:465
+  MetricsStruct() call. SKIP unless entry 7 collapse lands.
+
+Decision required: none for c-deps (record-only until someone
+owns submodule pointer bumps); explicit owner sign-off for the
+proto delete.
+
+Owner question: none.

@@ -1149,3 +1149,62 @@ Cut batch 2026-11-14, loop-D (deadcode sweeps 1-5, all committed + pushed)
   Total: 5 commits, 1040 deletions, 0 reverts (record holds).
   Detector scripts kept out of tree (/tmp/opencode/deadscan.go,
   deadcheck.sh, fscheck.sh); evidence logs at /tmp/opencode/*.out.
+
+Cut batch 2026-11-14, loop-M (main branch, modules, no vendor)
+================================================================
+
+  Run on main (spike modules rebase, go 1.26, no vendor/ dir) under
+  an expanded gate: candidate -> filesystem-grep evidence (tracked +
+  ignored generated files, both quote forms) + `go list -deps
+  ./pkg/cmd/cockroach-oss` binary-closure proof + zero Makefile/build/
+  testdata refs + interface-assertion audit -> go build affected +
+  keys/base + affected suites -> commit -> fetch/rebase (sibling
+  pushes concurrently) -> push. No `go mod tidy`. 5 batches, 0
+  post-commit reverts (two pre-commit near-misses caught by the
+  build gate, recorded below).
+
+  RED dirs (sibling-owned, untouched): pkg/security, pkg/util/shuffle,
+  pkg/sql (+logictest, opt/memo, opt/optgen), pkg/testutils/lint.
+  No tests-green commit yet; NEEDS-DECISION items (entries 3,7,15)
+  and wire-compat shells left alone. Shared-tree lesson: the sibling
+  fix-loop works IN THIS SAME WORKTREE - its 4 fix(tests): commits
+  (logictest goldens, memo/optgen customFuncs restore, security
+  RSA keys, shuffle rand.Seed) landed mid-loop; one of them swept up
+  my staged flagutil deletion (26420d7). Commit immediately after
+  staging; add explicit paths only; re-check tests-green per batch.
+
+  - B1 flagutil (295 lines, landed inside sibling 26420d7): rich
+    pflag time/regexp flag types, zero importers, outside binary
+    closure. Whole package deleted.
+  - B2 binfetcher (423 lines, 24316aa): HTTP test-binary
+    downloader + tar/zip extractors, acceptance-harness leftover.
+    Whole package deleted.
+  - B3 search (582 lines, 689b19a): binary-search-over-predicates
+    utility, zero importers. Whole package deleted (over the
+    400-line guideline; single coherent unit, one gate).
+  - B4 keysutils (266 lines, d84281c): pretty-scanner test helper
+    for named table keys, consumers' tests long deleted. Whole
+    package deleted; live keysutil printer untouched.
+  - B5 micro-bundle (50 lines, f8460a9, under-floor exception):
+    copysets Maintainer stub + Reader iface + forRF + doc.go
+    (CopysetID type + protos stay), jobs MakeChangefeedMetricsHook
+    var + InitHooks body (registry calls InitHooks, server calls
+    MetricsStruct - both kept), engine initialBatchSize const.
+    Near-misses: whole-file copysets delete breaks pb.go
+    (CopysetID lives in the hand-written file); InitHooks has a
+    live caller (found after a head-truncated grep hid it).
+    Lesson: never trust head-cut grep for liveness proofs.
+
+  Symbol-level dead code in allowed dirs is now exhausted at this
+  granularity (AST scan + repo-wide fs-grep): every remaining
+  candidate is interface-required (etcd/raft Storage, grpc
+  Compressor/stats.Handler/grpclog, pebble Comparer, EvalContext,
+  BulkAdder, DBHandle/rowStrIter/IndexedRow/JSON iface...),
+  reflection-called (Marshal/UnmarshalYAML), cgo //export,
+  build-tagged (gofuzz), generated (bindata/gateway), or
+  NEEDS-DECISION-adjacent (jobs, server admin/status, storage
+  queues, rpc nodedialer). See CUT-QUEUE.md new entries for the
+  verified-dead-but-out-of-scope finds (server_systemlog_gc for
+  the sibling; copysets protos; c-deps groups).
+
+  Total: 5 commits, 1616 deletions.
