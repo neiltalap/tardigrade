@@ -29,23 +29,22 @@ executable.
 Deployment
 
 The deploy image is a downsized image containing a minimal environment for
-running CockroachDB. It is based on Debian Jessie and contains only the main
-CockroachDB binary. To fetch this image, run docker pull
-cockroachdb/cockroach in the usual fashion.
+running Tardigrade. It is based on Debian Slim and contains only the main
+cockroachoss binary. The Dockerfile lives at deploy/Dockerfile and is what
+CI builds (.github/workflows/build.yml).
 
-To build the image yourself, use the Dockerfile in the deploy directory after
-building a release version of the binary with the development image described in
-the previous section. The CockroachDB binary will be built inside of that
-development container, then placed into the minimal deployment container. The
-resulting image cockroachdb/cockroach can be run via docker run in the
-usual fashion. To be more specific, the steps to do this are:
+To build the image yourself, first build the OSS binary, then build the
+image with the repository root as the build context. The binary is baked
+into the minimal deployment container. The resulting image can be run via
+docker run in the usual fashion. To be more specific, the steps are:
 
-  go/src/github.com/podomy/tardigrade $ ./build/builder.sh mkrelease linux-gnu
-  go/src/github.com/podomy/tardigrade $ cp ./cockroach-linux-2.6.32-gnu-amd64 build/deploy/cockroach
-  go/src/github.com/podomy/tardigrade $ cd build/deploy && docker build -t cockroachdb/cockroach .
+  $ make buildoss
+  $ docker build -f deploy/Dockerfile -t tardigrade:19.2 .
+
+The entrypoint wrapper is shared at build/deploy/cockroach.sh.
 
 The list of valid/recognized targets is available in the script
-build/build/mkrelease.sh, for example amd64-linux-gnu and
+build/builder/mkrelease.sh, for example amd64-linux-gnu and
 amd64-darwin. Note that this script supports experimental targets
 which may or may not work (and are not officially supported).
 
