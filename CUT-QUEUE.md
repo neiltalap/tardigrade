@@ -515,6 +515,24 @@ delete the file? If deleting, drop rangeLogTTL setting + its
 testdata/docs refs in the same batch.
 
 
+21. sql + green-dirs sweep 2026-11-14 (verified negative - do not re-hunt)
+---------------------------------------------------------------------------
+Status: SWEPT (record only). A full-fresh AST scan (2719 in-package
+zero-hit decls) + repo-wide caller check over pkg/sql, pkg/security,
+pkg/util/shuffle, pkg/testutils/lint surfaced only: (a) interface-
+satisfaction methods with zero direct callers (WritableIndexCount,
+SequenceMarker, ColTypeStr, DrainMeta, IsVectorized, MetricStruct,
+ProtoMessage, IndexedRow.GetDatums/GetDatum/GetIdx, RunParams,
+ErrorHint - each required by a cat/MetadataSource/flow/metrics/
+protobuf/tree interface; GetDatums proven load-bearing via
+IndexedRowContainer.GetRow's tree.IndexedRow return), (b) the four
+restored optgen customFuncs (testdata-referenced by reflection -
+see CUTS.md), (c) generated bindata API (cut what was cuttable in
+loop batch 2; rest is live), (d) sub-8-line stubs. Landed from this
+pool: fuzz entry points (119), bindata remainder + sqlbase aliases
+(116). No further 100+ line batch exists here without deleting
+interface methods, generated code, or testdata.
+
 20. Loop-M leftovers (verified, out of scope for this loop)
 ------------------------------------------------------------
 Status: SAFE-LOOP for c-deps (working-tree-only, pointer never
