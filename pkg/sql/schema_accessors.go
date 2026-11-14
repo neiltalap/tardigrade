@@ -50,12 +50,6 @@ type (
 	// TableDescriptor is provided for convenience and to make the
 	// interface definitions below more intuitive.
 	TableDescriptor = sqlbase.TableDescriptor
-	// ViewDescriptor is provided for convenience and to make the
-	// interface definitions below more intuitive.
-	ViewDescriptor = sqlbase.TableDescriptor
-	// SequenceDescriptor is provided for convenience and to make the
-	// interface definitions below more intuitive.
-	SequenceDescriptor = sqlbase.TableDescriptor
 	// TableNames is provided for convenience and to make the interface
 	// definitions below more intuitive.
 	TableNames = tree.TableNames
