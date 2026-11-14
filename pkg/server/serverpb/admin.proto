@@ -715,12 +715,6 @@ service Admin {
     };
   }
 
-  // Jobs returns the job records for all jobs of the given status and type.
-
-  // Locations returns the locality location records.
-
-  // QueryPlan returns the query plans for a SQL string.
-
   // Drain puts the node into the specified drain mode(s) and optionally
   // instructs the process to terminate.
   // We do not expose this via HTTP unless we have a way to authenticate
