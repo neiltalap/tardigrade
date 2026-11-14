@@ -71,9 +71,6 @@ TESTTIMEOUT := 20m
 ## Test timeout to use for race tests.
 RACETIMEOUT := 30m
 
-## Test timeout to use for acceptance tests.
-ACCEPTANCETIMEOUT := 30m
-
 ## Test timeout to use for benchmarks.
 BENCHTIMEOUT := 5m
 
@@ -82,12 +79,6 @@ TESTFLAGS :=
 
 ## Extra flags to pass to `stress` during `make stress`.
 STRESSFLAGS :=
-
-## Cluster to use for `make roachprod-stress`
-CLUSTER :=
-
-## Verbose allows turning on verbose output from the cmake builds.
-VERBOSE :=
 
 DUPLFLAGS    := -t 100
 GOFLAGS      :=
@@ -775,9 +766,9 @@ testbuild:
 testshort: override TESTFLAGS += -short
 
 testrace: ## Run tests with the Go race detector enabled.
-testrace stressrace roachprod-stressrace: override GOFLAGS += -race
-testrace stressrace roachprod-stressrace: export GORACE := halt_on_error=1
-testrace stressrace roachprod-stressrace: TESTTIMEOUT := $(RACETIMEOUT)
+testrace stressrace: override GOFLAGS += -race
+testrace stressrace: export GORACE := halt_on_error=1
+testrace stressrace: TESTTIMEOUT := $(RACETIMEOUT)
 
 # Directory scans in the builder image are excruciatingly slow when running
 # Docker for Mac, so we filter out the 20k+ UI dependencies that are
@@ -822,10 +813,6 @@ stressrace: ## Run tests under stress with the race detector enabled.
 stress stressrace:
 	$(xgo) test $(GOFLAGS) -exec 'stress $(STRESSFLAGS)' -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' -run "$(TESTS)" -timeout 0 $(PKG) $(filter-out -v,$(TESTFLAGS)) -v -args -test.timeout $(TESTTIMEOUT)
 
-.PHONY: roachprod-stress roachprod-stressrace
-roachprod-stress roachprod-stressrace:
-	@echo "roachprod-stress removed for core (see pkg/cmd/roachprod removal)" >&2; exit 1
-
 testlogic: testbaselogic testoptlogic
 
 testbaselogic: ## Run SQL Logic Tests.
@@ -860,10 +847,6 @@ testslow testraceslow:
 .PHONY: upload-coverage
 upload-coverage: bin/.bootstrap
 	@echo "coverage upload disabled for core (goveralls/gocovmerge de-vendored)" >&2; exit 1
-
-.PHONY: acceptance
-acceptance: ## Run acceptance tests.
-	@echo "acceptance harness removed for core (see pkg/acceptance removal)" >&2; exit 1
 
 .PHONY: dupl
 dupl: bin/.bootstrap
