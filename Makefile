@@ -85,7 +85,7 @@ GOFLAGS      :=
 TAGS         :=
 ARCHIVE      := cockroach.src.tgz
 STARTFLAGS   := -s type=mem,size=1GiB --logtostderr
-BUILDTARGET  := ./pkg/cmd/cockroach
+BUILDTARGET  := ./pkg/cmd/cockroach-oss
 SUFFIX       := $(GOEXE)
 INSTALL      := install
 prefix       := /usr/local
@@ -335,15 +335,15 @@ host-is-macos := $(findstring Darwin,$(UNAME))
 ifdef host-is-macos
 # On macOS 10.11, XCode SDK v8.1 (and possibly others) indicate the presence of
 # symbols that don't exist until macOS 10.12. Setting MACOSX_DEPLOYMENT_TARGET
-# to the host machine's actual macOS version works around this. See:
-# https://github.com/jemalloc/jemalloc/issues/494.
+# to the host machine's actual macOS version works around this for the
+# C++ c-deps build.
 export MACOSX_DEPLOYMENT_TARGET ?= $(macos-version)
 endif
 
 # Cross-compilation occurs when you set TARGET_TRIPLE to something other than
 # HOST_TRIPLE. You'll need to ensure the cross-compiling toolchain is on your
 # path and override the rest of the variables that immediately follow as
-# necessary. For an example, see build/builder/cmd/mkrelease, which sets these
+# necessary. For an example, see build/builder/mkrelease.sh, which sets these
 # variables appropriately for the toolchains baked into the builder image.
 TARGET_TRIPLE := $(HOST_TRIPLE)
 XCMAKE_SYSTEM_NAME :=
@@ -614,11 +614,10 @@ endif
 # Go binary. It is not intended to be perfect. Upgrading the compiler toolchain
 # in place will go unnoticed, for example. Similar problems exist in all Make-
 # based build systems and are not worth solving.
-build/defs.mk.sig: sig = $(PATH):$(CURDIR):$(GO):$(GOPATH):$(CC):$(CXX):$(TARGET_TRIPLE):$(BUILDTYPE):$(IGNORE_GOVERS):$(ENABLE_LIBROACH_ASSERTIONS):$(ENABLE_ROCKSB_ASSERTIONS)
+build/defs.mk.sig: sig = $(PATH):$(CURDIR):$(GO):$(GOPATH):$(CC):$(CXX):$(TARGET_TRIPLE):$(BUILDTYPE):$(IGNORE_GOVERS):$(ENABLE_LIBROACH_ASSERTIONS):$(ENABLE_ROCKSDB_ASSERTIONS)
 build/defs.mk.sig: .ALWAYS_REBUILD
 	@echo '$(sig)' | cmp -s - $@ || echo '$(sig)' > $@
 
-COCKROACH      := ./cockroach$(SUFFIX)
 COCKROACHOSS   := ./cockroachoss$(SUFFIX)
 COCKROACHSHORT := ./cockroachshort$(SUFFIX)
 
@@ -631,9 +630,6 @@ SQLPARSER_TARGETS = \
 	pkg/sql/lex/reserved_keywords.go
 
 PROTOBUF_TARGETS := bin/.go_protobuf_sources bin/.gw_protobuf_sources bin/.cpp_protobuf_sources
-
-# Doc generation removed for core (docs/ and pkg/cmd/docgen deleted).
-DOCGEN_TARGETS :=
 
 OPTGEN_TARGETS = \
 	pkg/sql/opt/memo/expr.og.go \
@@ -688,7 +684,7 @@ $(go-targets): override LINKFLAGS += \
 # The build.utcTime format must remain in sync with TimeFormat in
 # pkg/build/info.go. It is not installed in tests to avoid busting the cache on
 # every rebuild.
-$(COCKROACH) $(COCKROACHOSS) $(COCKROACHSHORT) go-install: override LINKFLAGS += \
+$(COCKROACHOSS) $(COCKROACHSHORT) go-install: override LINKFLAGS += \
 	-X "github.com/podomy/tardigrade/pkg/build.utcTime=$(shell date -u '+%Y/%m/%d %H:%M:%S')"
 
 # Note: We pass `-v` to `go build` and `go test -i` so that warnings
@@ -696,7 +692,7 @@ $(COCKROACH) $(COCKROACHOSS) $(COCKROACHSHORT) go-install: override LINKFLAGS +=
 # dependencies are rebuilt which is useful when switching between
 # normal and race test builds.
 .PHONY: go-install
-$(COCKROACH) $(COCKROACHOSS) $(COCKROACHSHORT) go-install:
+$(COCKROACHOSS) $(COCKROACHSHORT) go-install:
 	 $(xgo) $(build-mode) -v $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' $(BUILDTARGET)
 
 # The build targets, in addition to producing a Cockroach binary, silently
@@ -713,32 +709,22 @@ $(COCKROACH) $(COCKROACHOSS) $(COCKROACHSHORT) go-install:
 # unnoticed until the docs team comes along, potentially months later. Much
 # better to make the developer who introduces the breakage fix the breakage.
 .PHONY: build buildoss buildshort
-build: ## Build the CockroachDB binary.
-buildoss: ## Build the CockroachDB binary without any CCL-licensed code.
+build: ## Build the OSS CockroachDB binary (alias for buildoss).
+buildoss: ## Build the OSS CockroachDB binary.
 buildshort: ## Build the CockroachDB binary without the admin UI.
-build: $(COCKROACH)
-buildoss: $(COCKROACHOSS)
+build buildoss: $(COCKROACHOSS)
 buildshort: $(COCKROACHSHORT)
-# DOCGEN_TARGETS is empty (docs removed for core); the settings page cannot
-# be regenerated since the `gen` command was removed, so plain `build`
-# skips generated docs. `make generate` still lists the dormant rule.
-build buildoss buildshort: $(DOCGEN_TARGETS)
-
-# For historical reasons, symlink cockroach to cockroachshort.
-# TODO(benesch): see if it would break anyone's workflow to remove this.
-buildshort:
-	ln -sf $(COCKROACHSHORT) $(COCKROACH)
 
 .PHONY: install
 install: ## Install the CockroachDB binary.
-install: $(COCKROACH)
+install: $(COCKROACHOSS)
 	$(INSTALL) -d -m 755 $(DESTDIR)$(bindir)
-	$(INSTALL) -m 755 $(COCKROACH) $(DESTDIR)$(bindir)/cockroach
+	$(INSTALL) -m 755 $(COCKROACHOSS) $(DESTDIR)$(bindir)/cockroach
 
 .PHONY: start
-start: $(COCKROACH)
+start: $(COCKROACHOSS)
 start:
-	$(COCKROACH) start $(STARTFLAGS)
+	$(COCKROACHOSS) start $(STARTFLAGS)
 
 # Build, but do not run the tests.
 # PKG is expanded and all packages are built and moved to their directory.
@@ -844,7 +830,7 @@ dupl: bin/.bootstrap
 
 .PHONY: generate
 generate: ## Regenerate generated code.
-generate: protobuf $(DOCGEN_TARGETS) $(OPTGEN_TARGETS) $(SQLPARSER_TARGETS) bin/langgen
+generate: protobuf $(OPTGEN_TARGETS) $(SQLPARSER_TARGETS) bin/langgen
 	$(GO) generate $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LINKFLAGS)' $(PKG)
 
 lint lintshort: TESTTIMEOUT := $(LINTTIMEOUT)

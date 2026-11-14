@@ -52,10 +52,9 @@ Upgrading / extending the Docker image
 
 Process:
 
-- edit build/Dockerfile as desired
+- edit build/builder/Dockerfile as desired
 - run build/builder.sh init to test -- this will build the image locally. Beware this can take a lot of time. The result of init is a docker image version which you can subsequently stick into the version variable inside the builder.sh script for testing locally.
-- Once you are happy with the result, run build/builder.sh push which pushes your image towards Docker hub, so that it becomes available to others. The result is again a version number, which you then must copy back into builder.sh. Then commit the change to both Dockerfile and builder.sh and submit a PR.
-- Finally, use this version number to update the builder.dockerImage configuration parameter in TeamCity under the Cockroach (https://teamcity.cockroachdb.com/admin/editProject.html?projectId=Cockroach&tab=projectParams) and Internal (https://teamcity.cockroachdb.com/admin/editProject.html?projectId=Internal&tab=projectParams) projects.
+- Once you are happy with the result, run build/builder.sh push which pushes your image towards Docker hub, so that it becomes available to others. The result is again a version number, which you then must copy back into builder.sh. Then commit the change to both build/builder/Dockerfile and build/builder.sh and submit a PR.
 
 Dependencies
 
@@ -68,7 +67,7 @@ chases test-only dependencies to latest and breaks the pinned
 2019 graph. Pin a new import by hand with
 `go list -m repo@sha` and append the require. See MODULES.md.
 
-C++ dependencies (jemalloc, protobuf, rocksdb, snappy, libroach)
+C++ dependencies (protobuf, rocksdb, snappy, libroach)
 live in c-deps/ as submodules plus the tracked libroach tree,
 and are built with the period builder image
 (cockroachdb/builder:20191029-105705); see "C++ dependencies"
@@ -76,31 +75,26 @@ below and the buildoss CI job.
 
 Updating the golang version
 
-Please copy this checklist ino the relevant commit message, with a link
+Please copy this checklist into the relevant commit message, with a link
 back to this document:
 
 * [ ] Adjust version in Docker image (source - /build/builder/Dockerfile#L199-L200).
 * [ ] Rebuild the Docker image and bump the version in builder.sh accordingly (source - /build/builder.sh#L6).
 * [ ] Bump the version in go-version-check.sh (source - /build/go-version-check.sh), unless bumping to a new patch release.
-* [ ] Bump the default installed version of Go in bootstrap-debian.sh (source - /build/bootstrap/bootstrap-debian.sh#L40-42).
 
 Updating Dependencies
 
 Go dependencies: edit go.mod by hand (see "Dependencies" above).
 Do not use dep; do not run `go mod tidy`.
 
-C++ dependencies: c-deps/ holds git submodules (jemalloc,
-rocksdb, snappy, protobuf, libedit) plus the tracked libroach
+C++ dependencies: c-deps/ holds git submodules (rocksdb,
+snappy, protobuf) plus the tracked libroach
 sources. Initialize
 with `git submodule update --init` and build with the
-builder image, e.g. `make libjemalloc libprotobuf
+builder image, e.g. `make libprotobuf
 libsnappy librocksdb libroach` inside
 cockroachdb/builder:20191029-105705. The Go link of the
 full binary needs the resulting static libraries
 (libroach.a, librocksdb.a, libprotobuf.a, libsnappy.a)
 installed where the system linker finds them
 (e.g. /usr/local/lib); see MODULES.md.
-
-Repository Name
-(Obsolete: the dep-era vendor submodule is gone. Dependencies resolve
-from the module cache; see "Dependencies" above.)
