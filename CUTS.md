@@ -1227,3 +1227,31 @@ so hand-trim holds; zero refs incl. tests) + EncodeTableIDIndexID,
 TablesByID, ViewDescriptor/SequenceDescriptor aliases. Kept:
 ColTypeStr (build proved cat.Column membership). Gate: full pkg
 build + security/sqlbase/sql suites green.
+
+Cut batch 2026-11-14, util/roachpb scope (2 commits, 228 lines)
+================================================================
+
+  - roachpb SpanGroup (2932d74, 110 lines): whole-file delete of
+    pkg/roachpb/span_group.go (Add/Contains/Len/Slice + s2r/r2s/
+    checkInit + `var _ = (*SpanGroup).Len` keep-alive). Zero refs
+    repo-wide outside its own file (filesystem grep, both quote
+    forms), zero Makefile/build/scripts/testdata refs, no
+    interface decl. Live span path untouched (MergeSpans, used by
+    storage/kv/sql). Reason BLOAT. Risk none. Green: roachpb,
+    keys, base suites PASS; build clean.
+  - gofuzz entry points + obsolete compat shims (9de6f05,
+    118 lines): pkg/util/json/fuzz.go (FuzzParseJSON, 21) +
+    pkg/util/uuid/fuzz.go (Fuzz, 42), both // +build gofuzz with
+    zero refs - the exact sibling handoff dace30f left for the
+    scope owner (codec_test.go TestSeedFuzzCorpus never calls Fuzz
+    and stays); pkg/util/httputil/req_go112.go (// +build !go1.13
+    ctx-ignoring shim, 34 - toolchain is go1.26, req_go113.go real
+    impl stays); pkg/util/interval/td234.go (// +build td234
+    alternate LLRBMode const, 21 - zero build-tag refs, bu23.go
+    default + runtime mode switch untouched). No tests or testdata
+    touched. Reason BLOAT. Risk none. Green: json/uuid/interval
+    suites PASS (httputil: no test files); build clean.
+
+  No CUT-QUEUE tombstone: neither batch corresponds to an open
+  queue entry (SpanGroup was never queued; the fuzz pair was a
+  dace30f/9f229f5 sibling-note handoff, not a queue item).
