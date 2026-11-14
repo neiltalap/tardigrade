@@ -399,7 +399,6 @@ JEMALLOC_SRC_DIR := $(C_DEPS_DIR)/jemalloc
 PROTOBUF_SRC_DIR := $(C_DEPS_DIR)/protobuf
 ROCKSDB_SRC_DIR  := $(C_DEPS_DIR)/rocksdb
 SNAPPY_SRC_DIR   := $(C_DEPS_DIR)/snappy
-LIBEDIT_SRC_DIR  := $(C_DEPS_DIR)/libedit
 LIBROACH_SRC_DIR := $(C_DEPS_DIR)/libroach
 
 # Derived build variants.
@@ -416,7 +415,6 @@ JEMALLOC_DIR := $(BUILD_DIR)/jemalloc$(if $(use-msan),_msan)
 PROTOBUF_DIR := $(BUILD_DIR)/protobuf$(if $(use-msan),_msan)
 ROCKSDB_DIR  := $(BUILD_DIR)/rocksdb$(if $(use-msan),_msan)$(if $(use-stdmalloc),_stdmalloc)$(if $(ENABLE_ROCKSDB_ASSERTIONS),_assert)
 SNAPPY_DIR   := $(BUILD_DIR)/snappy$(if $(use-msan),_msan)
-LIBEDIT_DIR  := $(BUILD_DIR)/libedit$(if $(use-msan),_msan)
 LIBROACH_DIR := $(BUILD_DIR)/libroach$(if $(use-msan),_msan)$(if $(ENABLE_LIBROACH_ASSERTIONS),_assert)
 # Can't share with protobuf because protoc is always built for the host.
 PROTOC_DIR := $(GOPATH)/native/$(HOST_TRIPLE)/protobuf
@@ -425,13 +423,11 @@ LIBJEMALLOC := $(JEMALLOC_DIR)/lib/libjemalloc.a
 LIBPROTOBUF := $(PROTOBUF_DIR)/libprotobuf.a
 LIBROCKSDB  := $(ROCKSDB_DIR)/librocksdb.a
 LIBSNAPPY   := $(SNAPPY_DIR)/libsnappy.a
-LIBEDIT     := $(LIBEDIT_DIR)/src/.libs/libedit.a
 LIBROACH    := $(LIBROACH_DIR)/libroach.a
 PROTOC 		 := $(PROTOC_DIR)/protoc
 
 C_LIBS_COMMON = \
 	$(if $(use-stdmalloc),,$(LIBJEMALLOC)) \
-	$(LIBEDIT) \
 	$(LIBPROTOBUF) $(LIBSNAPPY) $(LIBROCKSDB)
 C_LIBS_OSS = $(C_LIBS_COMMON) $(LIBROACH)
 
@@ -480,7 +476,7 @@ $(BASE_CGO_FLAGS_FILES): Makefile build/defs.mk.sig | bin/.submodules-initialize
 	@echo 'package $(if $($(@D)-package),$($(@D)-package),$(notdir $(@D)))' >> $@
 	@echo >> $@
 	@echo '// #cgo CPPFLAGS: $(addprefix -I,$(JEMALLOC_DIR)/include)' >> $@
-	@echo '// #cgo LDFLAGS: $(addprefix -L,$(PROTOBUF_DIR) $(JEMALLOC_DIR)/lib $(SNAPPY_DIR) $(LIBEDIT_DIR)/src/.libs $(ROCKSDB_DIR) $(LIBROACH_DIR))' >> $@
+	@echo '// #cgo LDFLAGS: $(addprefix -L,$(PROTOBUF_DIR) $(JEMALLOC_DIR)/lib $(SNAPPY_DIR) $(ROCKSDB_DIR) $(LIBROACH_DIR))' >> $@
 	@echo 'import "C"' >> $@
 
 
@@ -562,18 +558,6 @@ $(SNAPPY_DIR)/Makefile: $(C_DEPS_DIR)/snappy-rebuild | bin/.submodules-initializ
 	cd $(SNAPPY_DIR) && cmake $(xcmake-flags) $(SNAPPY_SRC_DIR) \
 	  -DCMAKE_BUILD_TYPE=Release
 
-$(LIBEDIT_SRC_DIR)/configure.ac: | bin/.submodules-initialized
-
-$(LIBEDIT_SRC_DIR)/configure: $(LIBEDIT_SRC_DIR)/configure.ac
-	cd $(LIBEDIT_SRC_DIR) && autoconf
-
-$(LIBEDIT_DIR)/Makefile: $(C_DEPS_DIR)/libedit-rebuild $(LIBEDIT_SRC_DIR)/configure
-	rm -rf $(LIBEDIT_DIR)
-	mkdir -p $(LIBEDIT_DIR)
-	@# NOTE: If you change the configure flags below, bump the version in
-	@# $(C_DEPS_DIR)/libedit-rebuild. See above for rationale.
-	cd $(LIBEDIT_DIR) && $(LIBEDIT_SRC_DIR)/configure $(xconfigure-flags) --disable-examples --disable-shared
-
 $(LIBROACH_DIR)/Makefile: $(C_DEPS_DIR)/libroach-rebuild | bin/.submodules-initialized bin/.cpp_protobuf_sources
 	rm -rf $(LIBROACH_DIR)
 	mkdir -p $(LIBROACH_DIR)
@@ -625,9 +609,6 @@ $(LIBPROTOBUF): $(PROTOBUF_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
 $(LIBSNAPPY): $(SNAPPY_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
 	@uptodate $@ $(SNAPPY_SRC_DIR) || $(MAKE) --no-print-directory -C $(SNAPPY_DIR) snappy
 
-$(LIBEDIT): $(LIBEDIT_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
-	@uptodate $@ $(LIBEDIT_SRC_DIR) || $(MAKE) --no-print-directory -C $(LIBEDIT_DIR)/src
-
 $(LIBROCKSDB): $(ROCKSDB_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
 	@uptodate $@ $(ROCKSDB_SRC_DIR) || $(MAKE) --no-print-directory -C $(ROCKSDB_DIR) rocksdb
 
@@ -640,7 +621,6 @@ $(LIBROACH): $(LIBROACH_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
 # Convenient names for maintainers. Not used by other targets in the Makefile.
 .PHONY: protoc libjemalloc libprotobuf libsnappy librocksdb libroach
 protoc:      $(PROTOC)
-libedit:     $(LIBEDIT)
 libjemalloc: $(LIBJEMALLOC)
 libprotobuf: $(LIBPROTOBUF)
 libsnappy:   $(LIBSNAPPY)

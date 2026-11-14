@@ -11,3 +11,6 @@
 [submodule "c-deps/protobuf"]
 	path = c-deps/protobuf
 	url = https://github.com/cockroachdb/protobuf.git
+[submodule "c-deps/libedit"]
+	path = c-deps/libedit
+	url = https://github.com/cockroachdb/libedit.git
