@@ -26,10 +26,15 @@ func (ts testSlice) Swap(i, j int) { ts[i], ts[j] = ts[j], ts[i] }
 
 func TestShuffle(t *testing.T) {
 	defer leaktest.AfterTest(t)()
-	rand.Seed(0)
+	// NOTE: do not use rand.Seed here. As of Go 1.24 Seed is a no-op
+	// (the global generator is always randomly auto-seeded), so it can
+	// no longer make this test deterministic. Use an explicit local
+	// source instead; NewSource(0) reproduces the historical stream,
+	// so the expectations below are unchanged.
+	rng := rand.New(rand.NewSource(0))
 
 	verify := func(original, expected testSlice) {
-		Shuffle(original)
+		ShuffleWithRand(original, rng)
 		if !reflect.DeepEqual(original, expected) {
 			t.Errorf("expected %v, got %v", expected, original)
 		}

@@ -23,10 +23,23 @@ type Interface interface {
 	Swap(i, j int)
 }
 
-// Shuffle randomizes the order of the array.
+// Shuffle randomizes the order of the array, using the default source of
+// randomness.
 func Shuffle(data Interface) {
+	shuffle(data, rand.Intn)
+}
+
+// ShuffleWithRand randomizes the order of the array, using rng as the
+// source of randomness. It exists so tests can supply a deterministic
+// generator: as of Go 1.24 math/rand.Seed is a no-op, so exact-output
+// tests can no longer seed the global generator.
+func ShuffleWithRand(data Interface, rng *rand.Rand) {
+	shuffle(data, rng.Intn)
+}
+
+func shuffle(data Interface, intn func(int) int) {
 	n := data.Len()
 	for i := 1; i < n; i++ {
-		data.Swap(i, rand.Intn(i+1))
+		data.Swap(i, intn(i+1))
 	}
 }
