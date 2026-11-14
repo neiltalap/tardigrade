@@ -288,8 +288,6 @@ require github.com/shirou/gopsutil v2.18.12+incompatible
 
 require github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 
-require github.com/sirupsen/logrus v1.3.0
-
 require github.com/spf13/cobra v0.0.3
 
 require github.com/spf13/pflag v1.0.3
@@ -336,8 +334,6 @@ require gopkg.in/yaml.v2 v2.2.2
 
 require honnef.co/go/tools v0.0.0-20190530104931-1f0868a609b7
 
-require vitess.io/vitess v2.2.0-rc.1.0.20180830030426-1740ce8b3188+incompatible
-
 replace github.com/abourget/teamcity => github.com/cockroachdb/teamcity v0.0.0-20180905144921-8ca25c33eb11
 
 replace github.com/getsentry/raven-go => github.com/cockroachdb/raven-go v0.0.0-20170605202156-221b2b44fb33
@@ -345,8 +341,6 @@ replace github.com/getsentry/raven-go => github.com/cockroachdb/raven-go v0.0.0-
 replace github.com/gogo/protobuf => github.com/cockroachdb/gogoproto v1.2.1-0.20210111181126-fecfd0f31404
 
 replace gopkg.in/yaml.v2 => github.com/cockroachdb/yaml v0.0.0-20180705215940-0e2822948641
-
-replace vitess.io/vitess => github.com/cockroachdb/vitess v2.2.0-rc.1.0.20180830030426-1740ce8b3188+incompatible
 
 replace golang.org/x/net v0.0.0-20190813000000-74dc4d7220e7 => golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 
