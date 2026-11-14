@@ -15,12 +15,10 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/keys"
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/storage/batcheval/result"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/storage/spanset"
 	"github.com/podomy/tardigrade/pkg/storage/storagepb"
-	"github.com/podomy/tardigrade/pkg/util/hlc"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/pkg/errors"
 )
@@ -32,7 +30,6 @@ func init() {
 func declareKeysTruncateLog(
 	_ *roachpb.RangeDescriptor, header roachpb.Header, req roachpb.Request, spans *spanset.SpanSet,
 ) {
-	spans.Add(spanset.SpanReadWrite, roachpb.Span{Key: keys.RaftTruncatedStateLegacyKey(header.RangeID)})
 	prefix := keys.RaftLogPrefix(header.RangeID)
 	spans.Add(spanset.SpanReadWrite, roachpb.Span{Key: prefix, EndKey: prefix.PrefixEnd()})
 }
@@ -54,21 +51,6 @@ func TruncateLog(
 			args.RangeID)
 		return result.Result{}, nil
 	}
-
-	var legacyTruncatedState roachpb.RaftTruncatedState
-	legacyKeyFound, err := engine.MVCCGetProto(
-		ctx, batch, keys.RaftTruncatedStateLegacyKey(cArgs.EvalCtx.GetRangeID()),
-		hlc.Timestamp{}, &legacyTruncatedState, engine.MVCCGetOptions{},
-	)
-	if err != nil {
-		return result.Result{}, err
-	}
-
-	// See the comment on the cluster version for all the moving parts involved
-	// in migrating into this cluster version. Note that if the legacy key is
-	// missing, the cluster version has been bumped (though we may not know it
-	// yet) and we keep using the unreplicated key.
-	useNewUnreplicatedTruncatedStateKey := cArgs.EvalCtx.ClusterSettings().Version.IsActive(cluster.VersionUnreplicatedRaftTruncatedState) || !legacyKeyFound
 
 	firstIndex, err := cArgs.EvalCtx.GetFirstIndex()
 	if err != nil {
@@ -137,21 +119,6 @@ func TruncateLog(
 	}
 
 	pd.Replicated.RaftLogDelta = ms.SysBytes
-
-	if !useNewUnreplicatedTruncatedStateKey {
-		return pd, MakeStateLoader(cArgs.EvalCtx).SetLegacyRaftTruncatedState(ctx, batch, cArgs.Stats, tState)
-	}
-	if legacyKeyFound {
-		// Time to migrate by deleting the legacy key. The downstream-of-Raft
-		// code will atomically rewrite the truncated state (supplied via the
-		// side effect) into the new unreplicated key.
-		if err := engine.MVCCDelete(
-			ctx, batch, cArgs.Stats, keys.RaftTruncatedStateLegacyKey(cArgs.EvalCtx.GetRangeID()),
-			hlc.Timestamp{}, nil, /* txn */
-		); err != nil {
-			return result.Result{}, err
-		}
-	}
 
 	return pd, nil
 }

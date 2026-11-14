@@ -260,7 +260,6 @@ func (tc *testContext) StartWithStoreConfig(t testing.TB, stopper *stop.Stopper,
 				roachpb.BootstrapLease(),
 				hlc.Timestamp{},
 				bootstrapVersion.Version,
-				stateloader.TruncatedStateUnreplicated,
 			); err != nil {
 				t.Fatal(err)
 			}

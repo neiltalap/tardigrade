@@ -68,11 +68,6 @@ func TestVersionCanBump(t *testing.T) {
 		v1, v2  Version
 		canBump bool
 	}{
-		{v1: v(2, 0, 0, 0), v2: v(2, 1, 0, 0), canBump: true},
-		{v1: v(2, 0, 0, 0), v2: v(19, 1, 0, 0), canBump: false},
-		{v1: v(2, 1, 0, 0), v2: v(19, 1, 0, 0), canBump: true},
-		{v1: v(2, 1, 6, 0), v2: v(19, 1, 0, 0), canBump: true},
-		{v1: v(2, 1, 0, 10), v2: v(19, 1, 0, 0), canBump: true},
 		{v1: v(19, 1, 0, 0), v2: v(19, 2, 0, 0), canBump: true},
 		{v1: v(19, 1, 0, 0), v2: v(19, 3, 0, 0), canBump: false},
 		{v1: v(19, 2, 0, 0), v2: v(20, 1, 0, 0), canBump: true},

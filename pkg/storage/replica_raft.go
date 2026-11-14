@@ -19,7 +19,6 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/keys"
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/storage/apply"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/storage/spanset"
@@ -1665,15 +1664,10 @@ func handleTruncatedStateBelowRaft(
 	loader stateloader.StateLoader,
 	batch engine.ReadWriter,
 ) (_apply bool, _ error) {
-	// If this is a log truncation, load the resulting unreplicated or legacy
-	// replicated truncated state (in that order). If the migration is happening
-	// in this command, the result will be an empty message. In steady state
-	// after the migration, it's the unreplicated truncated state not taking
-	// into account the current truncation (since the key is unreplicated).
-	// Either way, we'll update it below.
-	//
-	// See VersionUnreplicatedRaftTruncatedState for details.
-	truncStatePostApply, truncStateIsLegacy, err := loader.LoadRaftTruncatedState(ctx, batch)
+	// Load the resulting unreplicated truncated state (which does not take
+	// into account the current truncation since the key is unreplicated).
+	// We'll update it below.
+	truncStatePostApply, _, err := loader.LoadRaftTruncatedState(ctx, batch)
 	if err != nil {
 		return false, errors.Wrap(err, "loading truncated state")
 	}
@@ -1700,39 +1694,20 @@ func handleTruncatedStateBelowRaft(
 		}
 	}
 
-	if !truncStateIsLegacy {
-		if truncStatePostApply.Index < newTruncatedState.Index {
-			// There are two cases here (though handled just the same). In the
-			// first case, the Raft command has just deleted the legacy
-			// replicated truncated state key as part of the migration (so
-			// truncStateIsLegacy is now false for the first time and
-			// truncStatePostApply is zero) and we need to atomically write the
-			// new, unreplicated, key. Or we've already migrated earlier, in
-			// which case truncStatePostApply equals the current value of the
-			// new key (which wasn't touched by the batch), and we need to
-			// overwrite it if this truncation "moves it forward".
-
-			// NB: before the first log truncation evaluated under the
-			// cluster version which activates this code (see anchor below) this
-			// block is never reached as truncStatePostApply will equal newTruncatedState.
-			_ = cluster.VersionUnreplicatedRaftTruncatedState
-
-			if err := engine.MVCCPutProto(
-				ctx, batch, nil /* ms */, prefixBuf.RaftTruncatedStateKey(),
-				hlc.Timestamp{}, nil /* txn */, newTruncatedState,
-			); err != nil {
-				return false, errors.Wrap(err, "unable to migrate RaftTruncatedState")
-			}
-			// Have migrated and this new truncated state is moving us forward.
-			// Tell caller that we applied it and that so should they.
-			return true, nil
+	if truncStatePostApply.Index < newTruncatedState.Index {
+		if err := engine.MVCCPutProto(
+			ctx, batch, nil /* ms */, prefixBuf.RaftTruncatedStateKey(),
+			hlc.Timestamp{}, nil /* txn */, newTruncatedState,
+		); err != nil {
+			return false, errors.Wrap(err, "unable to write RaftTruncatedState")
 		}
-		// Have migrated, but this truncated state moves the existing one
-		// backwards, so instruct caller to not update in-memory state.
-		return false, nil
+		// This new truncated state is moving us forward. Tell caller that we
+		// applied it and that so should they.
+		return true, nil
 	}
-	// Haven't migrated yet, don't ever discard the update.
-	return true, nil
+	// This truncated state moves the existing one backwards, so instruct
+	// caller to not update in-memory state.
+	return false, nil
 }
 
 // ComputeRaftLogSize computes the size (in bytes) of the Raft log from the

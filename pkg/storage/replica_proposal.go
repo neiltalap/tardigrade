@@ -498,11 +498,10 @@ func addSSTablePreApply(
 
 	eng.PreIngestDelay(ctx)
 
-	// as of VersionUnreplicatedRaftTruncatedState we were on rocksdb 5.17 so this
-	// cluster version should indicate that we will never use rocksdb < 5.16 to
-	// read these SSTs, so it is safe to use https://github.com/facebook/rocksdb/pull/4172
-	// to avoid needing the global seq_no edits and the copies they required.
-	canSkipSeqNo := st.Version.IsActive(cluster.VersionUnreplicatedRaftTruncatedState)
+	// All supported binaries use rocksdb >= 5.17, so it is safe to use
+	// https://github.com/facebook/rocksdb/pull/4172 to avoid needing the
+	// global seq_no edits and the copies they required.
+	const canSkipSeqNo = true
 
 	copied := false
 	if inmem, ok := eng.(engine.InMem); ok {

@@ -484,13 +484,8 @@ type IncomingSnapshot struct {
 	// The replica state at the time the snapshot was generated (never nil).
 	State *storagepb.ReplicaState
 	//
-	// When true, this snapshot contains an unreplicated TruncatedState. When
-	// false, the TruncatedState is replicated (see the reference below) and the
-	// recipient must avoid also writing the unreplicated TruncatedState. The
-	// migration to an unreplicated TruncatedState will be carried out during
-	// the next log truncation (assuming cluster version is bumped at that
-	// point).
-	// See the comment on VersionUnreplicatedRaftTruncatedState for details.
+	// When true, this snapshot contains an unreplicated TruncatedState. This is
+	// always true; the recipient writes the unreplicated TruncatedState.
 	UsesUnreplicatedTruncatedState bool
 	snapType                       SnapshotRequest_Type
 }
@@ -534,15 +529,6 @@ func snapshot(
 	}
 
 	state, err := rsl.Load(ctx, snap, &desc)
-	if err != nil {
-		return OutgoingSnapshot{}, err
-	}
-
-	// Populate the snapshot's ReplicaState.DeprecatedTxnSpanGCThreshold field.
-	// 19.1 nodes will expect this to be here if the snapshot includes the key
-	// and 19.2 nodes will ignore it.
-	// TODO(nvanbenschoten): Remove in 20.1.
-	state.DeprecatedTxnSpanGCThreshold, err = rsl.LoadLegacyTxnSpanGCThreshold(ctx, snap)
 	if err != nil {
 		return OutgoingSnapshot{}, err
 	}

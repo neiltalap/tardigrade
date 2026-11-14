@@ -18,7 +18,6 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/keys"
 	"github.com/podomy/tardigrade/pkg/roachpb"
-	"github.com/podomy/tardigrade/pkg/settings/cluster"
 	"github.com/podomy/tardigrade/pkg/storage/engine"
 	"github.com/podomy/tardigrade/pkg/storage/stateloader"
 	"github.com/podomy/tardigrade/pkg/util/hlc"
@@ -31,14 +30,12 @@ func TestHandleTruncatedStateBelowRaft(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 
 	// This test verifies the expected behavior of the downstream-of-Raft log
-	// truncation code, in particular regarding the migration below:
-	_ = cluster.VersionUnreplicatedRaftTruncatedState
+	// truncation code.
 
 	ctx := context.Background()
 
-	// neither exists (migration)
-	// old one exists (no migration)
-	// new one exists (migrated already)
+	// neither exists
+	// new one exists
 	// truncstate regresses
 
 	var prevTruncatedState roachpb.RaftTruncatedState
@@ -57,21 +54,15 @@ func TestHandleTruncatedStateBelowRaft(t *testing.T) {
 			case "put":
 				var index uint64
 				var term uint64
-				var legacy bool
 				d.ScanArgs(t, "index", &index)
 				d.ScanArgs(t, "term", &term)
-				d.ScanArgs(t, "legacy", &legacy)
 
 				truncState := &roachpb.RaftTruncatedState{
 					Index: index,
 					Term:  term,
 				}
 
-				if legacy {
-					assert.NoError(t, loader.SetLegacyRaftTruncatedState(ctx, eng, nil, truncState))
-				} else {
-					assert.NoError(t, loader.SetRaftTruncatedState(ctx, eng, truncState))
-				}
+				assert.NoError(t, loader.SetRaftTruncatedState(ctx, eng, truncState))
 				return ""
 			case "handle":
 				var buf bytes.Buffer
@@ -92,18 +83,13 @@ func TestHandleTruncatedStateBelowRaft(t *testing.T) {
 				}
 				fmt.Fprintf(&buf, "apply: %t\n", apply)
 
-				for _, key := range []roachpb.Key{
-					keys.RaftTruncatedStateLegacyKey(rangeID),
-					keys.RaftTruncatedStateKey(rangeID),
-				} {
-					var truncatedState roachpb.RaftTruncatedState
-					ok, err := engine.MVCCGetProto(ctx, eng, key, hlc.Timestamp{}, &truncatedState, engine.MVCCGetOptions{})
-					if err != nil {
-						t.Fatal(err)
-					}
-					if !ok {
-						continue
-					}
+				key := keys.RaftTruncatedStateKey(rangeID)
+				var truncatedState roachpb.RaftTruncatedState
+				ok, err := engine.MVCCGetProto(ctx, eng, key, hlc.Timestamp{}, &truncatedState, engine.MVCCGetOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if ok {
 					fmt.Fprintf(&buf, "%s -> index=%d term=%d\n", key, truncatedState.Index, truncatedState.Term)
 				}
 				return buf.String()

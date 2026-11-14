@@ -1802,23 +1802,15 @@ func (r *Replica) sendSnapshot(
 		return &benignError{errors.New("raft status not initialized")}
 	}
 
-	usesReplicatedTruncatedState, err := engine.MVCCGetProto(
-		ctx, snap.EngineSnap, keys.RaftTruncatedStateLegacyKey(r.RangeID), hlc.Timestamp{}, nil, engine.MVCCGetOptions{},
-	)
-	if err != nil {
-		return errors.Wrap(err, "loading legacy truncated state")
-	}
-
-	canAvoidSendingLog := !usesReplicatedTruncatedState &&
+	canAvoidSendingLog :=
 		snap.State.TruncatedState.Index < snap.State.RaftAppliedIndex
 
 	if canAvoidSendingLog {
-		// If we're not using a legacy (replicated) truncated state, we avoid
-		// sending the (past) Raft log in the snapshot in the first place and
-		// send only those entries that are actually useful to the follower.
-		// This is done by changing the truncated state, which we're allowed
-		// to do since it is not a replicated key (and thus not subject to
-		// matching across replicas). The actual sending happens here:
+		// We avoid sending the (past) Raft log in the snapshot in the first
+		// place and send only those entries that are actually useful to the
+		// follower. This is done by changing the truncated state, which we're
+		// allowed to do since it is not a replicated key (and thus not subject
+		// to matching across replicas). The actual sending happens here:
 		_ = (*kvBatchSnapshotStrategy)(nil).Send
 		// and results in no log entries being sent at all. Note that
 		// Metadata.Index is really the applied index of the replica.
@@ -1833,11 +1825,8 @@ func (r *Replica) sendSnapshot(
 		// Tell the recipient whether it needs to synthesize the new
 		// unreplicated TruncatedState. It could tell by itself by peeking into
 		// the data, but it uses a write only batch for performance which
-		// doesn't support that; this is easier. Notably, this is true if the
-		// snap index itself is the one at which the migration happens.
-		//
-		// See VersionUnreplicatedRaftTruncatedState.
-		UnreplicatedTruncatedState: !usesReplicatedTruncatedState,
+		// doesn't support that; this is easier.
+		UnreplicatedTruncatedState: true,
 		RaftMessageRequest: RaftMessageRequest{
 			RangeID:     r.RangeID,
 			FromReplica: sender,

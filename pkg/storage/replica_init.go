@@ -182,19 +182,9 @@ func (r *Replica) setReplicaIDRaftMuLockedMuLocked(
 		log.Fatalf(ctx, "cannot resurect replica %d", r.mu.replicaID)
 	}
 
-	// Initialize or update the sideloaded storage. If the sideloaded storage
-	// already exists (which is iff the previous replicaID was non-zero), then
-	// we have to move the contained files over (this corresponds to the case in
-	// which our replica is removed and re-added to the range, without having
-	// the replica GC'ed in the meantime).
-	//
-	// Note that we can't race with a concurrent replicaGC here because both that
-	// and this is under raftMu.
+	// Initialize the sideloaded storage.
 	ssBase := r.store.Engine().GetAuxiliaryDir()
 	rangeID := r.mu.state.Desc.RangeID
-	if err := moveSideloadedData(r.raftMu.sideloaded, ssBase, rangeID, replicaID); err != nil {
-		return err
-	}
 
 	var err error
 	if r.raftMu.sideloaded, err = newDiskSideloadStorage(

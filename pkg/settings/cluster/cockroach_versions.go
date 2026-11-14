@@ -31,9 +31,6 @@ type VersionKey int
 //go:generate stringer -type=VersionKey
 const (
 	_ VersionKey = iota - 1 // want first named one to start at zero
-	Version2_1
-	VersionUnreplicatedRaftTruncatedState // see versionsSingleton for details
-	VersionSideloadedStorageNoReplicaID   // see versionsSingleton for details
 	Version19_1
 	VersionStart19_2
 	VersionQueryTxnTimestamp
@@ -70,121 +67,6 @@ const (
 // minor version until we are absolutely sure that no new migrations will need
 // to be added (i.e., when cutting the final release candidate).
 var versionsSingleton = keyedVersions([]keyedVersion{
-	{
-		// Version2_1 is CockroachDB v2.1. It's used for all v2.1.x patch releases.
-		Key:     Version2_1,
-		Version: roachpb.Version{Major: 2, Minor: 1},
-	},
-	{
-		// VersionUnreplicatedRaftTruncatedState is https://github.com/cockroachdb/cockroach/pull/34660.
-		// When active, it moves the truncated state into unreplicated keyspace
-		// on log truncations.
-		//
-		// The migration works as follows:
-		//
-		// 1. at any log position, the replicas of a Range either use the new
-		// (unreplicated) key or the old one, and exactly one of them exists.
-		//
-		// 2. When a log truncation evaluates under the new cluster version,
-		// it initiates the migration by deleting the old key. Under the old cluster
-		// version, it behaves like today, updating the replicated truncated state.
-		//
-		// 3. The deletion signals new code downstream of Raft and triggers a write
-		// to the new, unreplicated, key (atomic with the deletion of the old key).
-		//
-		// 4. Future log truncations don't write any replicated data any more, but
-		// (like before) send along the TruncatedState which is written downstream
-		// of Raft atomically with the deletion of the log entries. This actually
-		// uses the same code as 3.
-		// What's new is that the truncated state needs to be verified before
-		// replacing a previous one. If replicas disagree about their truncated
-		// state, it's possible for replica X at FirstIndex=100 to apply a
-		// truncated state update that sets FirstIndex to, say, 50 (proposed by a
-		// replica with a "longer" historical log). In that case, the truncated
-		// state update must be ignored (this is straightforward downstream-of-Raft
-		// code).
-		//
-		// 5. When a split trigger evaluates, it seeds the RHS with the legacy
-		// key iff the LHS uses the legacy key, and the unreplicated key otherwise.
-		// This makes sure that the invariant that all replicas agree on the
-		// state of the migration is upheld.
-		//
-		// 6. When a snapshot is applied, the receiver is told whether the snapshot
-		// contains a legacy key. If not, it writes the truncated state (which is
-		// part of the snapshot metadata) in its unreplicated version. Otherwise
-		// it doesn't have to do anything (the range will migrate later).
-		//
-		// The following diagram visualizes the above. Note that it abuses sequence
-		// diagrams to get a nice layout; the vertical lines belonging to NewState
-		// and OldState don't imply any particular ordering of operations.
-		//
-		// ┌────────┐                            ┌────────┐
-		// │OldState│                            │NewState│
-		// └───┬────┘                            └───┬────┘
-		//     │                        Bootstrap under old version
-		//     │ <─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
-		//     │                                     │
-		//     │                                     │     Bootstrap under new version
-		//     │                                     │ <─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
-		//     │                                     │
-		//     │─ ─ ┐
-		//     │    | Log truncation under old version
-		//     │< ─ ┘
-		//     │                                     │
-		//     │─ ─ ┐                                │
-		//     │    | Snapshot                       │
-		//     │< ─ ┘                                │
-		//     │                                     │
-		//     │                                     │─ ─ ┐
-		//     │                                     │    | Snapshot
-		//     │                                     │< ─ ┘
-		//     │                                     │
-		//     │   Log truncation under new version  │
-		//     │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>│
-		//     │                                     │
-		//     │                                     │─ ─ ┐
-		//     │                                     │    | Log truncation under new version
-		//     │                                     │< ─ ┘
-		//     │                                     │
-		//     │                                     │─ ─ ┐
-		//     │                                     │    | Log truncation under old version
-		//     │                                     │< ─ ┘ (necessarily running new binary)
-		//
-		// Source: http://www.plantuml.com/plantuml/uml/ and the following input:
-		//
-		// @startuml
-		// scale 600 width
-		//
-		// OldState <--] : Bootstrap under old version
-		// NewState <--] : Bootstrap under new version
-		// OldState --> OldState : Log truncation under old version
-		// OldState --> OldState : Snapshot
-		// NewState --> NewState : Snapshot
-		// OldState --> NewState : Log truncation under new version
-		// NewState --> NewState : Log truncation under new version
-		// NewState --> NewState : Log truncation under old version\n(necessarily running new binary)
-		// @enduml
-		Key:     VersionUnreplicatedRaftTruncatedState,
-		Version: roachpb.Version{Major: 2, Minor: 1, Unstable: 6},
-	},
-	{
-		// VersionSideloadedStorageNoReplicaID is https://github.com/cockroachdb/cockroach/pull/35035.
-		//
-		// It moves from a sideloaded directory naming scheme of
-		// <rangeID>.<replicaID> to one that only depends on the rangeID. The
-		// migration itself happens in storage.newDiskSideloadStorage, via
-		// (*Replica).setReplicaIDRaftMuLockedMuLocked and is thus expected to
-		// have completed when cluster version has been bumped and the cluster
-		// restarted at least once post the bump (as calls to NewReplica then
-		// carry out the migration for all replicas). We can thus safely remove
-		// support for the legacy directory scheme in 2020.1 or we do it in
-		// 2019.2 but have to require that all nodes be restarted at least once
-		// while running 2019.1. It is straightforward to detect whether legacy
-		// directories exist, so by adding code to 2020.1 to error out in this
-		// case we can make removal in 2019.2 safe.
-		Key:     VersionSideloadedStorageNoReplicaID,
-		Version: roachpb.Version{Major: 2, Minor: 1, Unstable: 9},
-	},
 	{
 		// Version19_1 is CockroachDB v19.1. It's used for all v19.1.x patch releases.
 		Key:     Version19_1,

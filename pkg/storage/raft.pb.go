@@ -473,14 +473,7 @@ type SnapshotRequest_Header struct {
 	// The type of the snapshot.
 	Type SnapshotRequest_Type `protobuf:"varint,9,opt,name=type,enum=cockroach.storage.SnapshotRequest_Type" json:"type"`
 	// Whether the snapshot uses the unreplicated RaftTruncatedState or not.
-	// This is generally always true at 2.2 and above outside of the migration
-	// phase, though theoretically it could take a long time for all ranges
-	// to update to the new mechanism. This bool is true iff the Raft log at
-	// the snapshot's applied index is using the new key. In particular, it
-	// is true if the index itself carries out the migration (in which case
-	// the data in the snapshot contains neither key).
-	//
-	// See VersionUnreplicatedRaftTruncatedState.
+	// This is always true; the unreplicated key is the only mechanism.
 	UnreplicatedTruncatedState bool `protobuf:"varint,8,opt,name=unreplicated_truncated_state,json=unreplicatedTruncatedState" json:"unreplicated_truncated_state"`
 }
 

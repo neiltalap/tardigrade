@@ -1347,7 +1347,7 @@ func splitTestRange(store *Store, key, splitKey roachpb.RKey, t *testing.T) *Rep
 	cv := store.ClusterSettings().Version.Version().Version
 	_, err = stateloader.WriteInitialState(
 		context.Background(), store.engine, enginepb.MVCCStats{}, *rhsDesc, roachpb.Lease{},
-		hlc.Timestamp{}, cv, stateloader.TruncatedStateUnreplicated,
+		hlc.Timestamp{}, cv,
 	)
 	require.NoError(t, err)
 	newRng, err := NewReplica(rhsDesc, store, 0)
@@ -2911,7 +2911,7 @@ func TestStoreRemovePlaceholderOnRaftIgnored(t *testing.T) {
 	cv := s.ClusterSettings().Version.Version().Version
 	if _, err := stateloader.WriteInitialState(
 		ctx, s.Engine(), enginepb.MVCCStats{}, uninitDesc, roachpb.Lease{},
-		hlc.Timestamp{}, cv, stateloader.TruncatedStateUnreplicated,
+		hlc.Timestamp{}, cv,
 	); err != nil {
 		t.Fatal(err)
 	}

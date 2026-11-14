@@ -35,17 +35,6 @@ type diskSideloadStorage struct {
 	eng        engine.Engine
 }
 
-func deprecatedSideloadedPath(
-	baseDir string, rangeID roachpb.RangeID, replicaID roachpb.ReplicaID,
-) string {
-	return filepath.Join(
-		baseDir,
-		"sideloading",
-		fmt.Sprintf("%d", rangeID%1000), // sharding
-		fmt.Sprintf("%d.%d", rangeID, replicaID),
-	)
-}
-
 func sideloadedPath(baseDir string, rangeID roachpb.RangeID) string {
 	// Use one level of sharding to avoid too many items per directory. For
 	// example, ext3 and older ext4 support only 32k and 64k subdirectories
@@ -61,61 +50,6 @@ func sideloadedPath(baseDir string, rangeID roachpb.RangeID) string {
 	)
 }
 
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
-// moveSideloadedData handles renames of sideloaded directories that precede
-// VersionSideloadedStorageNoReplicaID. Such directories depend on the replicaID
-// which can change, in which case this method needs to be called to move the
-// directory to its new location before instantiating the sideloaded storage for
-// the updated replicaID.
-// The method is aware of the "new" naming scheme that is not dependent on the
-// replicaID (see sideloadedPath) and will not touch them.
-func moveSideloadedData(
-	prevSideloaded SideloadStorage, base string, rangeID roachpb.RangeID, replicaID roachpb.ReplicaID,
-) error {
-	if prevSideloaded == nil || prevSideloaded.Dir() == "" {
-		// No storage or in-memory storage.
-		return nil
-	}
-	prevSideloadedDir := prevSideloaded.Dir()
-
-	if prevSideloadedDir == sideloadedPath(base, rangeID) {
-		// ReplicaID didn't change or already migrated (see below).
-		return nil
-	}
-
-	// The code below is morally dead in a v2019.1 cluster (after an initial
-	// period post the upgrade from 2.1). See the migration notes on the cluster
-	// associated version VersionSideloadedStorageNoReplicaID for details on
-	// when it is actually safe to remove this.
-	ex, err := exists(prevSideloadedDir)
-	if err != nil {
-		return errors.Wrap(err, "looking up previous sideloaded directory")
-	}
-	if !ex {
-		return nil
-	}
-
-	// NB: when the below version is active (and has been active inside of
-	// newDiskSideloadStorage at least once), this block of code is dead as
-	// the sideloaded directory no longer depends on the replica ID and so
-	// equality above will always hold.
-
-	if err := os.Rename(prevSideloadedDir, deprecatedSideloadedPath(base, rangeID, replicaID)); err != nil {
-		return errors.Wrap(err, "moving sideloaded directory")
-	}
-	return nil
-}
-
 func newDiskSideloadStorage(
 	st *cluster.Settings,
 	rangeID roachpb.RangeID,
@@ -124,37 +58,7 @@ func newDiskSideloadStorage(
 	limiter *rate.Limiter,
 	eng engine.Engine,
 ) (*diskSideloadStorage, error) {
-	path := deprecatedSideloadedPath(baseDir, rangeID, replicaID)
-	if st.Version.IsActive(cluster.VersionSideloadedStorageNoReplicaID) {
-		newPath := sideloadedPath(baseDir, rangeID)
-		// NB: this call to exists() is in the hot path when the server starts
-		// as it will be called once for each replica. However, during steady
-		// state (i.e. when the version variable hasn't *just* flipped), we're
-		// expecting `path` to not exist (since it refers to the legacy path at
-		// the moment). A stat call for a directory that doesn't exist isn't
-		// very expensive (on the order of 1000s of ns). For example, on a 2017
-		// MacBook Pro, this case averages ~3245ns and on a gceworker it's
-		// ~1200ns. At 50k replicas, that's on the order of a tenth of a second;
-		// not enough to matter.
-		//
-		// On the other hand, successful (i.e. directory found) calls take ~23k
-		// ns on my laptop, but only around 2.2k ns on the gceworker. Still,
-		// even on the laptop, 50k replicas would only add 1.2s which is also
-		// acceptable given that it'll happen only once.
-		exists, err := exists(path)
-		if err != nil {
-			return nil, errors.Wrap(err, "checking pre-migration sideloaded directory")
-		}
-		if exists {
-			if err := os.MkdirAll(filepath.Dir(newPath), 0755); err != nil {
-				return nil, errors.Wrap(err, "creating migrated sideloaded directory")
-			}
-			if err := os.Rename(path, newPath); err != nil {
-				return nil, errors.Wrap(err, "while migrating sideloaded directory")
-			}
-		}
-		path = newPath
-	}
+	path := sideloadedPath(baseDir, rangeID)
 
 	ss := &diskSideloadStorage{
 		dir:     path,

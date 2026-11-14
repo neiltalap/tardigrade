@@ -248,12 +248,6 @@ func LeaseAppliedIndexLegacyKey(rangeID roachpb.RangeID) roachpb.Key {
 	return MakeRangeIDPrefixBuf(rangeID).LeaseAppliedIndexLegacyKey()
 }
 
-// RaftTruncatedStateLegacyKey returns a system-local key for a RaftTruncatedState.
-// See VersionUnreplicatedRaftTruncatedState.
-func RaftTruncatedStateLegacyKey(rangeID roachpb.RangeID) roachpb.Key {
-	return MakeRangeIDPrefixBuf(rangeID).RaftTruncatedStateLegacyKey()
-}
-
 // RangeFrozenStatusKey returns a system-local key for the frozen status.
 func RangeFrozenStatusKey(rangeID roachpb.RangeID) roachpb.Key {
 	return MakeRangeIDPrefixBuf(rangeID).RangeFrozenStatusKey()
@@ -277,12 +271,6 @@ func RangeStatsLegacyKey(rangeID roachpb.RangeID) roachpb.Key {
 // TODO(tschottdorf): should be renamed to RangeGCThresholdKey.
 func RangeLastGCKey(rangeID roachpb.RangeID) roachpb.Key {
 	return MakeRangeIDPrefixBuf(rangeID).RangeLastGCKey()
-}
-
-// RangeTxnSpanGCThresholdKey returns a system-local key for last used GC
-// threshold on the txn span.
-func RangeTxnSpanGCThresholdKey(rangeID roachpb.RangeID) roachpb.Key {
-	return MakeRangeIDPrefixBuf(rangeID).RangeTxnSpanGCThresholdKey()
 }
 
 // MakeRangeIDUnreplicatedPrefix creates a range-local key prefix from
@@ -899,11 +887,6 @@ func (b RangeIDPrefixBuf) LeaseAppliedIndexLegacyKey() roachpb.Key {
 	return append(b.replicatedPrefix(), LocalLeaseAppliedIndexLegacySuffix...)
 }
 
-// RaftTruncatedStateLegacyKey returns a system-local key for a RaftTruncatedState.
-func (b RangeIDPrefixBuf) RaftTruncatedStateLegacyKey() roachpb.Key {
-	return append(b.replicatedPrefix(), LocalRaftTruncatedStateLegacySuffix...)
-}
-
 // RangeFrozenStatusKey returns a system-local key for the frozen status.
 func (b RangeIDPrefixBuf) RangeFrozenStatusKey() roachpb.Key {
 	return append(b.replicatedPrefix(), LocalRangeFrozenStatusSuffix...)
@@ -924,12 +907,6 @@ func (b RangeIDPrefixBuf) RangeStatsLegacyKey() roachpb.Key {
 // RangeLastGCKey returns a system-local key for the last GC.
 func (b RangeIDPrefixBuf) RangeLastGCKey() roachpb.Key {
 	return append(b.replicatedPrefix(), LocalRangeLastGCSuffix...)
-}
-
-// RangeTxnSpanGCThresholdKey returns a system-local key for last used GC
-// threshold on the txn span.
-func (b RangeIDPrefixBuf) RangeTxnSpanGCThresholdKey() roachpb.Key {
-	return append(b.replicatedPrefix(), LocalTxnSpanGCThresholdSuffix...)
 }
 
 // RaftTombstoneKey returns a system-local key for a raft tombstone.
