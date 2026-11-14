@@ -1219,3 +1219,11 @@ Out of scope but verified identically dead for the sibling loop:
 pkg/util/uuid/fuzz.go (Fuzz, 42 lines) + pkg/util/json/fuzz.go
 (FuzzParseJSON, 21 lines), both gofuzz-tagged with zero refs.
 Gate: go build ./pkg/... + parser/pgwire/sem.tree suites green.
+
+Batch 2 (116 lines): securitytest bindata remainder
+(AssetString/MustAsset/MustAssetString/AssetDigest/Digests/
+AssetNames/RestoreAsset/RestoreAssets/_filePath - pipeline dead
+so hand-trim holds; zero refs incl. tests) + EncodeTableIDIndexID,
+TablesByID, ViewDescriptor/SequenceDescriptor aliases. Kept:
+ColTypeStr (build proved cat.Column membership). Gate: full pkg
+build + security/sqlbase/sql suites green.
