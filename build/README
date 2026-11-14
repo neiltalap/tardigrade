@@ -91,8 +91,8 @@ Go dependencies: edit go.mod by hand (see "Dependencies" above).
 Do not use dep; do not run `go mod tidy`.
 
 C++ dependencies: c-deps/ holds git submodules (jemalloc,
-rocksdb, snappy, protobuf, cryptopp, krb5, libedit,
-googletest) plus the tracked libroach sources. Initialize
+rocksdb, snappy, protobuf, libedit) plus the tracked libroach
+sources. Initialize
 with `git submodule update --init` and build with the
 builder image, e.g. `make libjemalloc libprotobuf
 libsnappy librocksdb libroach` inside

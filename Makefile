@@ -45,7 +45,7 @@ endif
 ## Which package to run tests against, e.g. "./pkg/storage".
 PKG := ./pkg/...
 
-## Tests to run for use with `make test` or `make check-libroach`.
+## Tests to run for use with `make test`.
 TESTS := .
 
 ## Benchmarks to run for use with `make bench`.
@@ -131,8 +131,7 @@ help: ## Print help for targets with comments.
 		"make testlogic TESTCONFIG=local" "Run the logic tests for the cluster configuration 'local'." \
 		"make fuzz" "Run all fuzz tests for 12m each (or whatever the default TESTTIMEOUT is)." \
 		"make fuzz PKG=./pkg/sql/... TESTTIMEOUT=1m" "Run all fuzz tests under the sql directory for 1m each." \
-		"make fuzz PKG=./pkg/sql/sem/tree TESTS=Decimal TESTTIMEOUT=1m" "Run the Decimal fuzz tests in the tree directory for 1m." \
-		"make check-libroach TESTS=ccl" "Run the libroach tests matching .*ccl.*"
+		"make fuzz PKG=./pkg/sql/sem/tree TESTS=Decimal TESTTIMEOUT=1m" "Run the Decimal fuzz tests in the tree directory for 1m."
 
 BUILDTYPE := development
 
@@ -647,12 +646,6 @@ libprotobuf: $(LIBPROTOBUF)
 libsnappy:   $(LIBSNAPPY)
 librocksdb:  $(LIBROCKSDB)
 libroach:    $(LIBROACH)
-
-PHONY: check-libroach
-check-libroach: ## Run libroach tests.
-check-libroach: $(LIBROACH_DIR)/Makefile $(LIBJEMALLOC) $(LIBPROTOBUF) $(LIBSNAPPY) $(LIBROCKSDB)
-	@$(MAKE) --no-print-directory -C $(LIBROACH_DIR)
-	cd $(LIBROACH_DIR) && ctest -V -R $(TESTS)
 
 override TAGS += make $(native-tag)
 
