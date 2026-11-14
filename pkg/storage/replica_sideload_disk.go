@@ -109,7 +109,6 @@ func moveSideloadedData(
 	// newDiskSideloadStorage at least once), this block of code is dead as
 	// the sideloaded directory no longer depends on the replica ID and so
 	// equality above will always hold.
-	_ = cluster.VersionSideloadedStorageNoReplicaID
 
 	if err := os.Rename(prevSideloadedDir, deprecatedSideloadedPath(base, rangeID, replicaID)); err != nil {
 		return errors.Wrap(err, "moving sideloaded directory")
