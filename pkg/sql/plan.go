@@ -124,9 +124,6 @@ type planNode interface {
 	Close(ctx context.Context)
 }
 
-// PlanNode is the exported name for planNode. Useful for CCL hooks.
-type PlanNode = planNode
-
 // planNodeFastPath is implemented by nodes that can perform all their
 // work during startPlan(), possibly affecting even multiple rows. For
 // example, DELETE can do this.

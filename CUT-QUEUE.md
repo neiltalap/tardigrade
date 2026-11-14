@@ -563,3 +563,54 @@ owns submodule pointer bumps); explicit owner sign-off for the
 proto delete.
 
 Owner question: none.
+
+22. sql dead-symbol sweep keeps (verified 2026-11-14, do not re-propose)
+------------------------------------------------------------------------
+Status: SWEPT (record only). A full-fresh scan of the sql scope
+(3222 prod func decls, 2874 type/value decls; comment- and
+string-stripped token counts over all of pkg/ incl. gitignored
+generated outputs + testdata txt) surfaced exactly 4 zero-hit
+funcs and 4 zero-hit types/values; each was adjudicated and the
+5 dead ones landed in CUTS.md (internal_errors.go,
+EncDatumRowContainer, PlanNode alias, IndexedRows,
+CallbackMetadataSource). The keeps below each have a named
+live reason; re-proposing any of them needs new evidence, not
+a re-scan.
+
+Evidence:
+- ErrorHint (pgerror): method required by the
+  errors.ErrorHinter interface (asserted in-file). Keep.
+- notifyStatsRefresherOfNewTables (conn_executor.go): intentional
+  no-op stub retained per entry 15 (stats collection cut, call
+  sites stay). Keep.
+- PlanHookState + PlanHookRowFn + hookFnNode (planhook.go): live
+  plan-hook path (planner implements the interface; hookFnNode
+  referenced from walk/plan/plan_columns). Keep.
+- ClusterSecret + ClusterOrganization (exec_util.go): live
+  registered settings (bootstrap SETs cluster.secret; logictest
+  system/show_source/event_log/prepare rows assert both names;
+  pgwire/cli tests set them). The Go vars ARE the registration;
+  removing them deletes the settings. Keep.
+- IndexedRow / IndexedRowContainer / GetDatums (tree,
+  rowcontainer): load-bearing per entries 18/21 (GetRow returns
+  tree.IndexedRow; container used by flowinfra/rowflow tests).
+  Only the plural IndexedRows interface was dead (cut). Keep.
+- PlanNode prose hits (row_source_to_plan_node.go:23-24): English
+  comments, not references to the deleted alias. Keep as prose.
+- Everything with exactly one code caller (single-file hits like
+  RefreshTableStats, addAggregations, IsOffset, ColNamesString,
+  cancelCheckCount, distBackfill-adjacent helpers, serial.go
+  vars, rowcontainer internals, builtin impls): caller verified
+  in-file in each case. Live. Keep.
+- Test-only callers (GenerateValuesSpec, MakeStmtBufReader,
+  SyncSchemaChangersFilter incl. drop/rename/lease/descriptor
+  test users, getRowWithoutCache): deleting the prod symbol
+  requires deleting tests - forbidden. Keep.
+- Compat-registered settings (Vectorize*, zigzagJoinClusterMode,
+  optDrivenFKClusterMode, ReorderJoinsLimit*): registration has
+  testdata/test callers; retained deliberately with honest
+  comments. Keep.
+
+Decision required: none. Close as reference.
+
+Owner question: none.

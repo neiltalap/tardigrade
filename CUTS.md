@@ -1255,3 +1255,39 @@ Cut batch 2026-11-14, util/roachpb scope (2 commits, 228 lines)
   No CUT-QUEUE tombstone: neither batch corresponds to an open
   queue entry (SpanGroup was never queued; the fuzz pair was a
   dace30f/9f229f5 sibling-note handoff, not a queue item).
+
+Cut batch 2026-11-14, sql dead-symbol sweep (1 commit, 94 lines)
+================================================================
+
+  - Five zero-caller symbols, each verified dead by filesystem
+    grep over pkg/ (gitignored optgen/goyacc outputs included),
+    both quote forms, plus Makefile/build/scripts/testdata screens
+    and an interface-satisfaction audit (commit, 94 deletions):
+    pkg/sql/pgwire/pgerror/internal_errors.go whole-file delete
+    (NewInternalTrackingError, telemetry-era constructor; only
+    remaining mention is a TODO comment in crdb_internal.go);
+    EncDatumRowContainer + Peek/Pop/Push/Reset/IsEmpty in
+    sqlbase/encoded_datum.go (cyclical row buffer; type named
+    nowhere else, so methods are unreachable; EncDatumRows and
+    EncDatumRowAlloc stay); PlanNode alias in plan.go (exported
+    alias "for CCL hooks", CCL tree gone, zero code refs - the
+    two row_source_to_plan_node.go hits are English prose);
+    IndexedRows interface in sem/tree/indexed_rows.go (only code
+    hits are its own decl; the three rowcontainer hits are
+    comments; IndexedRow/IndexedRowContainer load-bearing and
+    stay; orphaned `context` import removed with it);
+    CallbackMetadataSource + DrainMeta in
+    execinfrapb/testutils.go (test helper struct never
+    constructed; MetadataSource interface and its live
+    implementers untouched). No tests or testdata touched.
+    Reason BLOAT. Risk none. Green: build clean on all five
+    packages; pgerror/tree/execinfrapb/sqlbase suites PASS;
+    full pkg/sql suite PASS (60s). One transient red during the
+    gate (storage/batcheval `cluster.Version...` undefined)
+    re-PASSed on retry with zero tree changes - sibling mid-edit
+    in another scope, not this batch. Pool note: full-fresh
+    lexer scan (3222 in-scope func decls, 2874 type/value decls,
+    comments+strings stripped) surfaced only these plus
+    adjudicated keeps (see CUT-QUEUE tombstone 22); the sql
+    dead-code pool from entry 21 is now independently confirmed
+    exhausted at this granularity.

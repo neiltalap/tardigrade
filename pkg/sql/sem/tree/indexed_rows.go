@@ -10,14 +10,6 @@
 
 package tree
 
-import "context"
-
-// IndexedRows are rows with the corresponding indices.
-type IndexedRows interface {
-	Len() int                                                // returns number of rows
-	GetRow(ctx context.Context, idx int) (IndexedRow, error) // returns a row at the given index or an error
-}
-
 // IndexedRow is a row with a corresponding index.
 type IndexedRow interface {
 	GetIdx() int                                    // returns index of the row
