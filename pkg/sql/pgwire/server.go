@@ -639,5 +639,5 @@ func parseOptions(ctx context.Context, data []byte) (sql.SessionArgs, error) {
 }
 
 func newAdminShutdownErr(msg string) error {
-	return pgerror.Newf(pgcode.AdminShutdown, msg)
+	return pgerror.Newf(pgcode.AdminShutdown, "%s", msg)
 }

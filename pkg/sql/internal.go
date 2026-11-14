@@ -466,10 +466,10 @@ func (ie *internalExecutorImpl) execInternal(
 		// case we need to leave the error intact so that it can be retried at a
 		// higher level.
 		if retErr != nil && !errIsRetriable(retErr) {
-			retErr = errors.Wrapf(retErr, opName)
+			retErr = errors.Wrapf(retErr, "%s", opName)
 		}
 		if retRes.err != nil && !errIsRetriable(retRes.err) {
-			retRes.err = errors.Wrapf(retRes.err, opName)
+			retRes.err = errors.Wrapf(retRes.err, "%s", opName)
 		}
 	}()
 

@@ -191,7 +191,7 @@ func (s *statusServer) Gossip(
 	ctx = s.AnnotateCtx(ctx)
 	nodeID, local, err := s.parseNodeID(req.NodeId)
 	if err != nil {
-		return nil, grpcstatus.Errorf(codes.InvalidArgument, err.Error())
+		return nil, grpcstatus.Errorf(codes.InvalidArgument, "%s", err.Error())
 	}
 
 	if local {
@@ -259,7 +259,7 @@ func (s *statusServer) Nodes(
 	b.Scan(startKey, endKey)
 	if err := s.db.Run(ctx, b); err != nil {
 		log.Error(ctx, err)
-		return nil, grpcstatus.Errorf(codes.Internal, err.Error())
+		return nil, grpcstatus.Errorf(codes.Internal, "%s", err.Error())
 	}
 	rows := b.Results[0].Rows
 
@@ -269,7 +269,7 @@ func (s *statusServer) Nodes(
 	for i, row := range rows {
 		if err := row.ValueProto(&resp.Nodes[i]); err != nil {
 			log.Error(ctx, err)
-			return nil, grpcstatus.Errorf(codes.Internal, err.Error())
+			return nil, grpcstatus.Errorf(codes.Internal, "%s", err.Error())
 		}
 	}
 	return &resp, nil
@@ -317,7 +317,7 @@ func (s *statusServer) Node(
 	ctx = s.AnnotateCtx(ctx)
 	nodeID, _, err := s.parseNodeID(req.NodeId)
 	if err != nil {
-		return nil, grpcstatus.Errorf(codes.InvalidArgument, err.Error())
+		return nil, grpcstatus.Errorf(codes.InvalidArgument, "%s", err.Error())
 	}
 
 	key := keys.NodeStatusKey(nodeID)
@@ -325,14 +325,14 @@ func (s *statusServer) Node(
 	b.Get(key)
 	if err := s.db.Run(ctx, b); err != nil {
 		log.Error(ctx, err)
-		return nil, grpcstatus.Errorf(codes.Internal, err.Error())
+		return nil, grpcstatus.Errorf(codes.Internal, "%s", err.Error())
 	}
 
 	var nodeStatus statuspb.NodeStatus
 	if err := b.Results[0].Rows[0].ValueProto(&nodeStatus); err != nil {
 		err = errors.Errorf("could not unmarshal NodeStatus from %s: %s", key, err)
 		log.Error(ctx, err)
-		return nil, grpcstatus.Errorf(codes.Internal, err.Error())
+		return nil, grpcstatus.Errorf(codes.Internal, "%s", err.Error())
 	}
 	return &nodeStatus, nil
 }
@@ -543,7 +543,7 @@ func (s *statusServer) CancelSession(
 	nodeID, local, err := s.parseNodeID(req.NodeId)
 
 	if err != nil {
-		return nil, grpcstatus.Errorf(codes.InvalidArgument, err.Error())
+		return nil, grpcstatus.Errorf(codes.InvalidArgument, "%s", err.Error())
 	}
 
 	if !local {
@@ -585,7 +585,7 @@ func (s *statusServer) CancelQuery(
 	nodeID, local, err := s.parseNodeID(req.NodeId)
 
 	if err != nil {
-		return nil, grpcstatus.Errorf(codes.InvalidArgument, err.Error())
+		return nil, grpcstatus.Errorf(codes.InvalidArgument, "%s", err.Error())
 	}
 
 	if !local {

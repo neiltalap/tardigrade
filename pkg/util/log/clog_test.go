@@ -423,7 +423,7 @@ func TestListLogFiles(t *testing.T) {
 	}
 
 	if len(results) != 1 || results[0].Name != expectedName {
-		t.Fatalf("unexpected results: %q", results)
+		t.Fatalf("unexpected results: %v", results)
 	}
 }
 

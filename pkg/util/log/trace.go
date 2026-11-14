@@ -151,7 +151,7 @@ func eventInternal(ctx context.Context, isErr, withTags bool, format string, arg
 // message to it. If no Trace is found, it looks for an EventLog in the context
 // and logs the message to it. If neither is found, does nothing.
 func Event(ctx context.Context, msg string) {
-	eventInternal(ctx, false /* isErr */, true /* withTags */, msg)
+	eventInternal(ctx, false /* isErr */, true /* withTags */, "%s", msg)
 }
 
 // Eventf looks for an opentracing.Trace in the context and formats and logs
@@ -180,7 +180,7 @@ func vEventf(
 // active trace or event log) or to the trace/event log alone, depending on
 // whether the specified verbosity level is active.
 func VEvent(ctx context.Context, level int32, msg string) {
-	vEventf(ctx, false /* isErr */, 1, level, msg)
+	vEventf(ctx, false /* isErr */, 1, level, "%s", msg)
 }
 
 // VEventf either logs a message to the log files (which also outputs to the
@@ -200,7 +200,7 @@ func VEventfDepth(ctx context.Context, depth int, level int32, format string, ar
 // to the active trace or event log) or to the trace/event log alone, depending
 // on whether the specified verbosity level is active.
 func VErrEvent(ctx context.Context, level int32, msg string) {
-	vEventf(ctx, true /* isErr */, 1, level, msg)
+	vEventf(ctx, true /* isErr */, 1, level, "%s", msg)
 }
 
 // VErrEventf either logs an error message to the log files (which also outputs

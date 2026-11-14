@@ -229,7 +229,7 @@ func (c *sqlConn) checkServerMetadata() error {
 			cv, err := version.Parse(client.Tag)
 			if err == nil {
 				if sv.Compare(cv) == -1 { // server ver < client ver
-					fmt.Fprintln(stderr, "\nwarning: server version older than client! "+
+					fmt.Fprint(stderr, "\nwarning: server version older than client! "+
 						"proceed with caution; some features may not be available.\n")
 				}
 			}

@@ -142,5 +142,5 @@ func diffGoroutines(base map[int64]string) error {
 	for _, g := range leaked {
 		b.WriteString(fmt.Sprintf("Leaked goroutine: %v\n\n", g))
 	}
-	return fmt.Errorf(b.String())
+	return fmt.Errorf("%s", b.String())
 }

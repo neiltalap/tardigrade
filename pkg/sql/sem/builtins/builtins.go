@@ -68,7 +68,7 @@ var (
 	errChrValueTooLarge = pgerror.Newf(pgcode.InvalidParameterValue,
 		"input value must be <= %d (maximum Unicode code point)", utf8.MaxRune)
 	errStringTooLarge = pgerror.Newf(pgcode.ProgramLimitExceeded,
-		fmt.Sprintf("requested length too large, exceeds %s", humanizeutil.IBytes(maxAllocatedStringSize)))
+		"requested length too large, exceeds %s", humanizeutil.IBytes(maxAllocatedStringSize))
 )
 
 const maxAllocatedStringSize = 128 * 1024 * 1024

@@ -178,7 +178,7 @@ func (s *authenticationServer) UserLogout(
 	} else if n == 0 {
 		msg := fmt.Sprintf("session with id %d nonexistent", sessionID)
 		log.Info(ctx, msg)
-		return nil, fmt.Errorf(msg)
+		return nil, fmt.Errorf("%s", msg)
 	}
 
 	// Send back a header which will cause the browser to destroy the cookie.

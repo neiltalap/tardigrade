@@ -117,5 +117,5 @@ func (l *SecondaryLogger) Logf(ctx context.Context, format string, args ...inter
 
 // LogSev logs an event at the specified severity on a secondary logger.
 func (l *SecondaryLogger) LogSev(ctx context.Context, sev Severity, args ...interface{}) {
-	l.output(ctx, Severity_INFO, "", args...)
+	l.output(ctx, Severity_INFO, "%s", fmt.Sprint(args...))
 }

@@ -15,6 +15,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 	"sync/atomic"
 	"testing"
 
@@ -199,12 +200,12 @@ func TestReadOnlyBasics(t *testing.T) {
 		}
 		shouldPanic(t, func() { b.Close() }, "Close", "closing an already-closed rocksDBReadOnly")
 		for i, f := range successTestCases {
-			shouldPanic(t, f, string(i), "using a closed rocksDBReadOnly")
+			shouldPanic(t, f, strconv.Itoa(i), "using a closed rocksDBReadOnly")
 		}
 	}()
 
 	for i, f := range successTestCases {
-		shouldNotPanic(t, f, string(i))
+		shouldNotPanic(t, f, strconv.Itoa(i))
 	}
 
 	// For a read-only ReadWriter, all Writer methods should panic.
@@ -217,7 +218,7 @@ func TestReadOnlyBasics(t *testing.T) {
 		func() { _ = b.Put(a, nil) },
 	}
 	for i, f := range failureTestCases {
-		shouldPanic(t, f, string(i), "not implemented")
+		shouldPanic(t, f, strconv.Itoa(i), "not implemented")
 	}
 
 	if err := e.Put(mvccKey("a"), []byte("value")); err != nil {

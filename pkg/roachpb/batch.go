@@ -21,7 +21,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate go run -tags gen-batch gen_batch.go
+//go:generate go run -tags genbatch gen_batch.go
 
 // SetActiveTimestamp sets the correct timestamp at which the request
 // is to be carried out. For transactional requests, ba.Timestamp must

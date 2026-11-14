@@ -588,7 +588,7 @@ func (rlq *raftLogQueue) process(ctx context.Context, r *Replica, _ *config.Syst
 		}
 		r.store.metrics.RaftLogTruncated.Inc(int64(decision.NumTruncatableIndexes()))
 	} else {
-		log.VEventf(ctx, 3, decision.String())
+		log.VEventf(ctx, 3, "%s", decision.String())
 	}
 	return nil
 }

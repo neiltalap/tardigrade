@@ -9,9 +9,11 @@
 // licenses/APL.txt.
 
 // This file generates batch_generated.go. It can be run via:
-//    go run -tags gen-batch gen_batch.go
+//    go run -tags genbatch gen_batch.go
 
-// +build gen-batch
+//go:build genbatch
+
+// +build genbatch
 
 package main
 

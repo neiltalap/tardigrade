@@ -1175,7 +1175,7 @@ func BenchmarkPeekType(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		typ = PeekType(buf)
 	}
-	sink = string(typ)
+	sink = string(rune(typ))
 }
 
 type randData struct {
