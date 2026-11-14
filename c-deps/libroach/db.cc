@@ -272,11 +272,6 @@ DBStatus DBCreateCheckpoint(DBEngine* db, DBSlice dir) {
   return ToDBStatus(status);
 }
 
-DBStatus DBDestroy(DBSlice dir) {
-  rocksdb::Options options;
-  return ToDBStatus(rocksdb::DestroyDB(ToString(dir), options));
-}
-
 DBStatus DBClose(DBEngine* db) {
   DBStatus status = db->AssertPreClose();
   if (status.data == nullptr) {
@@ -431,11 +426,6 @@ DBStatus DBCompactRange(DBEngine* db, DBSlice start, DBSlice end, bool force_bot
 
 DBStatus DBDisableAutoCompaction(DBEngine* db) {
   auto status = db->rep->SetOptions({{"disable_auto_compactions", "true"}});
-  return ToDBStatus(status);
-}
-
-DBStatus DBEnableAutoCompaction(DBEngine* db) {
-  auto status = db->rep->EnableAutoCompaction({db->rep->DefaultColumnFamily()});
   return ToDBStatus(status);
 }
 

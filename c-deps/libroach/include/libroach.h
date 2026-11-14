@@ -110,10 +110,6 @@ DBStatus DBCreateCheckpoint(DBEngine* db, DBSlice dir);
 // C++ types.
 void DBSetOpenHook(void* hook);
 
-// Destroys the database located in "dir". As the name implies, this
-// operation is destructive. Use with caution.
-DBStatus DBDestroy(DBSlice dir);
-
 // Closes the database, freeing memory and other resources.
 DBStatus DBClose(DBEngine* db);
 
@@ -133,11 +129,10 @@ DBStatus DBCompact(DBEngine* db);
 // If end is empty, it indicates the end of the database.
 DBStatus DBCompactRange(DBEngine* db, DBSlice start, DBSlice end, bool force_bottommost);
 
-// Disable/enable automatic compactions. Automatic compactions are
+// Disable automatic compactions. Automatic compactions are
 // enabled by default. Disabling is provided for testing purposes so
 // that automatic compactions do not interfere with test expectations.
 DBStatus DBDisableAutoCompaction(DBEngine* db);
-DBStatus DBEnableAutoCompaction(DBEngine* db);
 
 // Stores the approximate on-disk size of the given key range into the
 // supplied uint64.
