@@ -16,8 +16,6 @@ import (
 
 	"github.com/podomy/tardigrade/pkg/roachpb"
 	"github.com/podomy/tardigrade/pkg/settings"
-	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgcode"
-	"github.com/podomy/tardigrade/pkg/sql/pgwire/pgerror"
 	"github.com/podomy/tardigrade/pkg/util/log"
 	"github.com/podomy/tardigrade/pkg/util/protoutil"
 	"github.com/podomy/tardigrade/pkg/util/tracing"
@@ -203,23 +201,6 @@ func (ecv *ExposedClusterVersion) BootstrapVersion() ClusterVersion {
 func (ecv *ExposedClusterVersion) IsActive(versionKey VersionKey) bool {
 	return ecv.Version().IsActive(versionKey)
 }
-
-// CheckVersion is like IsActive but returns an appropriate error in the
-// case of a cluster version which is too low.
-func (ecv *ExposedClusterVersion) CheckVersion(versionKey VersionKey, feature string) error {
-	if !ecv.Version().IsActive(versionKey) {
-		return pgerror.Newf(
-			pgcode.FeatureNotSupported,
-			"cluster version does not support %s (>= %s required)",
-			feature,
-			VersionByKey(versionKey).String(),
-		)
-	}
-	return nil
-}
-
-// Silence unused warning.
-var _ = (*ExposedClusterVersion)(nil).CheckVersion
 
 // MakeTestingClusterSettings returns a Settings object that has had its version
 // initialized to BinaryServerVersion.
