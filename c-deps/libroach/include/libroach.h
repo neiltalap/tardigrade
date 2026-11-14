@@ -400,10 +400,8 @@ typedef struct {
 } DBEncryptionRegistries;
 
 DBStatus DBGetStats(DBEngine* db, DBStatsResult* stats);
-DBStatus DBGetTickersAndHistograms(DBEngine* db, DBTickersAndHistogramsResult* stats);
 DBString DBGetCompactionStats(DBEngine* db);
 DBStatus DBGetEnvStats(DBEngine* db, DBEnvStatsResult* stats);
-DBStatus DBGetEncryptionRegistries(DBEngine* db, DBEncryptionRegistries* result);
 
 typedef struct {
   int level;
