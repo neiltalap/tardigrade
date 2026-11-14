@@ -49,7 +49,6 @@ const (
 	// 4-byte count of the number of entries in the batch.
 	headerSize       int = 12
 	countPos             = 8
-	initialBatchSize     = 1 << 10 // 1 KB
 )
 
 // RocksDBBatchBuilder is used to construct the RocksDB batch representation.

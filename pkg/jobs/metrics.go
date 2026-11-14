@@ -25,12 +25,7 @@ type Metrics struct {
 func (Metrics) MetricStruct() {}
 
 // InitHooks initializes the metrics for job monitoring.
+// (The changefeed-metrics hook for CCL registration was removed; no
+// hooks remain.)
 func (m *Metrics) InitHooks(histogramWindowInterval time.Duration) {
-	if MakeChangefeedMetricsHook != nil {
-		m.Changefeed = MakeChangefeedMetricsHook(histogramWindowInterval)
-	}
 }
-
-// MakeChangefeedMetricsHook allows for registration of changefeed metrics from
-// ccl code.
-var MakeChangefeedMetricsHook func(time.Duration) metric.Struct
