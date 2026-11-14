@@ -104,6 +104,29 @@ Next steps: in-builder go1.12 can no longer build Go
 code (no -mod=mod, module re-resolution fails), so the
 builder image is C++-only now; any flow that invoked
 `make buildoss` inside it must use the host toolchain.
+Rebase onto tardigrade-main bf1983b (43 commits of
+enterprise purges and deadcode cuts; no new Go imports,
+so no go.mod pin additions were needed): 7 spike commits
+replayed, 4 conflicts needing judgment. (1) build.go:
+main deleted VerifyTransitiveWhitelist as dead code, so
+the merge keeps main's file plus only the module-mode
+machinery (useModules/listNode/verifyNoImportsModules).
+(2) optbuilder/join.go: both lines converged on the same
+honest MERGE-hint panic; kept main's wording. (3)
+Makefile upload-coverage: main cut
+build/upload-coverage.sh, so main's disabled-stub recipe
+stands (spike's script call would reference a deleted
+file). (4) Makefile bootstrap: dropped the GOPATH ifeq
+entirely (spike side). New red inherited from main, kept
+per the source-truth rule, follow-up for the owning
+loop: memo TestStats and exprgen TestExprGen fail with
+"unknown operator or function MakeLookupJoin /
+MinPhysProps / ProjectionItem" because main's deadcode
+wave removed those customFuncs methods from
+optgen/exprgen/custom_funcs.go while leaving the
+testdata references; the harness resolves names by
+reflection (expr_gen.go), so this is red on main by
+construction. Everything else in the gate stays green.
 Fixes made along the way, all committed on this branch:
 datadriven pinned to the locked May revision (etcd pulls
 an August one whose golden format differs), MERGE-hint
