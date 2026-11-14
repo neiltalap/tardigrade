@@ -147,10 +147,6 @@ rocksdb::Status DBOpenHookOSS(std::shared_ptr<rocksdb::Logger> info_log, const s
 
 }  // namespace cockroach
 
-static DBOpenHook* db_open_hook = DBOpenHookOSS;
-
-void DBSetOpenHook(void* hook) { db_open_hook = (DBOpenHook*)hook; }
-
 DBStatus DBOpen(DBEngine** db, DBSlice dir, DBOptions db_opts) {
   rocksdb::Options options = DBMakeOptions(db_opts);
 
@@ -228,8 +224,8 @@ DBStatus DBOpen(DBEngine** db, DBSlice dir, DBOptions db_opts) {
     }
   }
 
-  // Call hooks to handle db_opts.extra_options.
-  auto hook_status = db_open_hook(options.info_log, db_dir, db_opts, env_mgr.get());
+  // Reject encryption options in OSS builds (no CCL hook remains).
+  auto hook_status = DBOpenHookOSS(options.info_log, db_dir, db_opts, env_mgr.get());
   if (!hook_status.ok()) {
     return ToDBStatus(hook_status);
   }
